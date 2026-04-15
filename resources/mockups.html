@@ -1,0 +1,1667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tilted — Classic Premium · Full Mockups v1.0</title>
+<style>
+  /* ===============================================================
+     DESIGN TOKENS
+     =============================================================== */
+  :root {
+    /* Felt greens */
+    --felt-900: #051c15;
+    --felt-800: #082a21;
+    --felt-700: #0e3b2e;
+    --felt-600: #164a3a;
+    --felt-500: #1a5a43;
+
+    /* Gold */
+    --gold-500: #d4b368;
+    --gold-600: #c9a961;
+    --gold-700: #a88334;
+    --gold-800: #7a5f2b;
+
+    /* Cream / text */
+    --cream-50: #f6f1e1;
+    --cream-100: #f3ecd6;
+    --cream-200: #d9cfb2;
+    --cream-300: #9eb7a4;
+    --cream-400: #6a8a7a;
+
+    /* Accents */
+    --claret: #c44d42;
+    --card-red: #c92b2b;
+    --card-black: #111;
+
+    /* Page chrome (dev doc) */
+    --page-bg: #15161a;
+    --page-fg: #e8e6df;
+    --muted: #8a8a8a;
+    --rule: #2a2a30;
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--page-bg);
+    color: var(--page-fg);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ===============================================================
+     DOC CHROME
+     =============================================================== */
+  header.page {
+    padding: 56px 48px 24px;
+    max-width: 1400px; margin: 0 auto;
+  }
+  header.page .eyebrow {
+    font-size: 11px; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--gold-500); margin-bottom: 10px;
+  }
+  header.page h1 {
+    font-family: "Georgia", "Times New Roman", serif;
+    font-weight: 400; font-size: 40px; letter-spacing: -0.5px; margin: 0 0 8px;
+  }
+  header.page p {
+    color: var(--muted); font-size: 14px; line-height: 1.7; max-width: 680px; margin: 0;
+  }
+
+  .section {
+    padding: 40px 48px;
+    max-width: 1400px; margin: 0 auto;
+    border-top: 1px solid var(--rule);
+  }
+  .section h2 {
+    font-size: 12px; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--muted); font-weight: 500; margin: 0 0 6px;
+  }
+  .section h3 {
+    font-family: "Georgia", serif; font-weight: 400; font-size: 26px;
+    margin: 0 0 6px; letter-spacing: -0.3px;
+  }
+  .section .desc {
+    color: var(--muted); font-size: 13px; max-width: 720px; line-height: 1.65; margin: 0 0 28px;
+  }
+
+  /* Token swatches */
+  .tokens {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px; margin-bottom: 16px;
+  }
+  .token {
+    border: 1px solid var(--rule); border-radius: 10px; padding: 12px;
+    background: #1a1b20;
+  }
+  .token .swatch {
+    width: 100%; height: 48px; border-radius: 6px; margin-bottom: 8px;
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+  .token .name { font-family: "SF Mono", Menlo, monospace; font-size: 11px; color: var(--page-fg); }
+  .token .hex  { font-family: "SF Mono", Menlo, monospace; font-size: 10px; color: var(--muted); }
+
+  .type-specimens {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 14px;
+  }
+  .type-specimen {
+    border: 1px solid var(--rule); border-radius: 10px; padding: 16px; background: #1a1b20;
+  }
+  .type-specimen .label { font-size: 10px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-bottom: 6px; }
+  .type-specimen .sample-display { font-family: Georgia, serif; font-size: 30px; line-height: 1.1; color: var(--page-fg); }
+  .type-specimen .sample-body { font-size: 14px; line-height: 1.5; color: var(--page-fg); }
+  .type-specimen .sample-eyebrow { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--gold-500); }
+  .type-specimen .meta { font-family: "SF Mono", Menlo, monospace; font-size: 11px; color: var(--muted); margin-top: 10px; }
+
+  /* Mockup grid */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 300px));
+    gap: 44px 32px;
+    justify-content: start;
+  }
+
+  /* ===============================================================
+     PHONE FRAME
+     =============================================================== */
+  .phone-wrap { display: flex; flex-direction: column; align-items: center; }
+  .phone {
+    width: 300px; height: 640px; border-radius: 44px; padding: 10px;
+    background: #0a0a0b;
+    box-shadow:
+      0 20px 60px rgba(0, 0, 0, 0.55),
+      inset 0 0 0 1.5px #2a2a2e;
+    position: relative; overflow: hidden;
+  }
+  .phone .screen {
+    width: 100%; height: 100%; border-radius: 34px; overflow: hidden; position: relative;
+  }
+  .phone .notch {
+    position: absolute; top: 18px; left: 50%; transform: translateX(-50%);
+    width: 90px; height: 24px; background: #0a0a0b; border-radius: 14px; z-index: 10;
+  }
+  .phone .home-indicator {
+    position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+    width: 110px; height: 4px; border-radius: 2px;
+    background: rgba(243,236,214,0.5); z-index: 10;
+  }
+  .phone .status-bar {
+    height: 44px; display: flex; align-items: center; justify-content: space-between;
+    padding: 0 28px; font-size: 13px; font-weight: 600; position: relative; z-index: 5;
+    color: var(--cream-200);
+  }
+  .phone .status-bar .right { display: flex; gap: 6px; align-items: center; }
+  .label {
+    margin-top: 12px; font-size: 11px; color: var(--page-fg); text-align: center;
+    font-family: "SF Mono", Menlo, monospace; letter-spacing: 0.3px;
+  }
+  .label .num { color: var(--gold-500); margin-right: 6px; }
+  .label .note { display: block; color: var(--muted); font-size: 10px; margin-top: 3px; max-width: 260px; margin-left: auto; margin-right: auto; line-height: 1.5; }
+
+  /* ===============================================================
+     CLASSIC PREMIUM (dark felt) — shared screen styles
+     =============================================================== */
+  .felt {
+    background:
+      radial-gradient(ellipse at 50% 0%, var(--felt-500) 0%, var(--felt-700) 55%, var(--felt-800) 100%);
+    color: var(--cream-100);
+    font-family: -apple-system, "SF Pro Text", sans-serif;
+    position: relative;
+  }
+  .felt::before {
+    /* subtle felt texture: noise-ish via layered radial specks */
+    content: ""; position: absolute; inset: 0;
+    background-image:
+      radial-gradient(circle at 25% 30%, rgba(0,0,0,0.15) 0, transparent 0.8px),
+      radial-gradient(circle at 75% 70%, rgba(0,0,0,0.12) 0, transparent 0.8px),
+      radial-gradient(circle at 50% 50%, rgba(201,169,97,0.04) 0, transparent 1px);
+    background-size: 3px 3px, 4px 4px, 6px 6px;
+    opacity: 0.6; pointer-events: none;
+  }
+  .felt > * { position: relative; z-index: 1; }
+
+  .body-pad { padding: 16px 18px; }
+  .stack-8 > * + * { margin-top: 8px; }
+  .stack-12 > * + * { margin-top: 12px; }
+  .stack-16 > * + * { margin-top: 16px; }
+  .spacer-4 { height: 4px; }
+  .spacer-8 { height: 8px; }
+  .spacer-12 { height: 12px; }
+  .spacer-16 { height: 16px; }
+  .spacer-24 { height: 24px; }
+
+  .serif { font-family: Georgia, "Times New Roman", serif; }
+  .gold { color: var(--gold-500); }
+  .muted-cream { color: var(--cream-300); }
+
+  .eyebrow {
+    font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--cream-300);
+  }
+
+  .thin-rule {
+    height: 1px; margin: 14px 0;
+    background: linear-gradient(to right, transparent, var(--gold-600), transparent);
+    opacity: 0.7;
+  }
+
+  /* Primary / secondary buttons */
+  .btn-primary {
+    display: block; width: 100%; padding: 15px 18px;
+    background: linear-gradient(180deg, var(--gold-500), var(--gold-700));
+    color: var(--felt-800); font-weight: 700; text-align: center;
+    letter-spacing: 0.3px; border-radius: 12px;
+    box-shadow:
+      0 4px 0 rgba(0,0,0,0.25),
+      inset 0 1px 0 rgba(255,255,255,0.3);
+    font-size: 15px;
+  }
+  .btn-secondary {
+    display: block; width: 100%; padding: 14px;
+    background: transparent; color: var(--cream-200);
+    text-align: center; border-radius: 12px;
+    border: 1px solid rgba(201,169,97,0.3); font-size: 14px;
+  }
+  .btn-ghost {
+    display: block; width: 100%; padding: 12px; text-align: center;
+    color: var(--cream-300); font-size: 13px;
+  }
+  .btn-danger {
+    display: block; width: 100%; padding: 14px;
+    background: transparent; color: var(--claret);
+    border: 1px solid rgba(196,77,66,0.5); border-radius: 12px;
+    text-align: center; font-size: 14px;
+  }
+
+  /* Avatar */
+  .avatar {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--gold-500), var(--gold-800));
+    color: var(--felt-700); font-weight: 700;
+    font-family: Georgia, serif; font-size: 15px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .avatar.lg { width: 56px; height: 56px; font-size: 20px; }
+  .avatar.sm { width: 28px; height: 28px; font-size: 11px; }
+
+  /* Chip-badge */
+  .chip-badge {
+    background: rgba(0,0,0,0.28);
+    border: 1px solid rgba(201,169,97,0.3);
+    border-radius: 10px; padding: 10px 12px;
+    font-variant-numeric: tabular-nums;
+  }
+  .chip-badge .lbl { font-size: 9px; letter-spacing: 1.5px; color: var(--cream-300); text-transform: uppercase; }
+  .chip-badge .val { font-family: Georgia, serif; font-size: 22px; color: var(--cream-100); line-height: 1.15; }
+  .chip-badge .sub { font-size: 10px; color: var(--cream-300); }
+
+  /* Playing-card face */
+  .card-face {
+    width: 30px; height: 42px; border-radius: 5px;
+    background: var(--cream-50);
+    display: inline-flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 2px 0; margin-right: 4px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    font-family: Georgia, serif; font-weight: 700;
+    flex-shrink: 0;
+  }
+  .card-face .rank { font-size: 13px; line-height: 1; }
+  .card-face .suit { font-size: 13px; line-height: 1; }
+  .card-face.red .rank, .card-face.red .suit { color: var(--card-red); }
+  .card-face.blk .rank, .card-face.blk .suit { color: var(--card-black); }
+  .card-face.back {
+    background:
+      repeating-linear-gradient(45deg, var(--felt-600) 0 3px, var(--felt-700) 3px 6px);
+    border: 1.5px solid var(--gold-600);
+  }
+  .card-face.placeholder {
+    background: transparent; border: 1.5px dashed rgba(201,169,97,0.35);
+    box-shadow: none; color: var(--cream-300);
+  }
+  .card-face.sm { width: 24px; height: 34px; }
+  .card-face.sm .rank, .card-face.sm .suit { font-size: 10px; }
+
+  /* Hand tile */
+  .hand-tile {
+    background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(0,0,0,0.2));
+    border: 1px solid rgba(201,169,97,0.22);
+    border-radius: 14px; padding: 12px 14px;
+  }
+  .hand-tile.active {
+    border-color: rgba(212,179,104,0.7);
+    box-shadow: 0 0 0 1px rgba(212,179,104,0.2), 0 2px 20px rgba(212,179,104,0.1);
+  }
+  .hand-tile.dimmed { opacity: 0.5; }
+  .hand-tile.resolved { opacity: 0.7; }
+
+  /* Action buttons row */
+  .act-row { display: flex; gap: 6px; font-size: 12px; }
+  .act-btn {
+    flex: 1; padding: 9px; text-align: center; border-radius: 8px;
+    background: rgba(0,0,0,0.25); border: 1px solid rgba(201,169,97,0.25);
+    color: var(--cream-100); font-weight: 500;
+  }
+  .act-btn.primary {
+    background: rgba(212,179,104,0.18); border-color: rgba(212,179,104,0.6); color: var(--gold-500);
+  }
+
+  /* Modal sheet */
+  .sheet {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(180deg, var(--felt-700), var(--felt-900));
+    border-top: 1px solid var(--gold-600);
+    border-radius: 22px 22px 0 0;
+    padding: 20px 18px 32px;
+    z-index: 3;
+    box-shadow: 0 -12px 40px rgba(0,0,0,0.4);
+  }
+  .sheet .handle {
+    width: 36px; height: 4px; border-radius: 2px;
+    background: rgba(243,236,214,0.35);
+    margin: 0 auto 12px;
+  }
+  .dim {
+    position: absolute; inset: 0; background: rgba(0,0,0,0.55); z-index: 2;
+  }
+
+  /* Top nav */
+  .nav {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0; margin-bottom: 12px;
+  }
+  .nav .back { color: var(--cream-200); font-size: 22px; line-height: 1; }
+  .nav .title { font-family: Georgia, serif; font-size: 18px; }
+  .nav .action { color: var(--gold-500); font-size: 13px; font-weight: 600; }
+
+  /* Segmented */
+  .segmented {
+    display: flex; background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(201,169,97,0.2);
+    border-radius: 10px; padding: 3px;
+  }
+  .segmented > span {
+    flex: 1; text-align: center; padding: 7px; font-size: 12px;
+    color: var(--cream-300); border-radius: 7px;
+  }
+  .segmented > span.on {
+    background: rgba(212,179,104,0.2); color: var(--gold-500); font-weight: 600;
+  }
+
+  /* List row */
+  .list-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 0; border-bottom: 1px solid rgba(201,169,97,0.12);
+  }
+  .list-row:last-child { border-bottom: none; }
+  .list-row .meta { font-size: 11px; color: var(--cream-300); }
+  .list-row .primary { font-size: 13px; color: var(--cream-100); }
+
+  /* Sparkline / chip-graph */
+  .chip-bar {
+    display: flex; gap: 3px; height: 8px;
+  }
+  .chip-bar .seg {
+    flex: 1; border-radius: 2px;
+    background: rgba(243,236,214,0.12);
+  }
+  .chip-bar .seg.won { background: var(--gold-500); }
+  .chip-bar .seg.pending { background: rgba(212,179,104,0.35); }
+  .chip-bar .seg.lost { background: var(--claret); }
+
+  /* Star icon */
+  .star { color: var(--gold-500); }
+  .star.empty { color: rgba(243,236,214,0.25); }
+
+  /* System (push notification) mock */
+  .lockscreen {
+    background:
+      radial-gradient(circle at 30% 20%, #333, #111 60%, #000);
+    color: #fff;
+    width: 100%; height: 100%; border-radius: 34px; overflow: hidden;
+    display: flex; flex-direction: column; align-items: center;
+    padding-top: 80px; font-family: "SF Pro Display", -apple-system, sans-serif;
+  }
+  .lockscreen .time { font-size: 78px; font-weight: 200; letter-spacing: -2px; line-height: 1; }
+  .lockscreen .date { font-size: 16px; font-weight: 500; margin-top: 4px; opacity: 0.9; }
+  .push {
+    width: 85%; margin-top: 38px;
+    background: rgba(40,40,45,0.72); backdrop-filter: blur(20px);
+    border-radius: 16px; padding: 12px; font-size: 12px;
+    display: flex; gap: 10px; align-items: flex-start;
+  }
+  .push .icon {
+    width: 32px; height: 32px; border-radius: 7px;
+    background: linear-gradient(135deg, var(--felt-500), var(--felt-800));
+    border: 1px solid var(--gold-500);
+    display: flex; align-items: center; justify-content: center;
+    font-family: Georgia, serif; color: var(--gold-500); font-weight: 700;
+    flex-shrink: 0;
+  }
+  .push .title { font-weight: 600; font-size: 13px; margin-bottom: 2px; }
+  .push .sub { opacity: 0.82; font-size: 12px; line-height: 1.3; }
+  .push .time { font-size: 11px; opacity: 0.6; margin-left: auto; font-weight: 400; }
+
+  @media (max-width: 720px) {
+    header.page, .section { padding-left: 20px; padding-right: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="page">
+  <div class="eyebrow">Tilted · Classic Premium · v1.0</div>
+  <h1>Full App Mockups</h1>
+  <p>Twenty-four screens covering every flow in the MVP spec, rendered in the Classic Premium direction. Paired with design tokens and a component inventory to hand directly to the development team. Content is realistic, not Lorem Ipsum — engineers should be able to read chip math, action logs, and copy as-is.</p>
+</header>
+
+<!-- ================================================================
+     DESIGN TOKENS
+     ================================================================ -->
+<section class="section">
+  <h2>01 · Design Tokens</h2>
+  <h3>Color</h3>
+  <p class="desc">Five felt greens (background depths), four golds (accents and CTAs), four creams (text hierarchy), and one claret accent for losses, warnings, and all-in decisions. Card faces live on a dedicated cream with black/red pips.</p>
+  <div class="tokens">
+    <div class="token"><div class="swatch" style="background:var(--felt-900)"></div><div class="name">felt-900</div><div class="hex">#051c15 · deep shadow</div></div>
+    <div class="token"><div class="swatch" style="background:var(--felt-800)"></div><div class="name">felt-800</div><div class="hex">#082a21 · base</div></div>
+    <div class="token"><div class="swatch" style="background:var(--felt-700)"></div><div class="name">felt-700</div><div class="hex">#0e3b2e · surface</div></div>
+    <div class="token"><div class="swatch" style="background:var(--felt-600)"></div><div class="name">felt-600</div><div class="hex">#164a3a · elevated</div></div>
+    <div class="token"><div class="swatch" style="background:var(--felt-500)"></div><div class="name">felt-500</div><div class="hex">#1a5a43 · highlight</div></div>
+    <div class="token"><div class="swatch" style="background:var(--gold-500)"></div><div class="name">gold-500</div><div class="hex">#d4b368 · primary</div></div>
+    <div class="token"><div class="swatch" style="background:var(--gold-600)"></div><div class="name">gold-600</div><div class="hex">#c9a961 · hairline</div></div>
+    <div class="token"><div class="swatch" style="background:var(--gold-700)"></div><div class="name">gold-700</div><div class="hex">#a88334 · pressed</div></div>
+    <div class="token"><div class="swatch" style="background:var(--gold-800)"></div><div class="name">gold-800</div><div class="hex">#7a5f2b · decorative</div></div>
+    <div class="token"><div class="swatch" style="background:var(--cream-50)"></div><div class="name">cream-50</div><div class="hex">#f6f1e1 · card face</div></div>
+    <div class="token"><div class="swatch" style="background:var(--cream-100)"></div><div class="name">cream-100</div><div class="hex">#f3ecd6 · text primary</div></div>
+    <div class="token"><div class="swatch" style="background:var(--cream-200)"></div><div class="name">cream-200</div><div class="hex">#d9cfb2 · text secondary</div></div>
+    <div class="token"><div class="swatch" style="background:var(--cream-300)"></div><div class="name">cream-300</div><div class="hex">#9eb7a4 · muted / eyebrow</div></div>
+    <div class="token"><div class="swatch" style="background:var(--claret)"></div><div class="name">claret</div><div class="hex">#c44d42 · loss / warning</div></div>
+    <div class="token"><div class="swatch" style="background:var(--card-red)"></div><div class="name">card-red</div><div class="hex">#c92b2b · pip hearts/diamonds</div></div>
+  </div>
+
+  <div style="height:24px;"></div>
+  <h3>Type</h3>
+  <p class="desc">Georgia (or similar humanist serif) for display, chip values, card ranks. SF Pro for body, numerics, and controls. A small-caps eyebrow sits above most sections at 10/1.5 tracking.</p>
+  <div class="type-specimens">
+    <div class="type-specimen">
+      <div class="label">Display / Serif</div>
+      <div class="sample-display">Three hands<br/>await your turn.</div>
+      <div class="meta">Georgia · 400 · 32/36 · -0.3px</div>
+    </div>
+    <div class="type-specimen">
+      <div class="label">Body / Sans</div>
+      <div class="sample-body">You called 80 in hand 3 after Sarah's c-bet. Action passes back to her.</div>
+      <div class="meta">SF Pro Text · 400 · 14/22</div>
+    </div>
+    <div class="type-specimen">
+      <div class="label">Eyebrow / Caps</div>
+      <div class="sample-eyebrow">Match 03 · Round 07</div>
+      <div class="meta">SF Pro Text · 500 · 10/14 · 1.5px tracking</div>
+    </div>
+    <div class="type-specimen">
+      <div class="label">Numerals / Chip stack</div>
+      <div class="sample-display" style="font-size:36px;letter-spacing:-0.5px;">1,840</div>
+      <div class="meta">Georgia · 400 · tabular-nums</div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================
+     COMPONENT INVENTORY
+     ================================================================ -->
+<section class="section">
+  <h2>02 · Component inventory</h2>
+  <h3>Reusable primitives</h3>
+  <p class="desc">All surfaces below compose from this small set. Engineers should build these as components first and only then assemble screens.</p>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:16px;">
+
+    <div class="token" style="background:var(--felt-700);">
+      <div class="label" style="font-size:10px;letter-spacing:1.5px;color:var(--cream-300);margin-bottom:10px;">Avatar</div>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <div class="avatar lg">SF</div>
+        <div class="avatar">SF</div>
+        <div class="avatar sm">SF</div>
+      </div>
+    </div>
+
+    <div class="token" style="background:var(--felt-700);">
+      <div class="label" style="font-size:10px;letter-spacing:1.5px;color:var(--cream-300);margin-bottom:10px;">Card face</div>
+      <div style="display:flex;">
+        <div class="card-face red"><span class="rank">A</span><span class="suit">♥</span></div>
+        <div class="card-face blk"><span class="rank">K</span><span class="suit">♠</span></div>
+        <div class="card-face back"></div>
+        <div class="card-face placeholder"><span class="rank">?</span></div>
+      </div>
+    </div>
+
+    <div class="token" style="background:var(--felt-700);">
+      <div class="label" style="font-size:10px;letter-spacing:1.5px;color:var(--cream-300);margin-bottom:10px;">Chip badge</div>
+      <div class="chip-badge">
+        <div class="lbl">You</div>
+        <div class="val gold">1,840</div>
+        <div class="sub">Avail 1,595</div>
+      </div>
+    </div>
+
+    <div class="token" style="background:var(--felt-700);">
+      <div class="label" style="font-size:10px;letter-spacing:1.5px;color:var(--cream-300);margin-bottom:10px;">Buttons</div>
+      <div class="btn-primary" style="padding:10px;font-size:12px;margin-bottom:6px;">Primary</div>
+      <div class="btn-secondary" style="padding:9px;font-size:11px;margin-bottom:6px;">Secondary</div>
+      <div class="btn-danger" style="padding:9px;font-size:11px;">Danger</div>
+    </div>
+
+    <div class="token" style="background:var(--felt-700);">
+      <div class="label" style="font-size:10px;letter-spacing:1.5px;color:var(--cream-300);margin-bottom:10px;">Segmented</div>
+      <div class="segmented">
+        <span class="on">All</span><span>Favorites</span><span>Won</span>
+      </div>
+    </div>
+
+    <div class="token" style="background:var(--felt-700);">
+      <div class="label" style="font-size:10px;letter-spacing:1.5px;color:var(--cream-300);margin-bottom:10px;">Chip-bar</div>
+      <div class="chip-bar" style="height:10px;">
+        <div class="seg won"></div><div class="seg won"></div><div class="seg won"></div>
+        <div class="seg pending"></div><div class="seg pending"></div><div class="seg pending"></div>
+        <div class="seg lost"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ================================================================
+     FLOW 1 — LAUNCH & SETUP
+     ================================================================ -->
+<section class="section">
+  <h2>03 · Launch & Setup</h2>
+  <h3>Getting into the app</h3>
+  <p class="desc">Three screens. MVP uses two hardcoded accounts (§15 of product def), so this is deliberately thin — launch, pick a seat, allow push.</p>
+
+  <div class="grid">
+
+    <!-- 01 Splash -->
+    <div class="phone-wrap">
+      <div class="phone"><div class="screen felt">
+        <div class="notch"></div>
+        <div class="status-bar"><span>9:41</span><span class="right">● ● ●</span></div>
+        <div class="body-pad" style="height:calc(100% - 44px);display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;">
+          <div style="font-size:64px;color:var(--gold-500);letter-spacing:-4px;font-family:Georgia,serif;line-height:1;">♠ ♥<br/>♦ ♣</div>
+          <div style="height:32px;"></div>
+          <div class="serif" style="font-size:44px;letter-spacing:-0.5px;color:var(--cream-100);">Tilted</div>
+          <div class="eyebrow" style="margin-top:10px;">Heads-up · Async · Ten at a time</div>
+          <div style="height:80px;"></div>
+          <div style="font-size:11px;color:var(--cream-300);letter-spacing:1px;">v0.1 · Early Access</div>
+        </div>
+        <div class="home-indicator"></div>
+      </div></div>
+      <div class="label"><span class="num">01</span>Splash / Launch<span class="note">Brand moment on app open. 1.2s hold before routing to Home or Account Picker.</span></div>
+    </div>
+
+    <!-- 02 Account picker -->
+    <div class="phone-wrap">
+      <div class="phone"><div class="screen felt">
+        <div class="notch"></div>
+        <div class="status-bar"><span>9:41</span><span class="right">● ● ●</span></div>
+        <div class="body-pad">
+          <div class="eyebrow" style="text-align:center;">MVP build · hardcoded seats</div>
+          <div class="spacer-8"></div>
+          <div class="serif" style="font-size:26px;text-align:center;">Who's playing?</div>
+          <div class="thin-rule"></div>
+          <div class="stack-12">
+            <div style="display:flex;gap:12px;align-items:center;padding:14px;border:1px solid rgba(212,179,104,0.6);background:rgba(212,179,104,0.08);border-radius:14px;">
+              <div class="avatar lg">TJ</div>
+              <div style="flex:1;">
+                <div class="serif" style="font-size:18px;">Thomas Johnston</div>
+                <div style="font-size:11px;color:var(--cream-300);">tj@tilted.app</div>
+              </div>
+              <div class="gold" style="font-size:18px;">✓</div>
+            </div>
+            <div style="display:flex;gap:12px;align-items:center;padding:14px;border:1px solid rgba(201,169,97,0.2);border-radius:14px;">
+              <div class="avatar lg">SF</div>
+              <div style="flex:1;">
+                <div class="serif" style="font-size:18px;">Sarah Flint</div>
+                <div style="font-size:11px;color:var(--cream-300);">sarah@tilted.app</div>
+              </div>
+            </div>
+          </div>
+          <div class="spacer-24"></div>
+          <div class="btn-primary">Continue as Thomas</div>
+          <div class="spacer-8"></div>
+          <div style="font-size:10px;color:var(--cream-300);text-align:center;line-height:1.5;">MVP auth will be replaced by Sign in with Apple in v2.</div>
+        </div>
+        <div class="home-indicator"></div>
+      </div></div>
+      <div class="label"><span class="num">02</span>Account Picker<span class="note">Development-only screen. Two hardcoded users; tap-to-select, confirm to proceed.</span></div>
+    </div>
+
+    <!-- 03 Notification permission -->
+    <div class="phone-wrap">
+      <div class="phone"><div class="screen felt">
+        <div class="notch"></div>
+        <div class="status-bar"><span>9:41</span><span class="right">● ● ●</span></div>
+        <div class="body-pad" style="height:calc(100% - 44px);display:flex;flex-direction:column;">
+          <div style="flex:1;display:flex;flex-direction:column;justify-content:center;text-align:center;">
+            <div style="font-size:48px;color:var(--gold-500);">✉</div>
+            <div class="spacer-16"></div>
+            <div class="serif" style="font-size:26px;line-height:1.15;">Let us tap your<br/>shoulder.</div>
+            <div class="spacer-12"></div>
+            <div style="font-size:13px;color:var(--cream-200);line-height:1.55;padding:0 10px;">
+              We'll send one push when it's your turn — never during Sarah's turn, never for anything else.
+            </div>
+          </div>
+          <div class="stack-8">
+            <div class="btn-primary">Turn on notifications</div>
+            <div class="btn-ghost">Not now</div>
+          </div>
+        </div>
+        <div class="home-indicator"></div>
+      </div></div>
+      <div class="label"><span class="num">03</span>Push Permission<span class="note">Pre-prompt. Confirming triggers the native iOS permission dialog. §16 of spec — one push per turn handoff.</span></div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ================================================================
+     FLOW 2 — HOME STATES
+     ================================================================ -->
+<section class="section">
+  <h2>04 · Home States</h2>
+  <h3>Dashboard under four match conditions</h3>
+  <p class="desc">The Home screen changes primary CTA depending on where the match is. Four canonical states the dev team should implement as a single screen with state branching.</p>
+
+  <div class="grid">
+
+    <!-- 04 Home - no active match -->
+    <div class="phone-wrap">
+      <div class="phone"><div class="screen felt">
+        <div class="notch"></div>
+        <div class="status-bar"><span>9:41</span><span class="right">● ● ●</span></div>
+        <div class="body-pad">
+          <div class="eyebrow" style="text-align:center;">Tilted</div>
+          <div class="spacer-24"></div>
+          <div style="text-align:center;">
+            <div class="serif" style="font-size:32px;line-height:1.1;">No match<br/>in play.</div>
+            <div class="spacer-12"></div>
+            <div style="font-size:13px;color:var(--cream-300);line-height:1.55;padding:0 10px;">
+              Last match against Sarah ended Apr&nbsp;14. Start a new one to deal ten fresh hands.
+            </div>
+          </div>
+          <div class="spacer-24"></div>
+          <div class="thin-rule"></div>
+          <div class="eyebrow">Career vs. Sarah</div>
+          <div style="display:flex;justify-content:space-between;padding:10px 0;font-size:13px;">
+            <span>Matches played</span><span class="serif gold">3</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:10px 0;font-size:13px;border-top:1px solid rgba(201,169,97,0.1);">
+            <span>Matches won</span><span class="serif gold">2</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:10px 0;font-size:13px;border-top:1px solid rgba(201,169,97,0.1);">
+            <span>Lifetime chips</span><span class="serif gold">+1,210</span>
+          </div>
+          <div class="spacer-24"></div>
+          <div class="btn-primary">Start new match</div>
+          <div class="spacer-8"></div>
+          <div class="btn-ghost">View history</div>
+        </div>
+        <div class="home-indicator"></div>
+      </div></div>
+      <div class="label"><span class="num">04</span>Home · No Match<span class="note">Empty state between matches. Lifetime stats preserved across matches.</span></div>
+    </div>
+
+    <!-- 05 Home - your turn -->
+    <div class="phone-wrap">
+      <div class="phone"><div class="screen felt">
+        <div class="notch"></div>
+        <div class="status-bar"><span>9:41</span><span class="right">● ● ●</span></div>
+        <div class="body-pad">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div class="avatar">SF</div>
+            <div style="flex:1;">
+              <div class="eyebrow">Match 03 vs.</div>
+              <div class="serif" style="font-size:18px;">Sarah Flint</div>
+            </div>
+            <div class="avatar sm" style="background:transparent;border:1px solid var(--gold-500);color:var(--gold-500);">⚙</div>
+          </div>
+          <div class="thin-rule"></div>
+          <div style="display:flex;gap:8px;">
+            <div class="chip-badge" style="flex:1;">
+              <div class="lbl">You</div>
+              <div class="val gold">1,840</div>
+              <div class="sub">Avail 1,595 · Rsv 245</div>
+            </div>
+            <div class="chip-badge" style="flex:1;">
+              <div class="lbl">Sarah</div>
+              <div class="val">2,160</div>
+              <div class="sub">Avail 1,910 · Rsv 250</div>
+            </div>
+          </div>
+          <div class="spacer-16"></div>
+          <div class="eyebrow">Round 07 · You are Big Blind</div>
+          <div class="spacer-4"></div>
+          <div class="chip-bar">
+            <div class="seg won"></div><div class="seg won"></div><div class="seg won"></div>
+            <div class="seg pending"></div><div class="seg pending"></div><div class="seg pending"></div>
+            <div class="seg"></div><div class="seg"></div><div class="seg"></div><div class="seg"></div>
+          </div>
+          <div class="spacer-4"></div>
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--cream-300);">
+            <span>3 resolved</span><span>3 on you</span><span>4 open</span>
+          </div>
+          <div class="spacer-16"></div>
+          <div class="serif" style="font-size:26px;line-height:1.15;">Three hands<br/><span class="gold">await your action.</span></div>
+          <div class="spacer-16"></div>
+          <div class="btn-primary">Take your turn</div>
+          <div class="spacer-8"></div>
+          <div class="btn-ghost">History · Favorites</div>
+        </div>
+        <div class="home-indicator"></div>
+      </div></div>
+      <div class="label"><span class="num">05</span>Home · Your Turn<span class="note">Primary state. Chip-bar shows round progress: 3 green (won/resolved), 3 amber (awaiting you), 4 neutral (open but not your action).</span></div>
+    </div>
+
+    <!-- 06 Home - waiting on opponent -->
+    <div class="phone-wrap">
+      <div class="phone"><div class="screen felt">
+        <div class="notch"></div>
+        <div class="status-bar"><span>9:41</span><span class="right">● ● ●</span></div>
+        <div class="body-pad">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div class="avatar">SF</div>
+            <div style="flex:1;">
+              <div class="eyebrow">Match 03 vs.</div>
+              <div class="serif" style="font-size:18px;">Sarah Flint</div>
+            </div>
+            <div class="avatar sm" style="background:transparent;border:1px solid var(--gold-500);color:var(--gold-500);">⚙</div>
+          </div>
+          <div class="thin-rule"></div>
+          <div style="display:flex;gap:8px;">
+            <div class="chip-badge" style="flex:1;">
+              <div class="lbl">You</div>
+              <div class="val gold">1,760</div>
+              <div class="sub">Avail 1,515 · Rsv 245</div>
+            </div>
+            <div class="chip-badge" style="flex:1;">
+              <div class="lbl">Sarah</div>
+              <div class="val">2,240</div>
+              <div class="sub">Avail 1,990 · Rsv 250</div>
+            </div>
+          </div>
+          <div class="spacer-16"></div>
+          <div class="eyebrow">Round 07 · You are Big Blind</div>
+          <div class="spacer-4"></div>
+          <div class="chip-bar">
+            <div class="seg won"></div><div class="seg won"></div><div class="seg won"></div><div class="seg won"></div>
+            <div class="seg pending" style="background:rgba(158,183,164,0.35);"></div>
+            <div class="seg pending" style="background:rgba(158,183,164,0.35);"></div>
+            <div class="seg pending" style="background:rgba(158,183,164,0.35);"></div>
+            <div class="seg"></div><div class="seg"></div><div class="seg"></div>
+          </div>
+          <div class="spacer-12"></div>
+          <div style="border:1px solid rgba(201,169,97,0.2);border-radius:12px;padding:18px;text-align:center;">
+            <div style="font-size:36px;color:var(--cream-300);">⏳</div>
+            <div class="spacer-8"></div>
+            <div class="serif" style="font-size:20px;">Turn sent.</div>
+            <div style="font-size:12px;color:var(--cream-300);margin-top:4px;">Sarah has 3 hands to answer.</div>
+            <div style="font-size:11px;color:var(--cream-400);margin-top:6px;">Last seen 2h ago</div>
+          </div>
+          <div class="spacer-16"></div>
+          <div class="btn-secondary">Review your last turn</div>
+          <div class="spacer-8"></div>
+          <div class="btn-ghost">History · Favorites</div>
+        </div>
+        <div class="home-indicator"></div>
+      </div></div>
+      <div class="label"><span class="num">06</span>Home · Waiting<span class="note">Disabled primary CTA. Last-seen on opponent is optional polish (derive from session).</span></div>
+    </div>
+
+    <!-- 07 Home - round reveal ready -->
+    <div class="phone-wrap">
+      <div class="phone"><div class="screen felt">
+        <div class="notch"></div>
+        <div class="status-bar"><span>9:41</span><span class="right">● ● ●</span></div>
+        <div class="body-pad">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div class="avatar">SF</div>
+            <div style="flex:1;">
+              <div class="eyebrow">Match 03 vs.</div>
+              <div class="serif" style="font-size:18px;">Sarah Flint</div>
+            </div>
+          </div>
+          <div class="thin-rule"></div>
+          <div style="text-align:center;padding:20px 0;">
+            <div class="eyebrow gold" style="color:var(--gold-500);">Round 07 complete</div>
+            <div class="spacer-12"></div>
+            <div class="serif" style="font-size:36px;line-height:1.05;">All ten<br/>hands<br/>resolved.</div>
+            <div class="spacer-12"></div>
+            <div style="font-size:13px;color:var(--cream-200);">3 all-ins await the runout.</div>
+          </div>
+          <div class="chip-bar">
+            <div class="seg won"></div><div class="seg won"></div><div class="seg won"></div><div class="seg won"></div>
+            <div class="seg won"></div><div class="seg won"></div><div class="seg won"></div>
+            <div class="seg lost"></div><div class="seg lost"></div><div class="seg lost"></div>
+          </div>
+          <div class="spacer-24"></div>
+          <div class="btn-primary">Reveal the runouts</div>
+          <div class="spacer-8"></div>
+          <div style="text-align:center;font-size:11px;color:var(--cream-300);">All-in hands revealed together. Tap to watch.</div>
+        </div>
+        <div class="home-indicator"></div>
+      </div></div>
+      <div class="label"><span class="num">07</span>Home · Reveal Ready<span class="note">Round ended, batch runout awaits. Gated CTA per spec §10 — "Next round" only after user acknowledges reveal.</span></div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ================================================================
+     FLOW 3 — NEW MATCH
+     ================================================================ -->
+<section class="section">
+  <h2>05 · New Match</h2>
+  <h3>Dealing the coin flip</h3>
+  <p class="desc">One screen. Position is determined by coin flip per §4 of the spec. Small moment, but it should feel ceremonial — it's the thing that tells you the match has begun.</p>
+
+  <div class="grid">
+
+    <!-- 08 New match / coin flip -->
+    <div class="phone-wrap">
+      <div class="phone"><div class="screen felt">
+        <div class="notch"></div>
+        <div class="status-bar"><span>9:41</span><span class="right">● ● ●</span></div>
+        <div class="body-pad" style="height:calc(100% - 44px);display:flex;flex-direction:column;">
+          <div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;">
+            <div class="eyebrow">Match 04</div>
+            <div class="spacer-12"></div>
+            <div style="width:120px;height:120px;border-radius:50%;background:radial-gradient(circle at 30% 30%, var(--gold-500), var(--gold-800));display:flex;align-items:center;justify-content:center;font-family:Georgia,serif;font-size:46px;color:var(--felt-700);font-weight:700;box-shadow:0 10px 40px rgba(212,179,104,0.25);">
+              T
+            </div>
+            <div class="spacer-16"></div>
+            <div class="serif" style="font-size:30px;line-height:1.1;">You're on<br/>the button.</div>
+            <div class="spacer-12"></div>
+            <div style="font-size:13px;color:var(--cream-300);line-height:1.5;padding:0 10px;">
+              Small Blind for all ten hands in Round&nbsp;1. Positions swap each round.
+            </div>
+          </div>
+          <div class="stack-8">
+            <div style="display:flex;gap:8px;">
+              <div class="chip-badge" style="flex:1;text-align:center;"><div class="lbl">You start</div><div class="val gold">2,000</div></div>
+              <div class="chip-badge" style="flex:1;text-align:center;"><div class="lbl">Sarah starts</div><div class="val">2,000</div></div>
+            </div>
+            <div class="btn-primary">Deal Round 1</div>
+          </div>
+        </div>
+        <div class="home-indicator"></div>
+      </div></div>
+      <div class="label"><span class="num">08</span>New Match · Coin Flip<span class="note">Position revealed after a 1–2s flip animation. "T" badge = TJ on Button/SB.</span></div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ================================================================
+     FLOW 4 — TURN FLOW
+     ================================================================ -->
+<section class="section">
+  <h2>06 · Turn Flow</h2>
+  <h3>The primary play surface</h3>
+  <p class="desc">Where players spend 80% of their time. The turn view is a vertical stack of pending hand tiles. Five screens cover arrival, acting, bet sizing, all-in confirmation, and handoff.</p>
+
+  <div class="grid">
+
+    <!-- 09 Turn view - list -->
+    <div class="phone-wrap">
+      <div class="phone"><div class="screen felt">
+        <div class="notch"></div>
+        <div class="status-bar"><span>9:41</span><span class="right">● ● ●</span></div>
+        <div class="body-pad">
+          <div class="nav">
+            <span class="back">‹</span>
+            <span class="title">Your Turn</span>
+            <span class="action">3 of 10</span>
+          </div>
+          <div class="eyebrow">Round 07 · BB · Avail 1,595</div>
+          <div class="spacer-12"></div>
+
+          <div class="stack-12" style="display:flex;flex-direction:column;">
+            <div class="hand-tile active">
+              <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--cream-300);letter-spacing:1.2px;text-transform:uppercase;">
+                <span>Hand 3 · Preflop</span><span>Pot 280</span>
+              </div>
+              <div style="display:flex;align-items:center;margin:8px 0;">
+                <div class="card-face red"><span class="rank">A</span><span class="suit">♥</span></div>
+                <div class="card-face red"><span class="rank">A</span><span class="suit">♦</span></div>
+                <div style="flex:1;text-align:right;font-size:12px;color:var(--gold-500);">Sarah 3-bets to 240</div>
+              </div>
+              <div class="act-row">
+                <div class="act-btn">Fold</div>
+                <div class="act-btn">Call 240</div>
+                <div class="act-btn primary">Raise ›</div>
+              </div>
+            </div>
+
+            <div class="hand-tile">
+              <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--cream-300);letter-spacing:1.2px;text-transform:uppercase;">
+                <span>Hand 6 · Flop</span><span>Pot 60</span>
+              </div>
+              <div style="display:flex;align-items:center;margin:8px 0;">
+                <div class="card-face blk"><span class="rank">9</span><span class="suit">♠</span></div>
+                <div class="card-face red"><span class="rank">2</span><span class="suit">♦</span></div>
+                <div style="flex:1;"></div>
+                <div style="display:flex;gap:2px;">
+                  <div class="card-face sm red"><span class="rank">K</span><span class="suit">♥</span></div>
+                  <div class="card-face sm blk"><span class="rank">7</span><span class="suit">♣</span></div>
+                  <div class="card-face sm red"><span class="rank">3</span><span class="suit">♦</span></div>
+                </div>
+              </div>
+              <div style="font-size:11px;color:var(--cream-300);">No bet — your check / bet</div>
+            </div>
+
+            <div class="hand-tile dimmed">
+              <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--cream-300);letter-spacing:1.2px;text-transform:uppercase;">
+                <span>Hand 8 · Turn</span><span>Pot 440</span>
+              </div>
+              <div style="font-size:11px;color:var(--cream-300);margin-top:6px;">Scroll for more</div>
+            </div>
+          </div>
+        </div>
+        <div class="home-indicator"></div>
+      </div></div>
+      <div class="label"><span class="num">09</span>Turn View · List<span class="note">First pending hand expanded with inline actions. Others compact. Scroll reveals full 3.</span></div>
+    </div>
+
+    <!-- 10 Turn view - hand expanded / acting -->
+    <div class="phone-wrap">
+      <div class="phone"><div class="screen felt">
+        <div class="notch"></div>
+        <div class="status-bar"><span>9:41</span><span class="right">● ● ●</span></div>
+        <div class="body-pad">
+          <div class="nav">
+            <span class="back">‹</span>
+            <span class="title">Hand 3</span>
+            <span class="action">Pot 280</span>
+          </div>
+          <div class="eyebrow">Round 07 · Preflop · BB</div>
+          <div class="thin-rule"></div>
+          <div style="text-align:center;">
+            <div class="eyebrow">Your cards</div>
+            <div style="display:flex;justify-content:center;margin-top:8px;">
+              <div class="card-face red" style="width:54px;height:74px;margin-right:8px;"><span class="rank" style="font-size:22px;">A</span><span class="suit" style="font-size:22px;">♥</span></div>
+              <div class="card-face red" style="width:54px;height:74px;"><span class="rank" style="font-size:22px;">A</span><span class="suit" style="font-size:22px;">♦</span></div>
+            </div>
+          </div>
+          <div class="spacer-16"></div>
+          <div style="border:1px solid rgba(201,169,97,0.2);border-radius:12px;padding:12px;">
+            <div style="font-size:11px;color:var(--cream-300);line-height:1.7;">
+              <div>• SB (Sarah) opens to 30</div>
+              <div>• You 3-bet to 90</div>
+              <div><span class="gold">• Sarah 4-bets to 240</span></div>
+            </div>
+          </div>
+          <div class="spacer-16"></div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;">
+            <span class="muted-cream">Available to act</span>
+            <span class="serif gold">1,595</span>
+          </div>
+          <div class="spacer-12"></div>
+          <div style="display:flex;gap:8px;">
+            <div class="btn-danger" style="flex:1;">Fold</div>
+            <div class="btn-secondary" style="flex:1;">Call 240</div>
+            <div class="btn-primary" style="flex:1;">Raise</div>
+          </div>
+        </div>
+        <div class="home-indicator"></div>
+      </div></div>
+      <div class="label"><span class="num">10</span>Hand Focus<span class="note">Tap a tile to focus. Action log for the current hand in context. Same action buttons, larger.</span></div>
+    </div>
+
+    <!-- 11 Bet sheet -->
+    <div class="phone-wrap">
+      <div class="phone"><div class="screen felt">
+        <div class="notch"></div>
+        <div class="status-bar"><span>9:41</span><span class="right">● ● ●</span></div>
+        <div class="body-pad" style="opacity:0.25;">
+          <div class="nav"><span class="back">‹</span><span class="title">Hand 3</span><span class="action">Pot 280</span></div>
+          <div class="thin-rule"></div>
+          <div class="card-face red" style="width:44px;height:60px;"><span class="rank">A</span><span class="suit">♥</span></div>
+        </div>
+        <div class="dim"></div>
+        <div class="sheet">
+          <div class="handle"></div>
+          <div style="text-align:center;" class="eyebrow">Hand 3 · Raise to</div>
+          <div style="text-align:center;" class="serif gold"><span style="font-size:48px;letter-spacing:-1px;">540</span></div>
+          <div style="text-align:center;font-size:11px;color:var(--cream-300);">After this raise, 1,055 available across remaining hands</div>
+          <div class="spacer-16"></div>
+          <div style="position:relative;height:4px;background:rgba(243,236,214,0.12);border-radius:2px;">
+            <div style="position:absolute;left:0;top:0;bottom:0;width:42%;background:var(--gold-500);border-radius:2px;"></div>
+            <div style="position:absolute;left:42%;top:-6px;width:16px;height:16px;border-radius:50%;background:var(--gold-500);box-shadow:0 0 0 4px rgba(212,179,104,0.22);"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--cream-300);margin-top:6px;">
+            <span>Min 480</span><span>All-in 1,595</span>
+          </div>
+          <div class="spacer-12"></div>
+          <div style="display:flex;gap:6px;">
+            <div class="act-btn">½ Pot</div>
+            <div class="act-btn">⅔ Pot</div>
+            <div class="act-btn primary">Pot</div>
+            <div class="act-btn">All-in</div>
+          </div>
+          <div class="spacer-16"></div>
+          <div class="btn-primary">Confirm raise to 540</div>
+        </div>
+        <div class="home-indicator"></div>
+      </div></div>
+      <div class="label"><span class="num">11</span>Bet / Raise Sheet<span class="note">Modal bottom sheet. Shows post-bet available chip math — enforces cross-hand awareness.</span></div>
+    </div>
+
+    <!-- 12 All-in confirmation -->
+    <div class="phone-wrap">
+      <div class="phone"><div class="screen felt">
+        <div class="notch"></div>
+        <div class="status-bar"><span>9:41</span><span class="right">● ● ●</span></div>
+        <div class="dim"></div>
+        <div style="position:absolute;inset:20px;background:linear-gradient(180deg,var(--felt-600),var(--felt-800));border:1px solid var(--claret);border-radius:18px;padding:20px;display:flex;flex-direction:column;text-align:center;z-index:3;">
+          <div style="color:var(--claret);font-size:12px;letter-spacing:2px;text-transform:uppercase;font-weight:600;">⚠ All-in</div>
+          <div class="spacer-16"></div>
+          <div class="serif" style="font-size:26px;line-height:1.1;">Jam 1,595?</div>
+          <div class="spacer-8"></div>
+          <div style="font-size:12px;color:var(--cream-200);line-height:1.5;">This is every available chip in your stack.</div>
+          <div class="spacer-16"></div>
+          <div style="text-align:left;border:1px solid rgba(196,77,66,0.35);border-radius:10px;padding:12px;background:rgba(0,0,0,0.25);">
+            <div class="eyebrow" style="color:var(--claret);">Consequences</div>
+            <div class="spacer-8"></div>
+            <div style="font-size:11px;color:var(--cream-200);line-height:1.7;">
+              → The other <span class="gold">6 hands</span> become check-or-fold only<br/>
+              → Your available drops to <span class="claret" style="color:var(--claret);">0</span> for the round<br/>
+              → Runout revealed at end of round<br/>
+              → If you lose all in-flight pots, match ends
+            </div>
+          </div>
+          <div style="flex:1;"></div>
+          <div style="display:flex;gap:8px;">
+            <div class="btn-secondary" style="flex:1;">Cancel</div>
+            <div class="btn-primary" style="flex:1;background:linear-gradient(180deg,var(--claret),#7a2a24);color:#fff;">Jam</div>
+          </div>
+        </div>
+        <div class="home-indicator"></div>
+      </div></div>
+      <div class="label"><span class="num">12</span>All-in Confirm<span class="note">Required confirmation per §9. Spells out cross-hand implications.</span></div>
+    </div>
+
+    <!-- 13 Turn submitted -->
+    <div class="phone-wrap">
+      <div class="phone"><div class="screen felt">
+        <div class="notch"></div>
+        <div class="status-bar"><span>9:41</span><span class="right">● ● ●</span></div>
+        <div class="body-pad" style="height:calc(100% - 44px);display:flex;flex-direction:column;justify-content:center;text-align:center;">
+          <div style="font-size:56px;color:var(--gold-500);">✓</div>
+          <div class="spacer-16"></div>
+          <div class="serif" style="font-size:30px;line-height:1.1;">Turn sent.</div>
+          <div class="spacer-8"></div>
+          <div style="font-size:13px;color:var(--cream-200);line-height:1.55;padding:0 20px;">
+            Three hands move to Sarah. We'll nudge you when she's done.
+          </div>
+          <div class="spacer-24"></div>
+          <div style="margin:0 20px;padding:12px;border:1px solid rgba(201,169,97,0.2);border-radius:12px;text-align:left;font-size:11px;color:var(--cream-200);line-height:1.7;">
+            <div class="eyebrow" style="margin-bottom:4px;">What you did</div>
+            <div>H3 · Raised to 540 (AA)</div>
+            <div>H6 · Bet 45 on flop</div>
+            <div>H8 · Folded</div>
+          </div>
+          <div class="spacer-24"></div>
+          <div class="btn-secondary">Back to home</div>
+          <div class="spacer-8"></div>
+          <div class="btn-ghost">Review this turn</div>
+        </div>
+        <div class="home-indicator"></div>
+      </div></div>
+      <div class="label"><span class="num">13</span>Turn Submitted<span class="note">Handoff confirmation. Recap of actions for recall ("what did I just do?").</span></div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ================================================================
+     FLOW 5 — ROUND REVEAL
+     ================================================================ -->
+<section class="section">
+  <h2>07 · Round Reveal</h2>
+  <h3>End-of-round theater</h3>
+  <p class="desc">Per §10, all-in hands freeze and reveal together at end of round. Three screens: intro, runout animation, and summary.</p>
+
+  <div class="grid">
+
+    <!-- 14 Round reveal intro -->
+    <div class="phone-wrap">
+      <div class="phone"><div class="screen felt">
+        <div class="notch"></div>
+        <div class="status-bar"><span>9:41</span><span class="right">● ● ●</span></div>
+        <div class="body-pad" style="height:calc(100% - 44px);display:flex;flex-direction:column;">
+          <div style="flex:1;display:flex;flex-direction:column;justify-content:center;text-align:center;">
+            <div class="eyebrow gold" style="color:var(--gold-500);">Round 07</div>
+            <div class="spacer-12"></div>
+            <div class="serif" style="font-size:42px;line-height:1.05;letter-spacing:-0.5px;">Showdown.</div>
+            <div class="spacer-12"></div>
+            <div style="font-size:13px;color:var(--cream-200);line-height:1.55;padding:0 20px;">
+              Three hands went all-in. The river is still to come.
+            </div>
+            <div class="spacer-24"></div>
+            <div style="display:flex;justify-content:center;gap:6px;">
+              <div class="card-face back" style="width:42px;height:60px;transform:rotate(-6deg);"></div>
+              <div class="card-face back" style="width:42px;height:60px;margin-top:-4px;"></div>
+              <div class="card-face back" style="width:42px;height:60px;transform:rotate(6deg);"></div>
+            </div>
+            <div class="spacer-16"></div>
+            <div class="eyebrow">Pending pots · 2,620 chips</div>
+          </div>
+          <div class="btn-primary">Begin reveal</div>
+        </div>
+        <div class="home-indicator"></div>
+      </div></div>
+      <div class="label"><span class="num">14</span>Reveal · Intro<span class="note">Theatrical opener before runout sequence. Announces how much is at stake.</span></div>
+    </div>
+
+    <!-- 15 Runout animation -->
+    <div class="phone-wrap">
+      <div class="phone"><div class="screen felt">
+        <div class="notch"></div>
+        <div class="status-bar"><span>9:41</span><span class="right">● ● ●</span></div>
+        <div class="body-pad">
+          <div class="eyebrow" style="text-align:center;">Runout 2 of 3 · Hand 5</div>
+          <div class="spacer-8"></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:rgba(0,0,0,0.25);border-radius:10px;">
+            <div>
+              <div class="eyebrow">Sarah</div>
+              <div style="display:flex;margin-top:4px;">
+                <div class="card-face blk"><span class="rank">K</span><span class="suit">♣</span></div>
+                <div class="card-face blk"><span class="rank">K</span><span class="suit">♠</span></div>
+              </div>
+            </div>
+            <div style="font-family:Georgia,serif;font-size:24px;color:var(--gold-500);">vs</div>
+            <div>
+              <div class="eyebrow" style="text-align:right;">You</div>
+              <div style="display:flex;margin-top:4px;">
+                <div class="card-face red"><span class="rank">A</span><span class="suit">♥</span></div>
+                <div class="card-face red"><span class="rank">A</span><span class="suit">♦</span></div>
+              </div>
+            </div>
+          </div>
+          <div class="spacer-16"></div>
+          <div class="eyebrow" style="text-align:center;">Board</div>
+          <div style="display:flex;justify-content:center;gap:4px;margin-top:6px;">
+            <div class="card-face red"><span class="rank">Q</span><span class="suit">♥</span></div>
+            <div class="card-face blk"><span class="rank">7</span><span class="suit">♣</span></div>
+            <div class="card-face red"><span class="rank">2</span><span class="suit">♦</span></div>
+            <div class="card-face red" style="box-shadow:0 0 0 2px var(--gold-500), 0 4px 14px rgba(212,179,104,0.4);"><span class="rank">K</span><span class="suit">♥</span></div>
+            <div class="card-face placeholder" style="animation:none;"><span class="rank">?</span></div>
+          </div>
+          <div class="spacer-16"></div>
+          <div style="text-align:center;padding:14px;background:rgba(196,77,66,0.08);border:1px solid rgba(196,77,66,0.3);border-radius:12px;">
+            <div class="eyebrow" style="color:var(--claret);">Turn card favors Sarah</div>
+            <div class="serif" style="font-size:16px;margin-top:4px;">Set of Kings · 12% outs remain</div>
+          </div>
+          <div class="spacer-16"></div>
+          <div style="display:flex;justify-content:space-between;font-size:11px;">
+            <span class="muted-cream">Pot</span><span class="serif">1,240</span>
+          </div>
+          <div class="spacer-12"></div>
+          <div class="btn-primary">Deal the river</div>
+        </div>
+        <div class="home-indicator"></div>
+      </div></div>
+      <div class="label"><span class="num">15</span>Runout Animation<span class="note">One frame of the per-hand reveal. Turn card just revealed (highlighted). River tappable next.</span></div>
+    </div>
+
+    <!-- 16 Round summary -->
+    <div class="phone-wrap">
+      <div class="phone"><div class="screen felt">
+        <div class="notch"></div>
+        <div class="status-bar"><span>9:41</span><span class="right">● ● ●</span></div>
+        <div class="body-pad">
+          <div class="eyebrow" style="text-align:center;">Round 07 · Complete</div>
+          <div style="text-align:center;" class="serif">
+            <div style="font-size:38px;color:var(--gold-500);letter-spacing:-0.5px;">+340</div>
+          </div>
+          <div style="text-align:center;font-size:11px;color:var(--cream-300);">chips this round</div>
+          <div class="thin-rule"></div>
+
+          <div class="eyebrow">By hand</div>
+          <div class="spacer-8"></div>
+          <div class="list-row"><div><div class="primary">Hand 1 · AhKs</div><div class="meta">Bluff caught</div></div><span class="serif gold">+420</span></div>
+          <div class="list-row"><div><div class="primary">Hand 4 · KK</div><div class="meta">Set on turn</div></div><span class="serif gold">+340</span></div>
+          <div class="list-row"><div><div class="primary">Hand 5 · AA</div><div class="meta">Cracked by set</div></div><span class="serif" style="color:var(--claret);">−620</span></div>
+          <div class="list-row"><div><div class="primary">Hand 7 · 72o</div><div class="meta">Folded preflop</div></div><span class="serif" style="color:var(--claret);">−5</span></div>
+          <div class="list-row"><div><div class="primary">Hand 9 · JJ</div><div class="meta">Value-bet river</div></div><span class="serif gold">+205</span></div>
+
+          <div class="spacer-16"></div>
+          <div class="btn-primary">Deal Round 8</div>
+        </div>
+        <div class="home-indicator"></div>
+      </div></div>
+      <div class="label"><span class="num">16</span>Round Summary<span class="note">Per-hand P&amp;L. Tappable rows link to hand replay. "Next round" CTA always explicit.</span></div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ================================================================
+     FLOW 6 — HAND DETAILS
+     ================================================================ -->
+<section class="section">
+  <h2>08 · Hand Details</h2>
+  <h3>Summary card and full replay</h3>
+  <p class="desc">Per §12, every hand has a compact summary and a detailed replay. These are the screenshot-friendly surfaces where the "remember this hand" feature lives.</p>
+
+  <div class="grid">
+
+    <!-- 17 Hand summary detail -->
+    <div class="phone-wrap">
+      <div class="phone"><div class="screen felt">
+        <div class="notch"></div>
+        <div class="status-bar"><span>9:41</span><span class="right">● ● ●</span></div>
+        <div class="body-pad">
+          <div class="nav">
+            <span class="back">‹</span>
+            <span class="title">Hand</span>
+            <span class="action" style="color:var(--gold-500);">★</span>
+          </div>
+          <div class="eyebrow">Match 03 · Round 07 · Hand 4</div>
+          <div class="serif" style="font-size:26px;line-height:1.1;">Set on<br/>the turn.</div>
+          <div class="spacer-12"></div>
+
+          <div style="border:1px solid rgba(212,179,104,0.35);border-radius:14px;padding:14px;background:rgba(0,0,0,0.25);">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;">
+              <span style="font-size:11px;color:var(--cream-300);">Pot</span>
+              <span class="serif" style="font-size:18px;color:var(--cream-100);">680</span>
+            </div>
+            <div class="spacer-12"></div>
+
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span class="eyebrow">You</span>
+              <div style="display:flex;"><div class="card-face blk"><span class="rank">K</span><span class="suit">♣</span></div><div class="card-face blk"><span class="rank">K</span><span class="suit">♠</span></div></div>
+            </div>
+            <div class="spacer-8"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span class="eyebrow">Sarah</span>
+              <div style="display:flex;"><div class="card-face red"><span class="rank">Q</span><span class="suit">♥</span></div><div class="card-face blk"><span class="rank">T</span><span class="suit">♣</span></div></div>
+            </div>
+            <div class="spacer-12"></div>
+            <div class="eyebrow">Board</div>
+            <div class="spacer-4"></div>
+            <div style="display:flex;gap:3px;">
+              <div class="card-face red"><span class="rank">Q</span><span class="suit">♥</span></div>
+              <div class="card-face blk"><span class="rank">7</span><span class="suit">♣</span></div>
+              <div class="card-face red"><span class="rank">2</span><span class="suit">♦</span></div>
+              <div class="card-face red" style="box-shadow:0 0 0 1.5px var(--gold-500);"><span class="rank">K</span><span class="suit">♥</span></div>
+              <div class="card-face blk"><span class="rank">4</span><span class="suit">♠</span></div>
+            </div>
+          </div>
+
+          <div class="spacer-12"></div>
+          <div style="font-size:12px;font-style:italic;color:var(--cream-200);line-height:1.6;">
+            "BB 3-bet preflop, BTN called. Flop check-raise on top pair. Turn K gave the set — jam called."
+          </div>
+          <div class="spacer-12"></div>
+          <div style="display:flex;justify-content:space-between;">
+            <span class="serif gold" style="font-size:16px;">You won +340</span>
+            <span class="action" style="color:var(--gold-500);">Replay ›</span>
+          </div>
+        </div>
+        <div class="home-indicator"></div>
+      </div></div>
+      <div class="label"><span class="num">17</span>Hand Summary<span class="note">Landing when tapping a hand in feed/history. Screenshot-ready composition. Star toggle in nav.</span></div>
+    </div>
+
+    <!-- 18 Detailed replay -->
+    <div class="phone-wrap">
+      <div class="phone"><div class="screen felt">
+        <div class="notch"></div>
+        <div class="status-bar"><span>9:41</span><span class="right">● ● ●</span></div>
+        <div class="body-pad">
+          <div class="nav">
+            <span class="back">‹</span>
+            <span class="title">Replay</span>
+            <span class="action" style="color:var(--gold-500);">★</span>
+          </div>
+          <div class="eyebrow">R07 · H4 · KK vs QT</div>
+          <div class="spacer-8"></div>
+
+          <div style="display:flex;gap:3px;justify-content:center;padding:8px 0;border-top:1px solid rgba(201,169,97,0.15);border-bottom:1px solid rgba(201,169,97,0.15);">
+            <div class="card-face red"><span class="rank">Q</span><span class="suit">♥</span></div>
+            <div class="card-face blk"><span class="rank">7</span><span class="suit">♣</span></div>
+            <div class="card-face red"><span class="rank">2</span><span class="suit">♦</span></div>
+            <div class="card-face red"><span class="rank">K</span><span class="suit">♥</span></div>
+            <div class="card-face blk"><span class="rank">4</span><span class="suit">♠</span></div>
+          </div>
+
+          <div class="spacer-12"></div>
+          <div style="font-family:'SF Mono',Menlo,monospace;font-size:11px;line-height:1.9;color:var(--cream-200);">
+            <div style="color:var(--cream-300);">— PREFLOP —</div>
+            <div><span style="color:var(--cream-400);">00:00</span> &nbsp; SB posts 5</div>
+            <div><span style="color:var(--cream-400);">00:00</span> &nbsp; BB posts 10</div>
+            <div><span style="color:var(--cream-400);">00:01</span> &nbsp; SB raises to 30</div>
+            <div><span style="color:var(--cream-400);">04:12</span> &nbsp; <span class="gold">BB 3-bets to 90</span></div>
+            <div><span style="color:var(--cream-400);">07:38</span> &nbsp; SB calls</div>
+            <div style="color:var(--cream-300);">— FLOP · Q♥ 7♣ 2♦ —</div>
+            <div><span style="color:var(--cream-400);">07:41</span> &nbsp; BB bets 60</div>
+            <div><span style="color:var(--cream-400);">09:02</span> &nbsp; SB raises to 160</div>
+            <div><span style="color:var(--cream-400);">14:55</span> &nbsp; BB calls</div>
+            <div style="color:var(--cream-300);">— TURN · K♥ —</div>
+            <div><span style="color:var(--cream-400);">14:58</span> &nbsp; BB checks</div>
+            <div><span style="color:var(--cream-400);">18:10</span> &nbsp; <span class="gold">SB jams 340</span></div>
+            <div><span style="color:var(--cream-400);">22:47</span> &nbsp; BB calls all-in</div>
+            <div style="color:var(--cream-300);">— RIVER · 4♠ —</div>
+            <div class="gold">Result: BB wins 680 · set of Kings</div>
+          </div>
+          <div class="spacer-12"></div>
+          <div style="display:flex;gap:8px;">
+            <div class="btn-secondary" style="flex:1;">◀ Scrub</div>
+            <div class="btn-secondary" style="flex:1;">Scrub ▶</div>
+          </div>
+        </div>
+        <div class="home-indicator"></div>
+      </div></div>
+      <div class="label"><span class="num">18</span>Hand Replay<span class="note">Mono-spaced action log. Real timestamps (hh:mm). Scrubber buttons for step-through replay.</span></div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ================================================================
+     FLOW 7 — HISTORY
+     ================================================================ -->
+<section class="section">
+  <h2>09 · History &amp; Favorites</h2>
+  <h3>Looking back</h3>
+  <p class="desc">Per §13.7, a filterable feed of past hands. Two screens cover the two most common filter states.</p>
+
+  <div class="grid">
+
+    <!-- 19 History - all -->
+    <div class="phone-wrap">
+      <div class="phone"><div class="screen felt">
+        <div class="notch"></div>
+        <div class="status-bar"><span>9:41</span><span class="right">● ● ●</span></div>
+        <div class="body-pad">
+          <div class="nav">
+            <span class="back">‹</span>
+            <span class="title">History</span>
+            <span class="action">Filter</span>
+          </div>
+          <div class="segmented">
+            <span class="on">All</span>
+            <span>Favorites</span>
+            <span>Won</span>
+            <span>Lost</span>
+          </div>
+          <div class="spacer-12"></div>
+          <div class="eyebrow">Match 03 · Round 07</div>
+          <div class="spacer-4"></div>
+
+          <div class="list-row">
+            <div>
+              <div class="primary">H4 · KK vs QT &nbsp;<span class="star">★</span></div>
+              <div class="meta">Set on the turn</div>
+            </div>
+            <span class="serif gold">+340</span>
+          </div>
+          <div class="list-row">
+            <div>
+              <div class="primary">H5 · AA vs 99</div>
+              <div class="meta">Cracked on river</div>
+            </div>
+            <span class="serif" style="color:var(--claret);">−620</span>
+          </div>
+          <div class="list-row">
+            <div>
+              <div class="primary">H1 · AhKs &nbsp;<span class="star">★</span></div>
+              <div class="meta">4-bet, folded turn</div>
+            </div>
+            <span class="serif gold">+420</span>
+          </div>
+          <div class="list-row">
+            <div>
+              <div class="primary">H7 · 72o</div>
+              <div class="meta">Open-fold</div>
+            </div>
+            <span class="serif" style="color:var(--claret);">−5</span>
+          </div>
+          <div class="list-row">
+            <div>
+              <div class="primary">H9 · JJ</div>
+              <div class="meta">Value river call</div>
+            </div>
+            <span class="serif gold">+205</span>
+          </div>
+          <div class="spacer-12"></div>
+          <div class="eyebrow">Round 06</div>
+          <div class="list-row">
+            <div>
+              <div class="primary">H2 · Hero call</div>
+              <div class="meta">Ace-high good</div>
+            </div>
+            <span class="serif gold">+620</span>
+          </div>
+        </div>
+        <div class="home-indicator"></div>
+      </div></div>
+      <div class="label"><span class="num">19</span>History · All<span class="note">Grouped by round. Stars on favorited rows. Tap row → Summary (17).</span></div>
+    </div>
+
+    <!-- 20 History - favorites -->
+    <div class="phone-wrap">
+      <div class="phone"><div class="screen felt">
+        <div class="notch"></div>
+        <div class="status-bar"><span>9:41</span><span class="right">● ● ●</span></div>
+        <div class="body-pad">
+          <div class="nav">
+            <span class="back">‹</span>
+            <span class="title">Favorites</span>
+            <span class="action">4</span>
+          </div>
+          <div class="segmented">
+            <span>All</span>
+            <span class="on">Favorites</span>
+            <span>Won</span>
+            <span>Lost</span>
+          </div>
+          <div class="spacer-16"></div>
+
+          <div style="border:1px solid rgba(212,179,104,0.3);border-radius:12px;padding:12px;margin-bottom:10px;">
+            <div class="eyebrow">R07·H4 · Apr 15</div>
+            <div class="serif" style="font-size:15px;margin-top:2px;">Set on the Turn</div>
+            <div style="display:flex;gap:3px;margin-top:6px;">
+              <div class="card-face sm blk"><span class="rank">K</span><span class="suit">♣</span></div>
+              <div class="card-face sm blk"><span class="rank">K</span><span class="suit">♠</span></div>
+              <div style="flex:1;"></div>
+              <span class="serif gold" style="align-self:center;">+340</span>
+            </div>
+          </div>
+
+          <div style="border:1px solid rgba(212,179,104,0.3);border-radius:12px;padding:12px;margin-bottom:10px;">
+            <div class="eyebrow">R07·H1 · Apr 15</div>
+            <div class="serif" style="font-size:15px;margin-top:2px;">4-bet, folded turn</div>
+            <div style="display:flex;gap:3px;margin-top:6px;">
+              <div class="card-face sm red"><span class="rank">A</span><span class="suit">♥</span></div>
+              <div class="card-face sm blk"><span class="rank">K</span><span class="suit">♠</span></div>
+              <div style="flex:1;"></div>
+              <span class="serif gold" style="align-self:center;">+420</span>
+            </div>
+          </div>
+
+          <div style="border:1px solid rgba(212,179,104,0.3);border-radius:12px;padding:12px;margin-bottom:10px;">
+            <div class="eyebrow">R06·H2 · Apr 14</div>
+            <div class="serif" style="font-size:15px;margin-top:2px;">Hero call river</div>
+            <div style="display:flex;gap:3px;margin-top:6px;">
+              <div class="card-face sm red"><span class="rank">A</span><span class="suit">♥</span></div>
+              <div class="card-face sm red"><span class="rank">7</span><span class="suit">♦</span></div>
+              <div style="flex:1;"></div>
+              <span class="serif gold" style="align-self:center;">+620</span>
+            </div>
+          </div>
+
+          <div style="border:1px solid rgba(212,179,104,0.3);border-radius:12px;padding:12px;">
+            <div class="eyebrow">R03·H6 · Apr 09</div>
+            <div class="serif" style="font-size:15px;margin-top:2px;">The cooler</div>
+            <div style="display:flex;gap:3px;margin-top:6px;">
+              <div class="card-face sm blk"><span class="rank">J</span><span class="suit">♠</span></div>
+              <div class="card-face sm red"><span class="rank">J</span><span class="suit">♥</span></div>
+              <div style="flex:1;"></div>
+              <span class="serif" style="color:var(--claret);align-self:center;">−820</span>
+            </div>
+          </div>
+        </div>
+        <div class="home-indicator"></div>
+      </div></div>
+      <div class="label"><span class="num">20</span>History · Favorites<span class="note">Card-style layout rather than list. More tactile; hand titles prominent.</span></div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ================================================================
+     FLOW 8 — MATCH END
+     ================================================================ -->
+<section class="section">
+  <h2>10 · Match End</h2>
+  <h3>Bust screens</h3>
+  <p class="desc">Match ends when either player's total stack falls below 10×BB at a round boundary. Won and lost variants of the same screen.</p>
+
+  <div class="grid">
+
+    <!-- 21 Match won -->
+    <div class="phone-wrap">
+      <div class="phone"><div class="screen felt">
+        <div class="notch"></div>
+        <div class="status-bar"><span>9:41</span><span class="right">● ● ●</span></div>
+        <div class="body-pad" style="height:calc(100% - 44px);display:flex;flex-direction:column;">
+          <div style="flex:1;display:flex;flex-direction:column;justify-content:center;text-align:center;">
+            <div class="eyebrow gold" style="color:var(--gold-500);">Match 03 · Concluded</div>
+            <div class="spacer-16"></div>
+            <div class="serif" style="font-size:64px;line-height:0.9;letter-spacing:-1px;">Won.</div>
+            <div style="width:40px;height:1px;background:var(--gold-500);margin:12px auto;"></div>
+            <div class="serif" style="font-size:18px;color:var(--cream-200);line-height:1.3;">
+              Sarah busted in Round 12.
+            </div>
+            <div class="spacer-16"></div>
+            <div class="serif gold" style="font-size:36px;">+2,430</div>
+            <div style="font-size:11px;color:var(--cream-300);letter-spacing:1.5px;text-transform:uppercase;">chips · 89 hands played</div>
+            <div class="spacer-16"></div>
+            <div style="padding:12px;border:1px solid rgba(201,169,97,0.2);border-radius:12px;text-align:left;font-size:11px;color:var(--cream-200);line-height:1.8;">
+              <div class="eyebrow">Match highlights</div>
+              <div>Biggest pot · R08·H2 · 1,840</div>
+              <div>Bluffs caught · 3</div>
+              <div>All-ins · 5 (3W / 2L)</div>
+              <div>Longest hand · R06·H9 · 41h</div>
+            </div>
+          </div>
+          <div class="stack-8">
+            <div class="btn-primary">Rematch</div>
+            <div class="btn-ghost">Back to home</div>
+          </div>
+        </div>
+        <div class="home-indicator"></div>
+      </div></div>
+      <div class="label"><span class="num">21</span>Match End · Won<span class="note">Standalone ceremonial screen. Highlights block is a tappable deep-link to favorites.</span></div>
+    </div>
+
+    <!-- 22 Match lost -->
+    <div class="phone-wrap">
+      <div class="phone"><div class="screen felt">
+        <div class="notch"></div>
+        <div class="status-bar"><span>9:41</span><span class="right">● ● ●</span></div>
+        <div class="body-pad" style="height:calc(100% - 44px);display:flex;flex-direction:column;">
+          <div style="flex:1;display:flex;flex-direction:column;justify-content:center;text-align:center;">
+            <div class="eyebrow" style="color:var(--claret);">Match 03 · Concluded</div>
+            <div class="spacer-16"></div>
+            <div class="serif" style="font-size:64px;line-height:0.9;letter-spacing:-1px;color:var(--cream-200);">Out.</div>
+            <div style="width:40px;height:1px;background:var(--claret);margin:12px auto;"></div>
+            <div class="serif" style="font-size:18px;color:var(--cream-200);line-height:1.3;">
+              You couldn't cover blinds into Round 13.
+            </div>
+            <div class="spacer-16"></div>
+            <div class="serif" style="font-size:36px;color:var(--claret);">−2,000</div>
+            <div style="font-size:11px;color:var(--cream-300);letter-spacing:1.5px;text-transform:uppercase;">chips · 89 hands played</div>
+            <div class="spacer-16"></div>
+            <div style="padding:12px;border:1px solid rgba(196,77,66,0.25);border-radius:12px;text-align:left;font-size:11px;color:var(--cream-200);line-height:1.8;">
+              <div class="eyebrow" style="color:var(--claret);">Match notes</div>
+              <div>Biggest loss · R09·H2 · −820 (cooler)</div>
+              <div>Bluffs ran · 4 (0 got through)</div>
+              <div>All-ins · 3 (0W / 3L)</div>
+            </div>
+          </div>
+          <div class="stack-8">
+            <div class="btn-primary">Rematch</div>
+            <div class="btn-ghost">Back to home</div>
+          </div>
+        </div>
+        <div class="home-indicator"></div>
+      </div></div>
+      <div class="label"><span class="num">22</span>Match End · Lost<span class="note">Mirror of 21, claret accent instead of gold. Tone: dignified, not punitive.</span></div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ================================================================
+     FLOW 9 — SYSTEM & SETTINGS
+     ================================================================ -->
+<section class="section">
+  <h2>11 · System &amp; Settings</h2>
+  <h3>The thin edges</h3>
+  <p class="desc">Two final screens: the minimal Settings surface per §13.8, and the iOS lock-screen push preview engineering should QA against.</p>
+
+  <div class="grid">
+
+    <!-- 23 Settings -->
+    <div class="phone-wrap">
+      <div class="phone"><div class="screen felt">
+        <div class="notch"></div>
+        <div class="status-bar"><span>9:41</span><span class="right">● ● ●</span></div>
+        <div class="body-pad">
+          <div class="nav">
+            <span class="back">‹</span>
+            <span class="title">Settings</span>
+            <span></span>
+          </div>
+          <div class="spacer-12"></div>
+
+          <div class="eyebrow">Account</div>
+          <div class="list-row">
+            <div><div class="primary">Playing as</div></div>
+            <span class="serif">Thomas</span>
+          </div>
+          <div class="list-row">
+            <div><div class="primary">Opponent</div></div>
+            <span class="serif">Sarah Flint</span>
+          </div>
+
+          <div class="spacer-16"></div>
+          <div class="eyebrow">Notifications</div>
+          <div class="list-row">
+            <div><div class="primary">Turn handoff push</div><div class="meta">One push per opponent turn</div></div>
+            <div style="width:40px;height:22px;border-radius:11px;background:var(--gold-500);position:relative;">
+              <div style="position:absolute;right:2px;top:2px;width:18px;height:18px;border-radius:50%;background:#fff;"></div>
+            </div>
+          </div>
+
+          <div class="spacer-16"></div>
+          <div class="eyebrow">Match</div>
+          <div class="list-row">
+            <div><div class="primary">Reset current match</div><div class="meta">MVP debug only</div></div>
+            <span class="action" style="color:var(--claret);">Reset</span>
+          </div>
+
+          <div class="spacer-16"></div>
+          <div class="eyebrow">About</div>
+          <div class="list-row">
+            <div><div class="primary">Send feedback</div></div>
+            <span class="action" style="color:var(--gold-500);">Email ›</span>
+          </div>
+          <div class="list-row">
+            <div><div class="primary">Version</div></div>
+            <span class="meta">0.1.0 (build 42)</span>
+          </div>
+        </div>
+        <div class="home-indicator"></div>
+      </div></div>
+      <div class="label"><span class="num">23</span>Settings<span class="note">Deliberately short. Reset is MVP-only for testing.</span></div>
+    </div>
+
+    <!-- 24 Push notification (lock screen) -->
+    <div class="phone-wrap">
+      <div class="phone"><div class="screen">
+        <div class="notch"></div>
+        <div class="lockscreen">
+          <div class="time">9:41</div>
+          <div class="date">Wednesday, April 15</div>
+          <div class="push">
+            <div class="icon">T</div>
+            <div style="flex:1;min-width:0;">
+              <div style="display:flex;align-items:baseline;">
+                <div class="title">Tilted</div>
+                <div class="time" style="font-size:11px;margin-left:auto;opacity:0.6;">now</div>
+              </div>
+              <div class="sub">Sarah finished her turn. 3 hands are waiting for you.</div>
+            </div>
+          </div>
+        </div>
+        <div class="home-indicator"></div>
+      </div></div>
+      <div class="label"><span class="num">24</span>Push Notification<span class="note">Lock-screen preview. Exact copy per spec §16. Tap opens the Turn View directly.</span></div>
+    </div>
+
+  </div>
+</section>
+
+<footer style="padding:48px;color:var(--muted);font-size:12px;text-align:center;border-top:1px solid var(--rule);">
+  Tilted · Classic Premium · Full mockups v1.0 · 24 screens · Hand off to engineering
+</footer>
+
+</body>
+</html>
