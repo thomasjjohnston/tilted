@@ -1,7 +1,7 @@
 import { eq, and, sql, ne, inArray } from 'drizzle-orm';
 import type { Database, Transaction } from '../db/connection.js';
 import { matches, rounds, hands, users, actions, favorites } from '../db/schema.js';
-import { USER_TJ_ID, USER_SF_ID } from '../db/seed.js';
+import { USER_TJ_ID, USER_SL_ID } from '../db/seed.js';
 import { STARTING_STACK, BLIND_SMALL, BLIND_BIG, HANDS_PER_ROUND, MIN_CHIPS_FOR_ROUND } from './constants.js';
 import { openRound } from './round.js';
 import { generateActionSketch } from './action-sketch.js';
@@ -21,11 +21,11 @@ export async function createMatch(db: Database, requestingUserId: string) {
     }
 
     // Coin flip for SB of round 1
-    const sbOfRound1 = Math.random() < 0.5 ? USER_TJ_ID : USER_SF_ID;
+    const sbOfRound1 = Math.random() < 0.5 ? USER_TJ_ID : USER_SL_ID;
 
     const [match] = await tx.insert(matches).values({
       userAId: USER_TJ_ID,
-      userBId: USER_SF_ID,
+      userBId: USER_SL_ID,
       startingStack: STARTING_STACK,
       blindSmall: BLIND_SMALL,
       blindBig: BLIND_BIG,

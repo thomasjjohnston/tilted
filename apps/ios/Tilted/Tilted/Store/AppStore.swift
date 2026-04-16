@@ -11,6 +11,7 @@ final class AppStore {
     // MARK: - Match State
     var matchState: MatchState?
     var isLoading = false
+    var hasInitiallyLoaded = false
     var error: String?
 
     // MARK: - Navigation
@@ -63,6 +64,7 @@ final class AppStore {
         self.currentUserId = nil
         self.currentUserName = nil
         self.matchState = nil
+        self.hasInitiallyLoaded = false
     }
 
     // MARK: - Refresh
@@ -77,6 +79,7 @@ final class AppStore {
             self.error = error.localizedDescription
         }
         isLoading = false
+        hasInitiallyLoaded = true
     }
 
     // MARK: - Match Actions
@@ -132,6 +135,31 @@ final class AppStore {
         } catch {
             self.error = error.localizedDescription
             await refresh()
+        }
+    }
+
+    @MainActor
+    func submitBatchActions(actions: [(handId: String, type: String, amount: Int?)]) async {
+        // Optimistic: mark all hands as resolved immediately
+        for action in actions {
+            optimisticallyResolveHand(handId: action.handId, action: action.type)
+        }
+
+        // Fire server call in background — don't block the UI
+        let capturedActions = actions
+        Task.detached { [weak self] in
+            do {
+                let result = try await APIClient.shared.submitBatchActions(actions: capturedActions)
+                await MainActor.run {
+                    self?.matchState = result
+                }
+            } catch {
+                await MainActor.run {
+                    self?.error = error.localizedDescription
+                }
+                // Refresh to reconcile on error
+                await self?.refresh()
+            }
         }
     }
 

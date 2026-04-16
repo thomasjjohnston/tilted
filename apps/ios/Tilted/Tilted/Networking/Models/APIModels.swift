@@ -198,6 +198,8 @@ struct HandDetail: Codable {
     let terminalReason: String?
     let winnerUserId: String?
     let isFavorited: Bool
+    let myHandRank: String?
+    let opponentHandRank: String?
     let actions: [ActionDetail]
 
     enum CodingKeys: String, CodingKey {
@@ -214,6 +216,8 @@ struct HandDetail: Codable {
         case terminalReason = "terminal_reason"
         case winnerUserId = "winner_user_id"
         case isFavorited = "is_favorited"
+        case myHandRank = "my_hand_rank"
+        case opponentHandRank = "opponent_hand_rank"
         case actions
     }
 }
@@ -292,10 +296,10 @@ struct HistoryHand: Codable, Identifiable {
 
 enum HardcodedUsers {
     static let tjId = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
-    static let sfId = "b2c3d4e5-f6a7-8901-bcde-f12345678901"
+    static let slId = "b2c3d4e5-f6a7-8901-bcde-f12345678901"
 
-    static let users: [(id: String, name: String, initials: String)] = [
-        (tjId, "Thomas Johnston", "TJ"),
-        (sfId, "Sarah Flint", "SF"),
+    static let users: [(id: String, name: String, initials: String, pin: String)] = [
+        (tjId, "Thomas Johnston", "TJ", "8989"),
+        (slId, "Stephen Layton", "SL", "1234"),
     ]
 }

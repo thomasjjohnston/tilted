@@ -14,14 +14,17 @@ struct ChipBadgeView: View {
                 .tracking(1.5)
                 .foregroundColor(.cream300)
 
-            Text(total.formatted())
-                .font(.chipValue)
+            Text(available.formatted())
+                .font(.custom("Georgia", size: 26))
                 .foregroundColor(isMe ? .gold500 : .cream100)
-                .fontDesign(.serif)
 
-            Text("Avail \(available.formatted()) \u{00B7} Rsv \(reserved.formatted())")
-                .font(.caption)
+            Text("available to bet")
+                .font(.system(size: 10))
                 .foregroundColor(.cream300)
+
+            Text("\(reserved.formatted()) in play \u{00B7} \(total.formatted()) total")
+                .font(.system(size: 10))
+                .foregroundColor(.cream400)
         }
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -61,17 +64,4 @@ struct ChipBarView: View {
             return Color.cream100.opacity(0.12)
         }
     }
-}
-
-#Preview {
-    VStack(spacing: 16) {
-        HStack(spacing: 8) {
-            ChipBadgeView(label: "You", total: 1840, available: 1595, reserved: 245, isMe: true)
-            ChipBadgeView(label: "Sarah", total: 2160, available: 1910, reserved: 250)
-        }
-
-        ChipBarView(resolved: 3, pendingMe: 3, pendingOpponent: 0, total: 10)
-    }
-    .padding()
-    .background(Color.felt700)
 }

@@ -101,19 +101,56 @@ struct HandDetailView: View {
                 }
 
                 // Result
-                HStack {
-                    Text("Pot: \(detail.pot)")
-                        .font(.chipValue)
-                        .fontDesign(.serif)
-                        .foregroundColor(.cream100)
+                VStack(spacing: 6) {
+                    HStack {
+                        Text("Pot: \(detail.pot)")
+                            .font(.chipValue)
+                            .fontDesign(.serif)
+                            .foregroundColor(.cream100)
 
-                    Spacer()
+                        Spacer()
 
-                    if let reason = detail.terminalReason {
-                        Text(reason.uppercased())
-                            .font(.eyebrow)
-                            .tracking(1)
-                            .foregroundColor(reason == "fold" ? .claret : .gold500)
+                        if let reason = detail.terminalReason {
+                            Text(reason.uppercased())
+                                .font(.eyebrow)
+                                .tracking(1)
+                                .foregroundColor(reason == "fold" ? .claret : .gold500)
+                        }
+                    }
+
+                    // Winner display
+                    if let winnerId = detail.winnerUserId {
+                        let iWon = winnerId == store.currentUserId
+                        let oppName = store.matchState?.opponent.displayName.components(separatedBy: " ").first ?? "Opponent"
+                        HStack {
+                            Text(iWon ? "You won" : "\(oppName) won")
+                                .font(.system(size: 14))
+                                .foregroundColor(iWon ? .gold500 : .claret)
+                            Spacer()
+                            Text(iWon ? "+\(detail.pot)" : "-\(detail.pot)")
+                                .font(.custom("Georgia", size: 22))
+                                .foregroundColor(iWon ? .gold500 : .claret)
+                        }
+                        .padding(10)
+                        .background(iWon ? Color.gold500.opacity(0.06) : Color.claret.opacity(0.06))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(iWon ? Color.gold500.opacity(0.2) : Color.claret.opacity(0.2), lineWidth: 1)
+                        )
+                        .cornerRadius(8)
+                    } else if detail.terminalReason == "showdown" {
+                        HStack {
+                            Text("Split pot")
+                                .font(.system(size: 14))
+                                .foregroundColor(.cream200)
+                            Spacer()
+                            Text("+\(detail.pot / 2)")
+                                .font(.custom("Georgia", size: 22))
+                                .foregroundColor(.cream200)
+                        }
+                        .padding(10)
+                        .background(Color.cream200.opacity(0.04))
+                        .cornerRadius(8)
                     }
                 }
 

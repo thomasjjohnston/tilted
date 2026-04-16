@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tilted — Chip Display Options (10 Variations)</title>
+<style>
+  :root {
+    --felt-900: #051c15; --felt-800: #082a21; --felt-700: #0e3b2e;
+    --felt-600: #164a3a; --felt-500: #1a5a43;
+    --gold-500: #d4b368; --gold-600: #c9a961; --gold-700: #a88334; --gold-800: #7a5f2b;
+    --cream-50: #f6f1e1; --cream-100: #f3ecd6; --cream-200: #d9cfb2; --cream-300: #9eb7a4;
+    --cream-400: #6a8a7a;
+    --claret: #c44d42; --card-red: #c92b2b; --card-black: #111;
+    --page-bg: #15161a; --page-fg: #e8e6df; --muted: #8a8a8a; --rule: #2a2a30;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--page-bg); color: var(--page-fg); font-family: -apple-system, "SF Pro Text", sans-serif; -webkit-font-smoothing: antialiased; }
+
+  .page-hdr { padding: 48px 48px 20px; max-width: 1400px; margin: 0 auto; }
+  .page-hdr .ey { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: var(--gold-500); margin-bottom: 10px; }
+  .page-hdr h1 { font-family: Georgia, serif; font-weight: 400; font-size: 36px; margin: 0 0 8px; }
+  .page-hdr p { color: var(--muted); font-size: 13px; line-height: 1.7; max-width: 680px; }
+
+  .section { padding: 40px 48px; max-width: 1400px; margin: 0 auto; border-top: 1px solid var(--rule); }
+  .section h2 { font-size: 12px; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); font-weight: 500; margin: 0 0 4px; }
+  .section h3 { font-family: Georgia, serif; font-weight: 400; font-size: 24px; margin: 0 0 4px; }
+  .section .desc { color: var(--muted); font-size: 13px; max-width: 700px; line-height: 1.6; margin: 0 0 24px; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 360px)); gap: 32px; justify-content: start; }
+
+  .demo { border-radius: 20px; overflow: hidden; background: radial-gradient(ellipse at 50% 0%, var(--felt-500) 0%, var(--felt-700) 55%, var(--felt-800) 100%); color: var(--cream-100); padding: 20px 18px; }
+  .demo-label { margin-top: 10px; font-size: 11px; color: var(--page-fg); font-family: "SF Mono", Menlo, monospace; }
+  .demo-label .num { color: var(--gold-500); margin-right: 6px; }
+  .demo-label .note { display: block; color: var(--muted); font-size: 10px; margin-top: 3px; line-height: 1.5; }
+
+  .ey { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--cream-300); }
+  .serif { font-family: Georgia, serif; }
+  .gold { color: var(--gold-500); }
+  .thin-rule { height: 1px; background: linear-gradient(to right, transparent, var(--gold-600), transparent); opacity: 0.5; margin: 12px 0; }
+
+  /* Chip badge base */
+  .cb { background: rgba(0,0,0,0.28); border: 1px solid rgba(201,169,97,0.3); border-radius: 10px; padding: 10px 12px; }
+
+  /* Bar */
+  .bar { display: flex; height: 10px; border-radius: 5px; overflow: hidden; background: rgba(0,0,0,0.3); }
+  .bar .seg { transition: width 0.3s; }
+
+  /* Inline turn header */
+  .turn-hdr { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; font-size: 12px; }
+
+  /* Hand card snippet */
+  .hand-snip { background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(0,0,0,0.15)); border: 1px solid rgba(201,169,97,0.3); border-radius: 12px; padding: 10px 12px; margin-top: 8px; }
+
+  @media (max-width: 720px) { .page-hdr, .section { padding-left: 20px; padding-right: 20px; } }
+</style>
+</head>
+<body>
+
+<div class="page-hdr">
+  <div class="ey">Tilted · Chip Display · 10 Options</div>
+  <h1>Stack Representation</h1>
+  <p>The current design shows "Total" as the primary number, but total includes reserved chips that are committed to pots and might not come back. These 10 options explore different philosophies: available-first, visual bars, budget-centric, and more. Each option shows the Home badge, Turn header, and Hand card snippet.</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- 01: Available-First -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<section class="section">
+  <h2>Option 01</h2>
+  <h3>Available-First</h3>
+  <p class="desc">The big number is Available — what you can actually bet. Total shown small underneath as context. Reserved is implicit (total minus available). Clean and honest.</p>
+  <div class="grid">
+    <!-- Home -->
+    <div>
+      <div class="demo">
+        <div class="ey">Home Badge</div>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <div class="cb" style="flex:1;">
+            <div class="ey">You</div>
+            <div style="font-family:Georgia,serif;font-size:26px;color:var(--gold-500);line-height:1.15;">1,595</div>
+            <div style="font-size:10px;color:var(--cream-300);">available to bet</div>
+            <div style="font-size:10px;color:var(--cream-400);margin-top:2px;">245 in play · 1,840 total</div>
+          </div>
+          <div class="cb" style="flex:1;">
+            <div class="ey">Sarah</div>
+            <div style="font-family:Georgia,serif;font-size:26px;color:var(--cream-100);line-height:1.15;">1,910</div>
+            <div style="font-size:10px;color:var(--cream-300);">available to bet</div>
+            <div style="font-size:10px;color:var(--cream-400);margin-top:2px;">250 in play · 2,160 total</div>
+          </div>
+        </div>
+      </div>
+      <div class="demo" style="margin-top:8px;">
+        <div class="ey">Turn Header</div>
+        <div class="turn-hdr">
+          <span style="color:var(--cream-200);">‹</span>
+          <span>3 of 10 hands left</span>
+          <span style="color:var(--gold-500);font-weight:600;">1,595 to bet</span>
+        </div>
+      </div>
+      <div class="demo" style="margin-top:8px;">
+        <div class="ey">Hand Card</div>
+        <div class="hand-snip">
+          <div style="display:flex;justify-content:space-between;font-size:11px;">
+            <span style="color:var(--cream-100);">Hand 3 · <span class="gold">Flop</span></span>
+            <span class="gold">Facing 40</span>
+          </div>
+          <div style="font-size:10px;color:var(--cream-300);margin-top:4px;">Pot: 100 · You've put in: 30 · 1,595 available</div>
+        </div>
+      </div>
+      <div class="demo-label"><span class="num">01</span>Available-First<span class="note">Honest: shows what you can use. "In play" = reserved. Total is secondary context.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- 02: Bankroll + At Risk -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<section class="section">
+  <h2>Option 02</h2>
+  <h3>Bankroll + At Risk</h3>
+  <p class="desc">Reframes "reserved" as "at risk" — chips you might lose. Available is "bankroll" — what's safe. More emotionally honest about the portfolio nature of the game.</p>
+  <div class="grid">
+    <div>
+      <div class="demo">
+        <div class="ey">Home Badge</div>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <div class="cb" style="flex:1;">
+            <div class="ey">You</div>
+            <div style="display:flex;align-items:baseline;gap:6px;">
+              <span style="font-family:Georgia,serif;font-size:24px;color:var(--gold-500);">1,595</span>
+              <span style="font-size:11px;color:var(--cream-300);">bankroll</span>
+            </div>
+            <div style="display:flex;align-items:baseline;gap:6px;margin-top:2px;">
+              <span style="font-family:Georgia,serif;font-size:16px;color:var(--claret);">245</span>
+              <span style="font-size:11px;color:var(--cream-300);">at risk</span>
+            </div>
+          </div>
+          <div class="cb" style="flex:1;">
+            <div class="ey">Sarah</div>
+            <div style="display:flex;align-items:baseline;gap:6px;">
+              <span style="font-family:Georgia,serif;font-size:24px;color:var(--cream-100);">1,910</span>
+              <span style="font-size:11px;color:var(--cream-300);">bankroll</span>
+            </div>
+            <div style="display:flex;align-items:baseline;gap:6px;margin-top:2px;">
+              <span style="font-family:Georgia,serif;font-size:16px;color:var(--claret);">250</span>
+              <span style="font-size:11px;color:var(--cream-300);">at risk</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="demo" style="margin-top:8px;">
+        <div class="ey">Turn Header</div>
+        <div class="turn-hdr">
+          <span style="color:var(--cream-200);">‹</span>
+          <span>3 of 10 hands left</span>
+          <div style="text-align:right;">
+            <div style="color:var(--gold-500);font-weight:600;font-size:13px;">1,595</div>
+            <div style="font-size:9px;color:var(--claret);">245 at risk</div>
+          </div>
+        </div>
+      </div>
+      <div class="demo-label"><span class="num">02</span>Bankroll + At Risk<span class="note">"At risk" in claret signals danger. Bankroll in gold = safe money. Poker-native framing.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- 03: Visual Stack Bar -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<section class="section">
+  <h2>Option 03</h2>
+  <h3>Visual Stack Bar</h3>
+  <p class="desc">A proportional bar shows how your stack is allocated. Gold = available, amber = in pots, empty = opponent's share of the 4000. Instant visual read of relative position.</p>
+  <div class="grid">
+    <div>
+      <div class="demo">
+        <div class="ey">Home Badge</div>
+        <div style="margin-top:8px;">
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--cream-300);margin-bottom:4px;">
+            <span>You: <span class="gold" style="font-weight:600;">1,595</span> avail</span>
+            <span>Sarah: 1,910 avail</span>
+          </div>
+          <div class="bar" style="height:14px;">
+            <div class="seg" style="width:39.9%;background:var(--gold-500);" title="Your available"></div>
+            <div class="seg" style="width:6.1%;background:var(--gold-700);" title="Your reserved"></div>
+            <div class="seg" style="width:6.25%;background:rgba(158,183,164,0.4);" title="Sarah reserved"></div>
+            <div class="seg" style="width:47.75%;background:rgba(158,183,164,0.2);" title="Sarah available"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--cream-400);margin-top:3px;">
+            <span>245 in pots</span>
+            <span>250 in pots</span>
+          </div>
+        </div>
+      </div>
+      <div class="demo" style="margin-top:8px;">
+        <div class="ey">Turn Header</div>
+        <div style="padding:8px 0;">
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;">
+            <span style="color:var(--cream-100);">3 of 10 hands left</span>
+            <span style="color:var(--gold-500);font-weight:600;">1,595 available</span>
+          </div>
+          <div class="bar" style="height:6px;">
+            <div class="seg" style="width:82%;background:var(--gold-500);"></div>
+            <div class="seg" style="width:18%;background:var(--gold-700);"></div>
+          </div>
+        </div>
+      </div>
+      <div class="demo-label"><span class="num">03</span>Visual Stack Bar<span class="note">Proportional bar. Gold = available, dark gold = in pots. Instant visual of stack health and allocation.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- 04: Wallet Metaphor -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<section class="section">
+  <h2>Option 04</h2>
+  <h3>Wallet Metaphor</h3>
+  <p class="desc">Think of it like a checking account. "Balance" is available. "Pending" is reserved. "Net worth" is total. Language everyone understands from banking.</p>
+  <div class="grid">
+    <div>
+      <div class="demo">
+        <div class="ey">Home Badge</div>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <div class="cb" style="flex:1;">
+            <div class="ey">Your Chips</div>
+            <div style="font-family:Georgia,serif;font-size:28px;color:var(--gold-500);line-height:1.15;">1,595</div>
+            <div style="font-size:10px;color:var(--cream-300);">balance</div>
+            <div class="thin-rule"></div>
+            <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--cream-400);">
+              <span>Pending</span><span>245</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--cream-400);margin-top:2px;">
+              <span>Net worth</span><span>1,840</span>
+            </div>
+          </div>
+          <div class="cb" style="flex:1;">
+            <div class="ey">Sarah's Chips</div>
+            <div style="font-family:Georgia,serif;font-size:28px;color:var(--cream-100);line-height:1.15;">1,910</div>
+            <div style="font-size:10px;color:var(--cream-300);">balance</div>
+            <div class="thin-rule"></div>
+            <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--cream-400);">
+              <span>Pending</span><span>250</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--cream-400);margin-top:2px;">
+              <span>Net worth</span><span>2,160</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="demo-label"><span class="num">04</span>Wallet Metaphor<span class="note">Banking language: Balance (available), Pending (reserved), Net worth (total). Universally understood.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- 05: Available Only (Ultra-Simple) -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<section class="section">
+  <h2>Option 05</h2>
+  <h3>Available Only</h3>
+  <p class="desc">Just show available. Period. Reserved and total are noise during gameplay — the only number that matters is what you can bet. Cleanest possible.</p>
+  <div class="grid">
+    <div>
+      <div class="demo">
+        <div class="ey">Home Badge</div>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <div class="cb" style="flex:1;text-align:center;">
+            <div class="ey">You</div>
+            <div style="font-family:Georgia,serif;font-size:32px;color:var(--gold-500);line-height:1.15;">1,595</div>
+          </div>
+          <div class="cb" style="flex:1;text-align:center;">
+            <div class="ey">Sarah</div>
+            <div style="font-family:Georgia,serif;font-size:32px;color:var(--cream-100);line-height:1.15;">1,910</div>
+          </div>
+        </div>
+      </div>
+      <div class="demo" style="margin-top:8px;">
+        <div class="ey">Turn Header</div>
+        <div class="turn-hdr">
+          <span style="color:var(--cream-200);">‹</span>
+          <span>3 of 10</span>
+          <span style="color:var(--gold-500);font-family:Georgia,serif;font-size:16px;font-weight:400;">1,595</span>
+        </div>
+      </div>
+      <div class="demo" style="margin-top:8px;">
+        <div class="ey">Hand Card — Facing a Bet</div>
+        <div class="hand-snip">
+          <div style="display:flex;justify-content:space-between;font-size:12px;">
+            <span style="color:var(--cream-100);">Hand 3 · Flop</span>
+            <span class="gold">Facing 40</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--cream-300);margin-top:4px;">
+            <span>Pot: 100</span>
+            <span>After call: 1,555</span>
+          </div>
+        </div>
+      </div>
+      <div class="demo-label"><span class="num">05</span>Available Only<span class="note">Radical simplicity. One number. "After call" on hand cards shows the impact of each decision.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- 06: Per-Hand Budget View -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<section class="section">
+  <h2>Option 06</h2>
+  <h3>Per-Hand Budget</h3>
+  <p class="desc">On each hand card, show the "effective stack" — available + what you've already put in this hand. This is the number poker players actually think in. The global available is in the header.</p>
+  <div class="grid">
+    <div>
+      <div class="demo">
+        <div class="ey">Turn Header</div>
+        <div class="turn-hdr">
+          <span style="color:var(--cream-200);">‹</span>
+          <span>3 of 10</span>
+          <span style="color:var(--gold-500);font-weight:600;">1,595 available</span>
+        </div>
+        <div class="ey" style="margin-top:8px;">Hand Card</div>
+        <div class="hand-snip">
+          <div style="display:flex;justify-content:space-between;font-size:12px;">
+            <span style="color:var(--cream-100);">Hand 3 · <span class="gold">Flop</span></span>
+            <span class="gold">Facing 40</span>
+          </div>
+          <div style="display:flex;gap:12px;margin-top:6px;font-size:11px;">
+            <div>
+              <div style="color:var(--cream-400);">Pot</div>
+              <div style="color:var(--cream-100);font-family:Georgia,serif;font-size:14px;">100</div>
+            </div>
+            <div>
+              <div style="color:var(--cream-400);">Your bet</div>
+              <div style="color:var(--cream-100);font-family:Georgia,serif;font-size:14px;">30</div>
+            </div>
+            <div>
+              <div style="color:var(--cream-400);">Effective stack</div>
+              <div style="color:var(--gold-500);font-family:Georgia,serif;font-size:14px;">1,625</div>
+            </div>
+          </div>
+          <div style="font-size:9px;color:var(--cream-400);margin-top:4px;">1,595 avail + 30 in this hand</div>
+        </div>
+      </div>
+      <div class="demo-label"><span class="num">06</span>Per-Hand Budget<span class="note">Effective stack = available + committed in this hand. The number poker players use to size bets.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- 07: Donut Chart -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<section class="section">
+  <h2>Option 07</h2>
+  <h3>Donut Chart</h3>
+  <p class="desc">A small donut/ring chart shows the proportion. Available = gold arc, reserved = dark arc. Number in the center. Compact and visual.</p>
+  <div class="grid">
+    <div>
+      <div class="demo">
+        <div class="ey">Home Badge</div>
+        <div style="display:flex;gap:16px;margin-top:10px;justify-content:center;">
+          <!-- You donut -->
+          <div style="text-align:center;">
+            <div class="ey" style="margin-bottom:6px;">You</div>
+            <div style="position:relative;width:80px;height:80px;">
+              <svg width="80" height="80" viewBox="0 0 80 80">
+                <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(168,131,52,0.25)" stroke-width="8"/>
+                <circle cx="40" cy="40" r="34" fill="none" stroke="#d4b368" stroke-width="8" stroke-dasharray="175 39" stroke-dashoffset="53" stroke-linecap="round"/>
+              </svg>
+              <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;">
+                <div style="font-family:Georgia,serif;font-size:16px;color:var(--gold-500);line-height:1;">1,595</div>
+                <div style="font-size:8px;color:var(--cream-300);">avail</div>
+              </div>
+            </div>
+            <div style="font-size:9px;color:var(--cream-400);margin-top:4px;">245 in play</div>
+          </div>
+          <!-- Sarah donut -->
+          <div style="text-align:center;">
+            <div class="ey" style="margin-bottom:6px;">Sarah</div>
+            <div style="position:relative;width:80px;height:80px;">
+              <svg width="80" height="80" viewBox="0 0 80 80">
+                <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(158,183,164,0.2)" stroke-width="8"/>
+                <circle cx="40" cy="40" r="34" fill="none" stroke="var(--cream-200)" stroke-width="8" stroke-dasharray="181 33" stroke-dashoffset="53" stroke-linecap="round"/>
+              </svg>
+              <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;">
+                <div style="font-family:Georgia,serif;font-size:16px;color:var(--cream-100);line-height:1;">1,910</div>
+                <div style="font-size:8px;color:var(--cream-300);">avail</div>
+              </div>
+            </div>
+            <div style="font-size:9px;color:var(--cream-400);margin-top:4px;">250 in play</div>
+          </div>
+        </div>
+      </div>
+      <div class="demo-label"><span class="num">07</span>Donut Chart<span class="note">Visual proportion at a glance. Gold arc = available. Gap = reserved. Number in center.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- 08: Scoreboard Style -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<section class="section">
+  <h2>Option 08</h2>
+  <h3>Scoreboard</h3>
+  <p class="desc">Sports-scoreboard layout. Available chips side by side like a score. "In pots" shown as a shared middle stat. Clean head-to-head framing.</p>
+  <div class="grid">
+    <div>
+      <div class="demo">
+        <div class="ey" style="text-align:center;">Round 7 · You are BB</div>
+        <div style="display:flex;align-items:center;margin-top:12px;">
+          <div style="flex:1;text-align:center;">
+            <div class="ey">You</div>
+            <div style="font-family:Georgia,serif;font-size:36px;color:var(--gold-500);line-height:1.1;">1,595</div>
+            <div style="font-size:10px;color:var(--cream-400);">245 in pots</div>
+          </div>
+          <div style="width:1px;height:50px;background:rgba(201,169,97,0.2);"></div>
+          <div style="flex:1;text-align:center;">
+            <div class="ey">Sarah</div>
+            <div style="font-family:Georgia,serif;font-size:36px;color:var(--cream-200);line-height:1.1;">1,910</div>
+            <div style="font-size:10px;color:var(--cream-400);">250 in pots</div>
+          </div>
+        </div>
+      </div>
+      <div class="demo-label"><span class="num">08</span>Scoreboard<span class="note">Head-to-head. Big available numbers. "In pots" as secondary context. Sports broadcast feel.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- 09: Stacked Numbers -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<section class="section">
+  <h2>Option 09</h2>
+  <h3>Stacked Numbers with Breakdown</h3>
+  <p class="desc">Available as the hero number, with a mini breakdown showing exactly where chips are: how many hands, how much per hand category.</p>
+  <div class="grid">
+    <div>
+      <div class="demo">
+        <div class="ey">Home Badge — Your Chips</div>
+        <div style="margin-top:8px;">
+          <div style="font-family:Georgia,serif;font-size:30px;color:var(--gold-500);line-height:1;">1,595</div>
+          <div style="font-size:11px;color:var(--cream-300);margin-top:2px;">available to bet</div>
+          <div class="thin-rule"></div>
+          <div style="font-size:11px;color:var(--cream-300);line-height:1.7;">
+            <div style="display:flex;justify-content:space-between;">
+              <span>Blinds (8 hands)</span><span style="color:var(--cream-200);">40</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;">
+              <span>Active bets (2 hands)</span><span style="color:var(--cream-200);">205</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;border-top:1px solid rgba(201,169,97,0.1);padding-top:3px;margin-top:3px;">
+              <span style="color:var(--cream-200);">Total stack</span><span style="color:var(--cream-200);font-weight:600;">1,840</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="demo-label"><span class="num">09</span>Stacked Breakdown<span class="note">Where are your chips? Blinds vs active bets. Full transparency for the analytical player.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- 10: Impact-Centric (Hand Card Focus) -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<section class="section">
+  <h2>Option 10</h2>
+  <h3>Impact-Centric</h3>
+  <p class="desc">On each hand card, show the impact of every action choice. "If you fold: 1,595 left. If you call: 1,555 left. If you raise min: 1,535 left." Decision support, not just a number.</p>
+  <div class="grid">
+    <div>
+      <div class="demo">
+        <div class="ey">Turn Header</div>
+        <div class="turn-hdr">
+          <span style="color:var(--cream-200);">‹</span>
+          <span>3 of 10</span>
+          <span style="color:var(--gold-500);font-weight:600;">1,595</span>
+        </div>
+        <div class="ey" style="margin-top:8px;">Hand Card — Expanded Detail</div>
+        <div class="hand-snip">
+          <div style="display:flex;justify-content:space-between;font-size:12px;">
+            <span style="color:var(--cream-100);">Hand 3 · <span class="gold">Flop</span></span>
+            <span style="color:var(--cream-100);">Pot: 100</span>
+          </div>
+          <div style="font-size:11px;color:var(--cream-300);margin-top:4px;">Sarah bet 40. You have 30 in this pot.</div>
+          <div class="thin-rule"></div>
+          <div style="font-size:11px;line-height:1.8;">
+            <div style="display:flex;justify-content:space-between;">
+              <span style="color:var(--claret);">Fold</span>
+              <span style="color:var(--cream-300);">lose 30 · <span style="color:var(--cream-200);">1,595 left</span></span>
+            </div>
+            <div style="display:flex;justify-content:space-between;">
+              <span style="color:var(--gold-500);">Call 40</span>
+              <span style="color:var(--cream-300);">risk 70 · <span style="color:var(--cream-200);">1,555 left</span></span>
+            </div>
+            <div style="display:flex;justify-content:space-between;">
+              <span style="color:var(--cream-200);">Raise to 80</span>
+              <span style="color:var(--cream-300);">risk 110 · <span style="color:var(--cream-200);">1,515 left</span></span>
+            </div>
+            <div style="display:flex;justify-content:space-between;">
+              <span style="color:var(--cream-200);">All-in 1,595</span>
+              <span style="color:var(--cream-300);">risk 1,625 · <span style="color:var(--claret);">0 left</span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="demo-label"><span class="num">10</span>Impact-Centric<span class="note">Every action shows what you'll have left. Decision support. "If I call here, I have X for the other 9 hands."</span></div>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>

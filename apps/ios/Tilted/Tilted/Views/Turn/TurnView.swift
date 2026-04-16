@@ -14,18 +14,34 @@ struct TurnView: View {
     @State private var showTurnComplete = false
     @State private var isAutoChecking = false
 
-    // MARK: - Computed groups
+    // Showdown result overlay
+    @State private var showdownResult: HandView?
+
+    // Turn summary tracking
+    @State private var showTurnSummary = false
+    @State private var stackBefore: Int = 0
+    @State private var deliberateActions: [(handIndex: Int, summary: String)] = []
+    @State private var autoActedHands: [(handIndex: Int, action: String)] = []
+    @State private var autoActedHandSnapshots: [HandView] = []
+    @State private var showdownsThisTurn: [HandView] = []
+    @State private var handStatusesBefore: [String: String] = [:]
+
+    // MARK: - Computed groups (read from live store for up-to-date data)
+
+    private var currentHands: [HandView] {
+        store.matchState?.currentRound?.hands ?? round.hands
+    }
 
     private var pendingHands: [HandView] {
-        round.hands.filter { $0.isPendingAction }
+        currentHands.filter { $0.isPendingAction }
     }
 
     private var waitingHands: [HandView] {
-        round.hands.filter { $0.status == "in_progress" && !$0.actionOnMe }
+        currentHands.filter { $0.status == "in_progress" && !$0.actionOnMe }
     }
 
     private var resolvedHands: [HandView] {
-        round.hands.filter { $0.status == "complete" || $0.status == "awaiting_runout" }
+        currentHands.filter { $0.status == "complete" || $0.status == "awaiting_runout" }
     }
 
     // MARK: - Body
@@ -47,7 +63,7 @@ struct TurnView: View {
                         .font(.system(size: 13))
                         .foregroundColor(.cream100)
                     Spacer()
-                    Text("Avail: \(match.myAvailable)")
+                    Text("\(store.matchState?.myAvailable ?? match.myAvailable) to bet")
                         .font(.system(size: 11, weight: .medium))
                         .foregroundColor(.gold500)
                 }
@@ -100,7 +116,60 @@ struct TurnView: View {
                 }
             }
 
-            // Turn complete overlay
+            // Auto-acting overlay
+            if isAutoChecking {
+                ZStack {
+                    Color.felt900.opacity(0.85).ignoresSafeArea()
+                    VStack(spacing: 12) {
+                        ProgressView()
+                            .tint(.gold500)
+                            .scaleEffect(1.2)
+                        Text("Auto-folding unplayable hands...")
+                            .font(.system(size: 13))
+                            .foregroundColor(.cream200)
+                        Text("0 chips available")
+                            .font(.system(size: 11))
+                            .foregroundColor(.cream300)
+                    }
+                }
+                .transition(.opacity)
+            }
+
+            // Showdown result overlay
+            if let result = showdownResult {
+                ShowdownResultView(
+                    hand: result,
+                    match: store.matchState ?? match,
+                    onFavorite: { fav in
+                        Task { await store.toggleFavorite(handId: result.handId, favorite: fav) }
+                    },
+                    onContinue: {
+                        showdownResult = nil
+                        checkTurnComplete()
+                    }
+                )
+                .transition(.opacity)
+            }
+
+            // Turn summary
+            if showTurnSummary {
+                TurnSummaryView(
+                    match: store.matchState ?? match,
+                    round: store.matchState?.currentRound ?? round,
+                    deliberateActions: deliberateActions,
+                    autoActedHands: autoActedHands,
+                    autoActedHandViews: autoActedHandSnapshots,
+                    showdownResults: showdownsThisTurn,
+                    stackBefore: stackBefore,
+                    onSendTurn: {
+                        showTurnSummary = false
+                        withAnimation { showTurnComplete = true }
+                    }
+                )
+                .transition(.opacity)
+            }
+
+            // Turn sent overlay
             if showTurnComplete {
                 turnCompleteOverlay
             }
@@ -156,11 +225,18 @@ struct TurnView: View {
             Text("This action cannot be undone.")
         }
         .onChange(of: pendingHands.count) { _, newCount in
-            if newCount == 0 && !showTurnComplete {
-                withAnimation { showTurnComplete = true }
+            if newCount == 0 && !showTurnComplete && !showTurnSummary && showdownResult == nil {
+                checkTurnComplete()
             }
         }
-        .task { await autoActIfNeeded() }
+        .task {
+            stackBefore = match.myAvailable
+            // Snapshot hand statuses at turn start
+            for hand in round.hands {
+                handStatusesBefore[hand.handId] = hand.status
+            }
+            await autoActIfNeeded()
+        }
         .onChange(of: store.matchState?.currentRound?.hands.map(\.status)) { _, _ in
             Task { await autoActIfNeeded() }
         }
@@ -216,7 +292,7 @@ struct TurnView: View {
 
     private func resolvedPillText(_ hand: HandView) -> String {
         if hand.status == "awaiting_runout" {
-            return "H\(hand.handIndex + 1) \u{00B7} All-In \u{00B7} Pot \(hand.pot)"
+            return "H\(hand.handIndex + 1) \u{00B7} All-In \u{00B7} Pot \(hand.pot) \u{00B7} Reveals at round end"
         }
         if hand.terminalReason == "fold" {
             return "H\(hand.handIndex + 1) \u{00B7} Folded"
@@ -251,13 +327,55 @@ struct TurnView: View {
     // MARK: - Actions
 
     private func submitAction(hand: HandView, type: String, amount: Int? = nil) async {
+        // Deliberate actions wait for server response (not fire-and-forget)
+        // so we have accurate pot/available data after
         await store.submitAction(handId: hand.handId, type: type, amount: amount)
+
+        // Update stackBefore to reflect available AFTER this action
+        // (so the turn summary correctly shows the net from this point forward)
+        if deliberateActions.isEmpty {
+            // First action: stackBefore was set on view open.
+            // After this action, the server has updated myAvailable.
+            // We keep stackBefore as-is — it represents "before the turn started"
+        }
+
+        // Track deliberate action
+        let actionLabel: String
+        switch type {
+        case "fold": actionLabel = "Folded"
+        case "check": actionLabel = "Checked"
+        case "call": actionLabel = "Called"
+        case "bet": actionLabel = "Bet \(amount ?? 0)"
+        case "raise": actionLabel = "Raised to \(amount ?? 0)"
+        case "all_in": actionLabel = "All-in"
+        default: actionLabel = type
+        }
+        deliberateActions.append((handIndex: hand.handIndex, summary: actionLabel))
+
+        // Check if this action caused a showdown (immediate completion)
+        if let updatedRound = store.matchState?.currentRound,
+           let updatedHand = updatedRound.hands.first(where: { $0.handId == hand.handId }),
+           updatedHand.status == "complete" && updatedHand.terminalReason == "showdown" {
+            showdownsThisTurn.append(updatedHand)
+            withAnimation { showdownResult = updatedHand }
+            return
+        }
+
         await autoActIfNeeded()
     }
 
-    /// When available chips are 0, auto-act all remaining pending hands:
-    /// - No bet facing → check
-    /// - Bet facing → fold (can't call with 0 chips)
+    private func checkTurnComplete() {
+        let currentPending = store.matchState?.currentRound?.hands.filter { $0.isPendingAction } ?? []
+        if currentPending.isEmpty && !showTurnSummary && !showTurnComplete {
+            if !showdownsThisTurn.isEmpty || !autoActedHands.isEmpty || deliberateActions.count > 1 {
+                withAnimation { showTurnSummary = true }
+            } else {
+                withAnimation { showTurnComplete = true }
+            }
+        }
+    }
+
+    /// When available chips are 0, auto-act all remaining pending hands.
     private func autoActIfNeeded() async {
         guard !isAutoChecking else { return }
         guard let currentRound = store.matchState?.currentRound else { return }
@@ -269,20 +387,25 @@ struct TurnView: View {
 
         isAutoChecking = true
 
-        // Optimistically clear all pending hands from the UI immediately
         let actionsToTake = pending.map { hand in
             (hand: hand, action: hand.facingBet ? "fold" : "check")
         }
+
+        // Snapshot hands BEFORE optimistic update (for accurate chip math in summary)
+        autoActedHandSnapshots = actionsToTake.map { $0.hand }
+
+        // Track auto-acted hands for the turn summary
         for (hand, action) in actionsToTake {
-            store.optimisticallyResolveHand(handId: hand.handId, action: action)
+            autoActedHands.append((handIndex: hand.handIndex, action: action))
         }
 
-        // Fire server calls (order matters for chip accounting)
-        for (hand, action) in actionsToTake {
-            await store.submitAction(handId: hand.handId, type: action)
-        }
+        // Single batch request — optimistic update + one server call
+        await store.submitBatchActions(
+            actions: actionsToTake.map { ($0.hand.handId, $0.action, nil as Int?) }
+        )
 
         isAutoChecking = false
+        checkTurnComplete()
     }
 }
 
@@ -461,9 +584,9 @@ struct HandActionDetailSheet: View {
                             .font(.custom("Georgia", size: 16))
                             .foregroundColor(.cream100)
                         Spacer()
-                        Text("Your bet: \(hand.myReserved)")
-                            .font(.system(size: 12))
-                            .foregroundColor(.cream300)
+                        Text("\(hand.myReserved) in play \u{00B7} \(match.myAvailable) available")
+                            .font(.system(size: 10))
+                            .foregroundColor(.cream400)
                     }
                     .padding(.top, 8)
 
@@ -581,12 +704,12 @@ struct HandActionDetailSheet: View {
             Spacer()
 
             VStack(alignment: .trailing, spacing: 2) {
-                Text(hand.facingBet ? "After call" : "Available")
+                Text(hand.facingBet ? "After call" : "Available to bet")
                     .font(.system(size: 10))
                     .foregroundColor(.cream300)
                 Text("\(hand.facingBet ? match.myAvailable - hand.callCost : match.myAvailable)")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(.cream200)
+                    .foregroundColor(.gold500)
             }
         }
         .padding(12)
