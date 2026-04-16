@@ -1,4 +1,4 @@
-import { eq, and, sql, ne } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import type { Transaction, Database } from '../db/connection.js';
 import { hands, matches } from '../db/schema.js';
 
@@ -11,7 +11,6 @@ export async function getAvailableChips(
   matchId: string,
   userId: string,
 ): Promise<{ total: number; reserved: number; available: number }> {
-  // Get the match to find total
   const match = await tx.query.matches.findFirst({
     where: eq(matches.matchId, matchId),
   });
@@ -19,38 +18,23 @@ export async function getAvailableChips(
 
   const isUserA = match.userAId === userId;
   const total = isUserA ? match.userATotal : match.userBTotal;
+  const reservedColName = isUserA ? 'user_a_reserved' : 'user_b_reserved';
 
-  // Sum reserved across all active (non-complete) hands in this match
-  const reservedCol = isUserA ? hands.userAReserved : hands.userBReserved;
-
-  const result = await tx
-    .select({ total: sql<number>`coalesce(sum(${reservedCol}), 0)` })
-    .from(hands)
-    .innerJoin(
-      // We need the round for the match filter
-      // Simpler: just check all hands that aren't complete
-      sql`(select round_id from rounds where match_id = ${matchId})`,
-      eq(hands.roundId, sql`round_id`),
-    )
-    .where(ne(hands.status, 'complete'));
-
-  // Simpler approach: query through rounds
-  const reservedResult = await tx.execute<{ total_reserved: string }>(sql`
-    SELECT coalesce(sum(${reservedCol}), 0) as total_reserved
-    FROM ${hands} h
+  const result = await tx.execute<{ total_reserved: string }>(sql`
+    SELECT coalesce(sum(h.${sql.raw(reservedColName)}), 0) as total_reserved
+    FROM hands h
     JOIN rounds r ON r.round_id = h.round_id
     WHERE r.match_id = ${matchId}
       AND h.status != 'complete'
   `);
 
-  const reserved = Number(reservedResult[0]?.total_reserved ?? 0);
+  const reserved = Number(result[0]?.total_reserved ?? 0);
 
   return { total, reserved, available: total - reserved };
 }
 
 /**
  * Validate that a player can commit `amount` additional chips to a hand.
- * Takes into account what they already have reserved in this specific hand.
  */
 export async function validateChipCommit(
   tx: Transaction | Database,
@@ -90,7 +74,7 @@ export async function assertLedgerInvariant(
     { userId: match.userBId, total: match.userBTotal, reservedCol: 'user_b_reserved' },
   ]) {
     const result = await tx.execute<{ total_reserved: string }>(sql`
-      SELECT coalesce(sum(${sql.raw(reservedCol)}), 0) as total_reserved
+      SELECT coalesce(sum(h.${sql.raw(reservedCol)}), 0) as total_reserved
       FROM hands h
       JOIN rounds r ON r.round_id = h.round_id
       WHERE r.match_id = ${matchId}

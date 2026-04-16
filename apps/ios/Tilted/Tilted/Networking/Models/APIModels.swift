@@ -41,7 +41,7 @@ struct MatchState: Codable, Identifiable {
     let opponentReserved: Int
     let myAvailable: Int
     let opponentAvailable: Int
-    let currentRound: RoundView?
+    var currentRound: RoundView?
 
     var id: String { matchId }
 
@@ -79,7 +79,7 @@ struct RoundView: Codable {
     let myRole: String
     let handsPendingMe: Int
     let handsPendingOpponent: Int
-    let hands: [HandView]
+    var hands: [HandView]
 
     enum CodingKeys: String, CodingKey {
         case roundId = "round_id"
@@ -108,6 +108,7 @@ struct HandView: Codable, Identifiable {
     let actionOnMe: Bool
     let terminalReason: String?
     let winnerUserId: String?
+    let actionSummary: String
 
     var id: String { handId }
 
@@ -117,6 +118,14 @@ struct HandView: Codable, Identifiable {
 
     var isPendingAction: Bool {
         status == "in_progress" && actionOnMe
+    }
+
+    var facingBet: Bool {
+        opponentReserved > myReserved
+    }
+
+    var callCost: Int {
+        max(0, opponentReserved - myReserved)
     }
 
     enum CodingKeys: String, CodingKey {
@@ -133,6 +142,7 @@ struct HandView: Codable, Identifiable {
         case actionOnMe = "action_on_me"
         case terminalReason = "terminal_reason"
         case winnerUserId = "winner_user_id"
+        case actionSummary = "action_summary"
     }
 }
 

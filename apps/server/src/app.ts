@@ -2,7 +2,7 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import { execSync } from 'node:child_process';
 import { env } from './env.js';
-import { authPlugin } from './api/auth.js';
+import { debugAuthRoutes, bearerAuth } from './api/auth.js';
 import { matchRoutes } from './api/routes/match.js';
 import { handRoutes } from './api/routes/hand.js';
 import { roundRoutes } from './api/routes/round.js';
@@ -35,15 +35,22 @@ export async function buildApp() {
     commit: getGitSha(),
   }));
 
-  // Auth plugin (registers debug auth routes + bearer middleware)
-  await app.register(authPlugin, { prefix: '/v1' });
+  // Debug auth routes (no auth required)
+  await app.register(debugAuthRoutes, { prefix: '/v1' });
 
-  // API routes
-  await app.register(meRoutes, { prefix: '/v1' });
-  await app.register(matchRoutes, { prefix: '/v1' });
-  await app.register(handRoutes, { prefix: '/v1' });
-  await app.register(roundRoutes, { prefix: '/v1' });
-  await app.register(historyRoutes, { prefix: '/v1' });
+  // Authenticated API routes
+  await app.register(async (authenticated) => {
+    // Decorate + hook
+    authenticated.decorateRequest('userId', '');
+    authenticated.addHook('onRequest', bearerAuth);
+
+    // All authenticated routes
+    await authenticated.register(meRoutes);
+    await authenticated.register(matchRoutes);
+    await authenticated.register(handRoutes);
+    await authenticated.register(roundRoutes);
+    await authenticated.register(historyRoutes);
+  }, { prefix: '/v1' });
 
   return app;
 }

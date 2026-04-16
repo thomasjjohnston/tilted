@@ -1,9 +1,10 @@
-import { eq, and, sql, ne } from 'drizzle-orm';
+import { eq, and, sql, ne, inArray } from 'drizzle-orm';
 import type { Database, Transaction } from '../db/connection.js';
 import { matches, rounds, hands, users, actions, favorites } from '../db/schema.js';
 import { USER_TJ_ID, USER_SF_ID } from '../db/seed.js';
 import { STARTING_STACK, BLIND_SMALL, BLIND_BIG, HANDS_PER_ROUND, MIN_CHIPS_FOR_ROUND } from './constants.js';
 import { openRound } from './round.js';
+import { generateActionSketch } from './action-sketch.js';
 
 /**
  * Create a new match between the two hardcoded users.
@@ -108,7 +109,26 @@ export async function getMatchState(
       h.status === 'in_progress' && h.actionOnUserId === opponentId
     ).length;
 
-    const handViews: HandView[] = roundHands.map(h => buildHandView(h, userId, isUserA, match));
+    // Fetch all actions for this round's hands in one query
+    const handIds = roundHands.map(h => h.handId);
+    const allActions = handIds.length > 0
+      ? await db.query.actions.findMany({
+          where: inArray(actions.handId, handIds),
+        })
+      : [];
+
+    // Group actions by hand
+    const actionsByHand = new Map<string, typeof allActions>();
+    for (const a of allActions) {
+      const list = actionsByHand.get(a.handId) ?? [];
+      list.push(a);
+      actionsByHand.set(a.handId, list);
+    }
+
+    const handViews: HandView[] = roundHands.map(h => {
+      const handActions = actionsByHand.get(h.handId) ?? [];
+      return buildHandView(h, userId, isUserA, match, currentRound, handActions);
+    });
 
     roundView = {
       round_id: currentRound.roundId,
@@ -155,19 +175,35 @@ function buildHandView(
   userId: string,
   isUserA: boolean,
   match: typeof matches.$inferSelect,
+  round: typeof rounds.$inferSelect,
+  handActions: (typeof actions.$inferSelect)[],
 ): HandView {
-  // Redact opponent's hole cards unless hand is complete with showdown
   const myHole = isUserA ? h.userAHole : h.userBHole;
   let opponentHole: string[] | null = null;
 
   if (h.status === 'complete' && h.terminalReason === 'showdown') {
     opponentHole = isUserA ? h.userBHole : h.userAHole;
   }
-  // If folded, opponent's hole cards are never revealed
-  // If awaiting_runout, opponent's cards shown at reveal
 
   const myReserved = isUserA ? h.userAReserved : h.userBReserved;
   const opponentReserved = isUserA ? h.userBReserved : h.userAReserved;
+
+  // Generate action summary
+  const sortedActions = [...handActions].sort(
+    (a, b) => a.serverRecordedAt.getTime() - b.serverRecordedAt.getTime()
+  );
+  const summary = generateActionSketch(
+    sortedActions.map(a => ({
+      street: a.street,
+      actingUserId: a.actingUserId,
+      actionType: a.actionType,
+      amount: a.amount,
+    })),
+    h.winnerUserId,
+    h.pot,
+    round.sbUserId,
+    round.bbUserId,
+  );
 
   return {
     hand_id: h.handId,
@@ -183,6 +219,7 @@ function buildHandView(
     action_on_me: h.actionOnUserId === userId,
     terminal_reason: h.terminalReason,
     winner_user_id: h.winnerUserId,
+    action_summary: summary,
   };
 }
 
@@ -243,4 +280,5 @@ export interface HandView {
   action_on_me: boolean;
   terminal_reason: string | null;
   winner_user_id: string | null;
+  action_summary: string;
 }

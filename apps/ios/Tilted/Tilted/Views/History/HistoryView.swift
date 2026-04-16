@@ -87,8 +87,11 @@ struct HistoryView: View {
                         .foregroundColor(.cream100)
                 }
             }
-            .sheet(item: $selectedHandId.asBinding) { handId in
-                HandDetailView(handId: handId)
+            .sheet(item: Binding(
+                get: { selectedHandId.map { IdentifiableString(value: $0) } },
+                set: { selectedHandId = $0?.value }
+            )) { item in
+                HandDetailView(handId: item.value)
                     .environment(store)
             }
             .task { await loadHistory() }
@@ -223,21 +226,6 @@ struct HandSummaryCard: View {
 }
 
 // MARK: - Helper
-
-extension Optional where Wrapped == String {
-    var asBinding: Binding<String?> {
-        .constant(self)
-    }
-}
-
-extension Binding where Value == String? {
-    var asIdentifiable: Binding<IdentifiableString?> {
-        Binding<IdentifiableString?>(
-            get: { self.wrappedValue.map { IdentifiableString(value: $0) } },
-            set: { self.wrappedValue = $0?.value }
-        )
-    }
-}
 
 struct IdentifiableString: Identifiable {
     let value: String

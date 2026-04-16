@@ -168,73 +168,68 @@ export async function applyAction(db: Database, input: ApplyActionInput) {
       userBReserved: isUserA ? oppNewReserved : myNewReserved,
     };
 
+    // Helper: settle chips when a hand completes.
+    // For each player: new_total = old_total - reserved_in_hand + award.
+    // Award is 0 for the loser, pot for the winner, or split amounts.
+    async function settleHand(
+      aReserved: number,
+      bReserved: number,
+      awards: { userId: string; amount: number }[],
+    ) {
+      const aAward = awards.find(a => a.userId === match!.userAId)?.amount ?? 0;
+      const bAward = awards.find(a => a.userId === match!.userBId)?.amount ?? 0;
+      const aDelta = aAward - aReserved;
+      const bDelta = bAward - bReserved;
+      await tx.update(matches).set({
+        userATotal: sql`${matches.userATotal} + ${aDelta}`,
+        userBTotal: sql`${matches.userBTotal} + ${bDelta}`,
+      }).where(eq(matches.matchId, match!.matchId));
+    }
+
     if (newState.isTerminal) {
       if (newState.terminalReason === 'fold') {
-        // Fold: opponent wins the pot
+        const winnerId = newState.winnerUserId!;
+        const aReserved = handUpdate.userAReserved as number;
+        const bReserved = handUpdate.userBReserved as number;
+
         handUpdate.status = 'complete';
         handUpdate.street = 'complete';
         handUpdate.terminalReason = 'fold';
-        handUpdate.winnerUserId = newState.winnerUserId;
+        handUpdate.winnerUserId = winnerId;
         handUpdate.actionOnUserId = null;
         handUpdate.completedAt = new Date();
 
-        // Award pot to winner and return reserved to players
-        const winnerId = newState.winnerUserId!;
-        const isWinnerA = winnerId === match.userAId;
-        const winnerReserved = isWinnerA ? (handUpdate.userAReserved as number) : (handUpdate.userBReserved as number);
-        const loserReserved = isWinnerA ? (handUpdate.userBReserved as number) : (handUpdate.userAReserved as number);
+        // Winner gets the entire pot
+        await settleHand(aReserved, bReserved, [
+          { userId: winnerId, amount: newState.pot },
+        ]);
 
-        // Winner gets the whole pot; both players' reserved returns to 0
-        // total_chips change: winner += pot - their_reserved; loser -= their_reserved
-        // Simpler: winner gains loser's reserved; loser loses their reserved
-        if (isWinnerA) {
-          await tx.update(matches).set({
-            userATotal: sql`${matches.userATotal} + ${loserReserved}`,
-            userBTotal: sql`${matches.userBTotal} - ${loserReserved}`,
-          }).where(eq(matches.matchId, match.matchId));
-        } else {
-          await tx.update(matches).set({
-            userATotal: sql`${matches.userATotal} - ${handUpdate.userAReserved as number}`,
-            userBTotal: sql`${matches.userBTotal} + ${handUpdate.userAReserved as number}`,
-          }).where(eq(matches.matchId, match.matchId));
-        }
-
-        // Clear reserved after awarding
         handUpdate.userAReserved = 0;
         handUpdate.userBReserved = 0;
 
         // Discard folder's hole cards (spec §11)
-        const folderId = input.userId;
-        if (folderId === match.userAId) {
+        if (input.userId === match.userAId) {
           handUpdate.userAHole = [];
         } else {
           handUpdate.userBHole = [];
         }
 
         await logEvent(tx, input.userId, 'hand_completed', {
-          hand_id: hand.handId,
-          reason: 'fold',
-          winner: winnerId,
+          hand_id: hand.handId, reason: 'fold', winner: winnerId,
         });
       }
     } else if (newState.streetClosed) {
-      // Street closed — check if both all-in or advance street
       if (bothAllIn(newState)) {
-        // Both all-in — hand goes to awaiting_runout
         handUpdate.status = 'awaiting_runout';
         handUpdate.actionOnUserId = null;
       } else {
-        // Advance to next street
         const next = nextStreet(hand.street as Street);
         if (next === 'showdown') {
-          // River betting complete — resolve showdown
           const dealt = dealFromSeed(hand.deckSeed);
           const board = boardForStreet(dealt, 'river');
-          const userAHole = hand.userAHole as Card[];
-          const userBHole = hand.userBHole as Card[];
 
           const showdownResult = resolveShowdown(
-            userAHole, userBHole, board,
+            hand.userAHole as Card[], hand.userBHole as Card[], board,
             newState.pot, match.userAId, match.userBId, round.bbUserId,
           );
 
@@ -246,42 +241,25 @@ export async function applyAction(db: Database, input: ApplyActionInput) {
           handUpdate.board = board;
           handUpdate.completedAt = new Date();
 
-          // Award chips
-          for (const award of showdownResult.awards) {
-            const awardReserved = award.userId === match.userAId
-              ? (handUpdate.userAReserved as number) : (handUpdate.userBReserved as number);
-            if (award.userId === match.userAId) {
-              await tx.update(matches).set({
-                userATotal: sql`${matches.userATotal} + ${award.amount} - ${handUpdate.userAReserved}`,
-              }).where(eq(matches.matchId, match.matchId));
-            } else {
-              await tx.update(matches).set({
-                userBTotal: sql`${matches.userBTotal} + ${award.amount} - ${handUpdate.userBReserved}`,
-              }).where(eq(matches.matchId, match.matchId));
-            }
-          }
+          const aReserved = handUpdate.userAReserved as number;
+          const bReserved = handUpdate.userBReserved as number;
+          await settleHand(aReserved, bReserved, showdownResult.awards);
 
           handUpdate.userAReserved = 0;
           handUpdate.userBReserved = 0;
 
           await logEvent(tx, input.userId, 'hand_completed', {
-            hand_id: hand.handId,
-            reason: 'showdown',
-            winner: showdownResult.winnerUserId,
+            hand_id: hand.handId, reason: 'showdown', winner: showdownResult.winnerUserId,
           });
         } else {
-          // Deal next street's community cards
           const dealt = dealFromSeed(hand.deckSeed);
           const board = boardForStreet(dealt, next);
-
           handUpdate.street = next;
           handUpdate.board = board;
-          // Postflop: BB acts first
           handUpdate.actionOnUserId = round.bbUserId;
         }
       }
     } else {
-      // Action passed to opponent
       handUpdate.actionOnUserId = newState.actionOnUserId;
     }
 
@@ -338,19 +316,9 @@ export async function applyAction(db: Database, input: ApplyActionInput) {
           : h.status === 'awaiting_runout'
       );
 
-      if (hasAwaitingRunout) {
-        await tx.update(rounds).set({ status: 'revealing' }).where(eq(rounds.roundId, hand.roundId));
-      } else {
-        // All hands are complete — round can auto-complete
-        await tx.update(rounds).set({
-          status: 'complete',
-          completedAt: new Date(),
-        }).where(eq(rounds.roundId, hand.roundId));
-
-        await logEvent(tx, input.userId, 'round_completed', {
-          round_id: hand.roundId,
-        });
-      }
+      // Always go to 'revealing' — the client shows the round summary
+      // and the user taps "Next round" to advance (spec §10).
+      await tx.update(rounds).set({ status: 'revealing' }).where(eq(rounds.roundId, hand.roundId));
     }
 
     await assertLedgerInvariant(tx, match.matchId);
