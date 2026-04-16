@@ -16,7 +16,7 @@ final class AppStore {
     // MARK: - Navigation
     var activeScreen: ActiveScreen = .home
 
-    enum ActiveScreen {
+    enum ActiveScreen: Equatable {
         case home
         case turn
         case reveal
@@ -94,14 +94,44 @@ final class AppStore {
     }
 
     @MainActor
+    func optimisticallyResolveHand(handId: String, action: String) {
+        guard var round = matchState?.currentRound,
+              let idx = round.hands.firstIndex(where: { $0.handId == handId }) else { return }
+        let old = round.hands[idx]
+        let optimistic = HandView(
+            handId: old.handId,
+            handIndex: old.handIndex,
+            myHole: old.myHole,
+            opponentHole: old.opponentHole,
+            board: old.board,
+            pot: old.pot,
+            myReserved: old.myReserved,
+            opponentReserved: old.opponentReserved,
+            street: old.street,
+            status: action == "fold" ? "complete" : old.status,
+            actionOnMe: false,
+            terminalReason: action == "fold" ? "fold" : old.terminalReason,
+            winnerUserId: old.winnerUserId,
+            actionSummary: old.actionSummary
+        )
+        round.hands[idx] = optimistic
+        matchState?.currentRound = round
+    }
+
+    @MainActor
     func submitAction(handId: String, type: String, amount: Int? = nil) async {
         let clientTxId = UUID().uuidString
+
+        // Optimistic update: immediately mark hand as no longer pending
+        optimisticallyResolveHand(handId: handId, action: type)
+
         do {
             matchState = try await APIClient.shared.submitAction(
                 handId: handId, type: type, amount: amount, clientTxId: clientTxId
             )
         } catch {
             self.error = error.localizedDescription
+            await refresh()
         }
     }
 

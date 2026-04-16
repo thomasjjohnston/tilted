@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tilted — Turn View Interactive Mockup</title>
+<style>
+  :root {
+    --felt-900: #051c15;
+    --felt-800: #082a21;
+    --felt-700: #0e3b2e;
+    --felt-600: #164a3a;
+    --felt-500: #1a5a43;
+    --gold-500: #d4b368;
+    --gold-600: #c9a961;
+    --gold-700: #a88334;
+    --gold-800: #7a5f2b;
+    --cream-50: #f6f1e1;
+    --cream-100: #f3ecd6;
+    --cream-200: #d9cfb2;
+    --cream-300: #9eb7a4;
+    --cream-400: #6a8a7a;
+    --claret: #c44d42;
+    --card-red: #c92b2b;
+    --card-black: #111;
+    --page-bg: #15161a;
+    --page-fg: #e8e6df;
+    --muted: #8a8a8a;
+    --rule: #2a2a30;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--page-bg);
+    color: var(--page-fg);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+
+  /* Page chrome */
+  .page-header {
+    padding: 48px 48px 20px;
+    max-width: 800px; margin: 0 auto;
+  }
+  .page-header .eyebrow {
+    font-size: 11px; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--gold-500); margin-bottom: 10px;
+  }
+  .page-header h1 {
+    font-family: Georgia, serif; font-weight: 400; font-size: 32px;
+    letter-spacing: -0.5px; margin: 0 0 8px;
+  }
+  .page-header p { color: var(--muted); font-size: 13px; line-height: 1.7; }
+  .page-header .instructions {
+    margin-top: 12px; padding: 12px 14px;
+    background: rgba(212,179,104,0.08); border: 1px solid rgba(212,179,104,0.2);
+    border-radius: 10px; font-size: 12px; color: var(--cream-200); line-height: 1.6;
+  }
+
+  /* Phone frame */
+  .phone-container {
+    display: flex; justify-content: center; padding: 32px 0 64px;
+  }
+  .phone {
+    width: 375px; height: 812px; border-radius: 44px; padding: 10px;
+    background: #0a0a0b;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.6), inset 0 0 0 1.5px #2a2a2e;
+    position: relative; overflow: hidden;
+  }
+  .screen {
+    width: 100%; height: 100%; border-radius: 34px; overflow: hidden;
+    position: relative;
+    background: radial-gradient(ellipse at 50% 0%, var(--felt-500) 0%, var(--felt-700) 55%, var(--felt-800) 100%);
+    color: var(--cream-100);
+  }
+
+  .notch {
+    position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+    width: 120px; height: 28px; background: #0a0a0b; border-radius: 14px; z-index: 20;
+  }
+  .home-ind {
+    position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+    width: 110px; height: 4px; border-radius: 2px; background: rgba(243,236,214,0.4); z-index: 20;
+  }
+
+  /* Status bar */
+  .status-bar {
+    height: 48px; display: flex; align-items: flex-end; justify-content: space-between;
+    padding: 0 28px 6px; font-size: 13px; font-weight: 600;
+    color: var(--cream-200); position: relative; z-index: 15;
+  }
+
+  /* Header bar */
+  .hdr {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 18px 10px;
+    background: rgba(8,42,33,0.95); backdrop-filter: blur(8px);
+    border-bottom: 1px solid rgba(201,169,97,0.1);
+    position: sticky; top: 0; z-index: 10;
+  }
+  .hdr .back { color: var(--cream-200); font-size: 20px; cursor: pointer; user-select: none; }
+  .hdr .center { font-size: 13px; color: var(--cream-100); }
+  .hdr .right { font-size: 11px; color: var(--gold-500); font-weight: 500; }
+
+  /* Scrollable content */
+  .scroll-content {
+    height: calc(100% - 48px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .scroll-content::-webkit-scrollbar { display: none; }
+
+  .pad { padding: 0 14px; }
+
+  /* Shared */
+  .eyebrow { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--cream-300); }
+  .serif { font-family: Georgia, serif; }
+  .gold { color: var(--gold-500); }
+
+  /* Section headers */
+  .section-hdr {
+    display: flex; align-items: center; gap: 8px;
+    padding: 14px 0 6px;
+  }
+  .section-hdr .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+  }
+  .section-hdr .count {
+    margin-left: auto; font-size: 11px; color: var(--cream-300);
+  }
+
+  /* Card faces */
+  .cf {
+    width: 28px; height: 40px; border-radius: 4px;
+    background: var(--cream-50);
+    display: inline-flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    font-family: Georgia, serif; font-weight: 700;
+    font-size: 12px; line-height: 1;
+    flex-shrink: 0; margin-right: 3px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  }
+  .cf.red { color: var(--card-red); }
+  .cf.blk { color: var(--card-black); }
+  .cf.sm { width: 22px; height: 32px; font-size: 10px; margin-right: 2px; }
+  .cf.lg { width: 36px; height: 52px; font-size: 16px; border-radius: 5px; }
+  .cf.ph {
+    background: transparent; border: 1.5px dashed rgba(201,169,97,0.3);
+    box-shadow: none; color: var(--cream-400); font-size: 10px;
+  }
+  .cf.ph.lg { font-size: 14px; }
+
+  /* Compact hand card (list view) */
+  .hand-card {
+    padding: 10px 12px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(0,0,0,0.15));
+    border: 1px solid rgba(201,169,97,0.18);
+    border-radius: 12px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: border-color 0.15s, transform 0.1s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .hand-card:active { transform: scale(0.985); }
+  .hand-card.pending {
+    border-color: rgba(212,179,104,0.5);
+    background: linear-gradient(180deg, rgba(212,179,104,0.04), rgba(0,0,0,0.18));
+  }
+  .hand-card.pending:hover { border-color: rgba(212,179,104,0.7); }
+  .hand-card .row { display: flex; align-items: center; gap: 8px; }
+  .hand-card .info { flex: 1; min-width: 0; }
+  .hand-card .title { font-size: 13px; color: var(--cream-100); font-weight: 500; }
+  .hand-card .subtitle { font-size: 11px; color: var(--cream-300); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hand-card .facing { font-size: 12px; color: var(--gold-500); font-weight: 500; white-space: nowrap; }
+  .hand-card .chevron { color: var(--cream-300); font-size: 18px; margin-left: 4px; }
+
+  /* Tags */
+  .tag {
+    display: inline-block; padding: 2px 6px; border-radius: 4px;
+    font-size: 9px; letter-spacing: 0.5px; text-transform: uppercase; font-weight: 600;
+  }
+  .tag.allin { background: rgba(196,77,66,0.15); color: var(--claret); }
+  .tag.street { background: rgba(212,179,104,0.12); color: var(--gold-500); }
+  .tag.fold { background: rgba(100,100,100,0.2); color: var(--cream-300); }
+  .tag.won { background: rgba(212,179,104,0.12); color: var(--gold-500); }
+  .tag.waiting { background: rgba(158,183,164,0.12); color: var(--cream-300); }
+
+  /* Chip pills (collapsed hands) */
+  .chip-pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 10px; border-radius: 10px;
+    font-size: 11px; font-weight: 500;
+    background: rgba(0,0,0,0.25); border: 1px solid rgba(201,169,97,0.15);
+    color: var(--cream-200);
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     DETAIL VIEW (overlay)
+     ═══════════════════════════════════════════════════════════════ */
+  .detail-overlay {
+    position: absolute; inset: 0; z-index: 30;
+    display: none; flex-direction: column;
+  }
+  .detail-overlay.open { display: flex; }
+
+  .detail-dim {
+    position: absolute; inset: 0; background: rgba(0,0,0,0.6);
+    z-index: 1;
+  }
+  .detail-panel {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    max-height: 92%; overflow-y: auto;
+    background: linear-gradient(180deg, var(--felt-600), var(--felt-800) 40%, var(--felt-900));
+    border-top: 1px solid var(--gold-600);
+    border-radius: 20px 20px 0 0;
+    z-index: 2;
+    padding: 0 0 32px;
+    -webkit-overflow-scrolling: touch;
+    animation: slideUp 0.25s ease-out;
+  }
+  .detail-panel::-webkit-scrollbar { display: none; }
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  .detail-handle {
+    width: 36px; height: 4px; border-radius: 2px;
+    background: rgba(243,236,214,0.35);
+    margin: 10px auto 6px;
+    cursor: pointer;
+  }
+
+  .detail-hdr {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 4px 18px 12px;
+    border-bottom: 1px solid rgba(201,169,97,0.1);
+  }
+  .detail-hdr .title { font-family: Georgia, serif; font-size: 20px; }
+  .detail-hdr .close {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: rgba(243,236,214,0.08); border: 1px solid rgba(201,169,97,0.2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; color: var(--cream-200); cursor: pointer;
+  }
+
+  .detail-body { padding: 14px 18px; }
+
+  /* Cards row in detail */
+  .cards-row {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .cards-group { display: flex; gap: 3px; }
+  .cards-label { font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: var(--cream-300); margin-bottom: 4px; }
+
+  /* Action log */
+  .action-log {
+    padding: 8px 10px; margin-top: 10px;
+    background: rgba(0,0,0,0.2); border-radius: 10px;
+  }
+  .action-log .street-sep {
+    font-size: 9px; letter-spacing: 1px; text-transform: uppercase;
+    color: var(--gold-500); padding: 4px 0 2px; opacity: 0.8;
+  }
+  .action-log .entry {
+    display: flex; gap: 6px; padding: 3px 0;
+    font-size: 12px; line-height: 1.4;
+  }
+  .action-log .actor { color: var(--cream-100); font-weight: 600; min-width: 32px; }
+  .action-log .act { color: var(--cream-300); }
+  .action-log .amt { color: var(--gold-500); font-weight: 500; }
+
+  /* Facing banner */
+  .facing-banner {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; margin-top: 12px;
+    background: rgba(212,179,104,0.06);
+    border: 1px solid rgba(212,179,104,0.25);
+    border-radius: 10px;
+  }
+  .facing-banner .arrow {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: rgba(212,179,104,0.12);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; color: var(--gold-500);
+  }
+  .facing-banner .text { font-size: 13px; color: var(--cream-200); }
+  .facing-banner .amount { font-family: Georgia, serif; color: var(--gold-500); font-size: 20px; }
+  .facing-banner .after { margin-left: auto; font-size: 10px; color: var(--cream-300); text-align: right; line-height: 1.4; }
+
+  /* Pot line */
+  .pot-line {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 0; margin-top: 6px;
+    font-size: 12px; color: var(--cream-300);
+  }
+  .pot-line .pot { font-family: Georgia, serif; font-size: 16px; color: var(--cream-100); }
+
+  /* Action buttons */
+  .act-row {
+    display: flex; gap: 8px; margin-top: 12px;
+  }
+  .act-btn {
+    flex: 1; padding: 12px 6px; text-align: center; border-radius: 10px;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    transition: opacity 0.1s, transform 0.1s;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  .act-btn:active { transform: scale(0.96); opacity: 0.8; }
+  .act-btn.fold {
+    background: rgba(196,77,66,0.08); border: 1px solid rgba(196,77,66,0.4);
+    color: var(--claret);
+  }
+  .act-btn.call {
+    background: linear-gradient(180deg, rgba(212,179,104,0.2), rgba(212,179,104,0.08));
+    border: 1px solid rgba(212,179,104,0.6);
+    color: var(--gold-500);
+  }
+  .act-btn.raise {
+    background: rgba(0,0,0,0.2); border: 1px solid rgba(201,169,97,0.25);
+    color: var(--cream-100);
+  }
+  .act-btn.allin {
+    background: rgba(0,0,0,0.2); border: 1px solid rgba(196,77,66,0.3);
+    color: var(--cream-200);
+  }
+  .act-btn.check {
+    background: linear-gradient(180deg, rgba(212,179,104,0.2), rgba(212,179,104,0.08));
+    border: 1px solid rgba(212,179,104,0.6);
+    color: var(--gold-500);
+  }
+  .act-btn.bet {
+    background: rgba(0,0,0,0.2); border: 1px solid rgba(201,169,97,0.25);
+    color: var(--cream-100);
+  }
+
+  /* Toast */
+  .toast {
+    position: absolute; bottom: 60px; left: 50%; transform: translateX(-50%);
+    background: rgba(212,179,104,0.15); border: 1px solid rgba(212,179,104,0.4);
+    border-radius: 10px; padding: 8px 16px;
+    font-size: 12px; color: var(--gold-500); font-weight: 500;
+    z-index: 40; pointer-events: none;
+    animation: fadeInOut 1.5s ease-out forwards;
+  }
+  @keyframes fadeInOut {
+    0% { opacity: 0; transform: translateX(-50%) translateY(10px); }
+    15% { opacity: 1; transform: translateX(-50%) translateY(0); }
+    70% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  @media (max-width: 500px) {
+    .page-header { padding: 24px 16px 16px; }
+    .phone { width: 100%; height: 100vh; border-radius: 0; padding: 0; box-shadow: none; }
+    .screen { border-radius: 0; }
+    .phone-container { padding: 0; }
+    .notch, .home-ind { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div class="eyebrow">Tilted · Turn View · Final Mockup</div>
+  <h1>Interactive Prototype</h1>
+  <p>Compact cards grouped by status. Tap any pending hand to open the detail view with full action history and betting controls.</p>
+  <div class="instructions">
+    <strong>Try it:</strong> Tap any gold-bordered "Action Required" hand to open the detail sheet. Use the action buttons (Fold, Call, Raise) — they'll animate the hand to "resolved" and close the sheet. Tap the × or swipe down on the handle to close without acting.
+  </div>
+</div>
+
+<div class="phone-container">
+<div class="phone">
+<div class="screen" id="screen">
+  <div class="notch"></div>
+  <div class="home-ind"></div>
+
+  <div class="status-bar">
+    <span>9:41</span>
+    <span style="display:flex;gap:6px;font-size:12px;">● ● ●</span>
+  </div>
+
+  <div class="scroll-content" id="listView">
+    <div class="hdr">
+      <span class="back" onclick="showToastMsg('Back to Home')">‹</span>
+      <span class="center" id="hdrCount">3 of 10 hands left</span>
+      <span class="right">Avail: 1,420</span>
+    </div>
+
+    <div class="pad" id="handList">
+      <!-- JS will populate -->
+    </div>
+  </div>
+
+  <!-- Detail overlay -->
+  <div class="detail-overlay" id="detailOverlay">
+    <div class="detail-dim" onclick="closeDetail()"></div>
+    <div class="detail-panel" id="detailPanel">
+      <div class="detail-handle" onclick="closeDetail()"></div>
+      <div class="detail-hdr">
+        <span class="title" id="detailTitle">Hand 3</span>
+        <div class="close" onclick="closeDetail()">✕</div>
+      </div>
+      <div class="detail-body" id="detailBody">
+        <!-- JS will populate -->
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+</div>
+
+<script>
+// ── Mock data ──────────────────────────────────────────────────────────
+
+const hands = [
+  {
+    id: 3, status: 'pending', street: 'Flop', pot: 100,
+    myCards: [{r:'A',s:'♥',c:'red'},{r:'K',s:'♠',c:'blk'}],
+    board: [{r:'Q',s:'♦',c:'red'},{r:'7',s:'♣',c:'blk'},{r:'2',s:'♥',c:'red'}],
+    boardPlaceholders: 2,
+    facing: 'bet', facingAmount: 40,
+    subtitle: 'You raised 30, SF called · SF bet 40',
+    actions: [
+      {street:'Preflop',entries:[
+        {actor:'You',act:'raised to',amt:'30'},
+        {actor:'SF',act:'called',amt:'30'},
+      ]},
+      {street:'Flop · Q♦ 7♣ 2♥',entries:[
+        {actor:'SF',act:'bet',amt:'40'},
+      ]},
+    ],
+    afterCall: '1,380',
+  },
+  {
+    id: 7, status: 'pending', street: 'Preflop', pot: 20,
+    myCards: [{r:'9',s:'♠',c:'blk'},{r:'9',s:'♥',c:'red'}],
+    board: [], boardPlaceholders: 5,
+    facing: 'check', facingAmount: 0,
+    subtitle: 'SF limped · No bet facing you · Pot 20',
+    actions: [
+      {street:'Preflop',entries:[
+        {actor:'SF',act:'called (limp)',amt:'10'},
+      ]},
+    ],
+    afterCall: '1,420',
+  },
+  {
+    id: 9, status: 'pending', street: 'Turn', pot: 340,
+    myCards: [{r:'A',s:'♣',c:'blk'},{r:'Q',s:'♠',c:'blk'}],
+    board: [{r:'K',s:'♣',c:'blk'},{r:'T',s:'♥',c:'red'},{r:'4',s:'♠',c:'blk'},{r:'8',s:'♦',c:'red'}],
+    boardPlaceholders: 1,
+    facing: 'bet', facingAmount: 120,
+    subtitle: '3-bet pot · SF barrels turn · Pot 340',
+    actions: [
+      {street:'Preflop',entries:[
+        {actor:'SF',act:'raised to',amt:'25'},
+        {actor:'You',act:'3-bet to',amt:'70'},
+        {actor:'SF',act:'called',amt:'70'},
+      ]},
+      {street:'Flop · K♣ T♥ 4♠',entries:[
+        {actor:'You',act:'bet',amt:'50'},
+        {actor:'SF',act:'called',amt:'50'},
+      ]},
+      {street:'Turn · 8♦',entries:[
+        {actor:'You',act:'checked',amt:''},
+        {actor:'SF',act:'bet',amt:'120'},
+      ]},
+    ],
+    afterCall: '1,300',
+  },
+  {id:4, status:'waiting', street:'Preflop', pot:40, subtitle:'Waiting on Sarah'},
+  {id:6, status:'waiting', street:'Flop', pot:60, subtitle:'Waiting on Sarah'},
+  {id:8, status:'waiting', street:'Preflop', pot:20, subtitle:'Waiting on Sarah'},
+  {id:10, status:'waiting', street:'Preflop', pot:30, subtitle:'Waiting on Sarah'},
+  {id:1, status:'folded', subtitle:'You folded preflop'},
+  {id:2, status:'won', pot:45, subtitle:'Won at showdown'},
+  {id:5, status:'allin', pot:800, subtitle:'Awaiting runout'},
+];
+
+let pendingCount = hands.filter(h => h.status === 'pending').length;
+
+// ── Render ─────────────────────────────────────────────────────────────
+
+function renderList() {
+  const el = document.getElementById('handList');
+  const pending = hands.filter(h => h.status === 'pending');
+  const waiting = hands.filter(h => h.status === 'waiting');
+  const resolved = hands.filter(h => ['folded','won','allin'].includes(h.status));
+
+  let html = '';
+
+  // Action Required
+  if (pending.length > 0) {
+    html += `<div class="section-hdr">
+      <div class="dot" style="background:var(--gold-500);"></div>
+      <span class="eyebrow" style="color:var(--gold-500);">Action Required</span>
+      <span class="count">${pending.length} hand${pending.length!==1?'s':''}</span>
+    </div>`;
+    for (const h of pending) {
+      html += renderCompactCard(h);
+    }
+  }
+
+  // Waiting
+  if (waiting.length > 0) {
+    html += `<div class="section-hdr">
+      <div class="dot" style="background:var(--cream-300);"></div>
+      <span class="eyebrow">Waiting on Sarah</span>
+      <span class="count">${waiting.length}</span>
+    </div>`;
+    html += `<div style="display:flex;flex-wrap:wrap;gap:6px;padding-bottom:4px;">`;
+    for (const h of waiting) {
+      html += `<span class="chip-pill">H${h.id} · ${h.street} · Pot ${h.pot}</span>`;
+    }
+    html += `</div>`;
+  }
+
+  // Resolved
+  if (resolved.length > 0) {
+    html += `<div class="section-hdr">
+      <div class="dot" style="background:var(--cream-400);"></div>
+      <span class="eyebrow">Resolved</span>
+      <span class="count">${resolved.length}</span>
+    </div>`;
+    html += `<div style="display:flex;flex-wrap:wrap;gap:6px;padding-bottom:16px;">`;
+    for (const h of resolved) {
+      let tagClass = h.status === 'allin' ? 'allin' : h.status === 'won' ? 'won' : 'fold';
+      let label = h.status === 'allin' ? `All-In · Pot ${h.pot}` : h.status === 'won' ? `Won ${h.pot}` : 'Folded';
+      html += `<span class="chip-pill"><span class="tag ${tagClass}" style="margin-right:4px;">${h.status === 'allin' ? 'AI' : h.status === 'won' ? 'W' : 'F'}</span>H${h.id} · ${label}</span>`;
+    }
+    html += `</div>`;
+  }
+
+  el.innerHTML = html;
+  document.getElementById('hdrCount').textContent = `${pendingCount} of 10 hands left`;
+}
+
+function renderCompactCard(h) {
+  const cardsHtml = h.myCards.map(c =>
+    `<div class="cf sm ${c.c}"><span>${c.r}</span><span>${c.s}</span></div>`
+  ).join('');
+
+  const facingText = h.facing === 'check'
+    ? `<span style="font-size:12px;color:var(--cream-300);">Check to you</span>`
+    : `<span class="facing">Facing ${h.facingAmount}</span>`;
+
+  return `
+    <div class="hand-card pending" onclick="openDetail(${h.id})">
+      <div class="row">
+        <div style="display:flex;">${cardsHtml}</div>
+        <div class="info">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span class="title">Hand ${h.id} · <span style="color:var(--gold-500);">${h.street}</span></span>
+            ${facingText}
+          </div>
+          <div class="subtitle">${h.subtitle}</div>
+        </div>
+        <span class="chevron">›</span>
+      </div>
+    </div>
+  `;
+}
+
+// ── Detail view ────────────────────────────────────────────────────────
+
+let currentHandId = null;
+
+function openDetail(id) {
+  const hand = hands.find(h => h.id === id);
+  if (!hand || hand.status !== 'pending') return;
+  currentHandId = id;
+
+  document.getElementById('detailTitle').textContent = `Hand ${hand.id}`;
+
+  let html = '';
+
+  // Street tag
+  html += `<div style="margin-bottom:12px;"><span class="tag street" style="font-size:11px;padding:3px 8px;">${hand.street}</span></div>`;
+
+  // Cards
+  html += `<div class="cards-row">`;
+  html += `<div><div class="cards-label">Your Cards</div><div class="cards-group">`;
+  for (const c of hand.myCards) {
+    html += `<div class="cf lg ${c.c}"><span>${c.r}</span><span>${c.s}</span></div>`;
+  }
+  html += `</div></div>`;
+
+  if (hand.board.length > 0 || hand.boardPlaceholders > 0) {
+    html += `<div style="margin-left:8px;"><div class="cards-label">Board</div><div class="cards-group">`;
+    for (const c of hand.board) {
+      html += `<div class="cf lg ${c.c}"><span>${c.r}</span><span>${c.s}</span></div>`;
+    }
+    for (let i = 0; i < hand.boardPlaceholders; i++) {
+      html += `<div class="cf lg ph"><span>?</span></div>`;
+    }
+    html += `</div></div>`;
+  }
+  html += `</div>`;
+
+  // Action log
+  html += `<div class="action-log">`;
+  for (const street of hand.actions) {
+    html += `<div class="street-sep">${street.street}</div>`;
+    for (const e of street.entries) {
+      html += `<div class="entry">
+        <span class="actor">${e.actor}</span>
+        <span class="act">${e.act}</span>
+        ${e.amt ? `<span class="amt">${e.amt}</span>` : ''}
+      </div>`;
+    }
+  }
+  html += `</div>`;
+
+  // Facing banner
+  if (hand.facing === 'bet') {
+    html += `
+      <div class="facing-banner">
+        <div class="arrow">→</div>
+        <div>
+          <div class="text">Facing a bet of</div>
+          <div class="amount">${hand.facingAmount}</div>
+        </div>
+        <div class="after">After call<br><strong>${hand.afterCall}</strong> avail</div>
+      </div>`;
+  } else {
+    html += `
+      <div class="facing-banner">
+        <div class="arrow">✓</div>
+        <div>
+          <div class="text">No bet facing you</div>
+          <div style="font-size:11px;color:var(--cream-300);">You can check or bet</div>
+        </div>
+        <div class="after">Available<br><strong>${hand.afterCall}</strong></div>
+      </div>`;
+  }
+
+  // Pot
+  html += `<div class="pot-line">
+    <div>Pot: <span class="pot">${hand.pot}</span></div>
+    <div>Your committed: ${hand.facing === 'bet' ? hand.actions.flatMap(s=>s.entries).filter(e=>e.actor==='You').length > 0 ? 'Yes' : '0' : '10'}</div>
+  </div>`;
+
+  // Action buttons
+  if (hand.facing === 'bet') {
+    html += `
+      <div class="act-row">
+        <div class="act-btn fold" onclick="doAction(${hand.id},'fold')">Fold</div>
+        <div class="act-btn call" onclick="doAction(${hand.id},'call')">Call ${hand.facingAmount}</div>
+        <div class="act-btn raise" onclick="doAction(${hand.id},'raise')">Raise</div>
+        <div class="act-btn allin" onclick="doAction(${hand.id},'allin')">All-In</div>
+      </div>`;
+  } else {
+    html += `
+      <div class="act-row">
+        <div class="act-btn check" onclick="doAction(${hand.id},'check')">Check</div>
+        <div class="act-btn bet" onclick="doAction(${hand.id},'bet')">Bet</div>
+        <div class="act-btn allin" onclick="doAction(${hand.id},'allin')">All-In</div>
+      </div>`;
+  }
+
+  document.getElementById('detailBody').innerHTML = html;
+  document.getElementById('detailOverlay').classList.add('open');
+}
+
+function closeDetail() {
+  document.getElementById('detailOverlay').classList.remove('open');
+  currentHandId = null;
+}
+
+function doAction(id, action) {
+  const hand = hands.find(h => h.id === id);
+  if (!hand) return;
+
+  const labels = {fold:'Folded',call:'Called',raise:'Raised',allin:'All-In',check:'Checked',bet:'Bet'};
+
+  // Move hand to resolved
+  if (action === 'fold') {
+    hand.status = 'folded';
+    hand.subtitle = 'You folded';
+  } else if (action === 'allin') {
+    hand.status = 'allin';
+    hand.subtitle = `All-in · Pot ${hand.pot + (hand.facingAmount || 0)}`;
+    hand.pot = hand.pot + (hand.facingAmount || 0);
+  } else {
+    hand.status = 'won'; // simulate — in reality it would continue
+    hand.subtitle = `${labels[action]} · Hand continues`;
+  }
+
+  pendingCount = hands.filter(h => h.status === 'pending').length;
+  closeDetail();
+  showToastMsg(`Hand ${id}: ${labels[action]}`);
+  renderList();
+
+  if (pendingCount === 0) {
+    setTimeout(() => showToastMsg('Turn complete! Waiting on Sarah.'), 500);
+  }
+}
+
+function showToastMsg(msg) {
+  const existing = document.querySelector('.toast');
+  if (existing) existing.remove();
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.textContent = msg;
+  document.getElementById('screen').appendChild(toast);
+  setTimeout(() => toast.remove(), 1600);
+}
+
+// ── Init ───────────────────────────────────────────────────────────────
+renderList();
+</script>
+
+</body>
+</html>

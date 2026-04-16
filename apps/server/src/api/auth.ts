@@ -1,4 +1,4 @@
-import type { FastifyInstance, FastifyRequest } from 'fastify';
+import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { randomBytes, createHash } from 'node:crypto';
 import { eq } from 'drizzle-orm';
@@ -15,15 +15,17 @@ declare module 'fastify' {
   }
 }
 
-export async function authPlugin(app: FastifyInstance) {
-  // Debug auth: select user → get token
+/**
+ * Debug auth routes (no bearer token required).
+ * POST /auth/debug/select — pick a user, get a token.
+ */
+export async function debugAuthRoutes(app: FastifyInstance) {
   const selectBody = z.object({ user_id: z.string().uuid() });
 
   app.post('/auth/debug/select', async (req, reply) => {
     const { user_id } = selectBody.parse(req.body);
     const db = getDb();
 
-    // Verify user exists
     const user = await db.query.users.findFirst({
       where: eq(users.userId, user_id),
     });
@@ -31,7 +33,6 @@ export async function authPlugin(app: FastifyInstance) {
       return reply.status(404).send({ error: 'User not found' });
     }
 
-    // Generate token
     const token = randomBytes(32).toString('hex');
     const hash = hashToken(token);
 
@@ -42,29 +43,29 @@ export async function authPlugin(app: FastifyInstance) {
 
     return { token, user_id, display_name: user.displayName };
   });
+}
 
-  // Bearer auth middleware for all other /v1/* routes
-  app.addHook('onRequest', async (req: FastifyRequest, reply) => {
-    // Skip auth for debug routes
-    if (req.url.startsWith('/v1/auth/')) return;
+/**
+ * Bearer auth hook — verifies the token and sets req.userId.
+ * Used as an onRequest hook for authenticated routes.
+ */
+export async function bearerAuth(req: FastifyRequest, reply: FastifyReply) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    return reply.status(401).send({ error: 'Missing bearer token' });
+  }
 
-    const authHeader = req.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
-      return reply.status(401).send({ error: 'Missing bearer token' });
-    }
+  const token = authHeader.slice(7);
+  const hash = hashToken(token);
+  const db = getDb();
 
-    const token = authHeader.slice(7);
-    const hash = hashToken(token);
-    const db = getDb();
-
-    const row = await db.query.debugTokens.findFirst({
-      where: eq(debugTokens.tokenHash, hash),
-    });
-
-    if (!row) {
-      return reply.status(401).send({ error: 'Invalid token' });
-    }
-
-    req.userId = row.userId;
+  const row = await db.query.debugTokens.findFirst({
+    where: eq(debugTokens.tokenHash, hash),
   });
+
+  if (!row) {
+    return reply.status(401).send({ error: 'Invalid token' });
+  }
+
+  req.userId = row.userId;
 }

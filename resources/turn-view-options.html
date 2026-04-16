@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tilted — Turn View Options (10 Variations)</title>
+<style>
+  :root {
+    --felt-900: #051c15;
+    --felt-800: #082a21;
+    --felt-700: #0e3b2e;
+    --felt-600: #164a3a;
+    --felt-500: #1a5a43;
+    --gold-500: #d4b368;
+    --gold-600: #c9a961;
+    --gold-700: #a88334;
+    --gold-800: #7a5f2b;
+    --cream-50: #f6f1e1;
+    --cream-100: #f3ecd6;
+    --cream-200: #d9cfb2;
+    --cream-300: #9eb7a4;
+    --cream-400: #6a8a7a;
+    --claret: #c44d42;
+    --card-red: #c92b2b;
+    --card-black: #111;
+    --page-bg: #15161a;
+    --page-fg: #e8e6df;
+    --muted: #8a8a8a;
+    --rule: #2a2a30;
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--page-bg);
+    color: var(--page-fg);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  header.page {
+    padding: 56px 48px 24px;
+    max-width: 1400px; margin: 0 auto;
+  }
+  header.page .eyebrow {
+    font-size: 11px; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--gold-500); margin-bottom: 10px;
+  }
+  header.page h1 {
+    font-family: Georgia, serif; font-weight: 400; font-size: 40px;
+    letter-spacing: -0.5px; margin: 0 0 8px;
+  }
+  header.page p {
+    color: var(--muted); font-size: 14px; line-height: 1.7; max-width: 680px; margin: 0;
+  }
+
+  .section {
+    padding: 40px 48px;
+    max-width: 1400px; margin: 0 auto;
+    border-top: 1px solid var(--rule);
+  }
+  .section h2 {
+    font-size: 12px; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--muted); font-weight: 500; margin: 0 0 6px;
+  }
+  .section h3 {
+    font-family: Georgia, serif; font-weight: 400; font-size: 26px;
+    margin: 0 0 6px; letter-spacing: -0.3px;
+  }
+  .section .desc {
+    color: var(--muted); font-size: 13px; max-width: 720px; line-height: 1.65; margin: 0 0 28px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 320px));
+    gap: 44px 32px;
+    justify-content: start;
+  }
+
+  /* Phone frame */
+  .phone-wrap { display: flex; flex-direction: column; align-items: center; }
+  .phone {
+    width: 320px; height: 680px; border-radius: 44px; padding: 10px;
+    background: #0a0a0b;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.55), inset 0 0 0 1.5px #2a2a2e;
+    position: relative; overflow: hidden;
+  }
+  .phone .screen {
+    width: 100%; height: 100%; border-radius: 34px; overflow-y: auto; overflow-x: hidden; position: relative;
+    background: radial-gradient(ellipse at 50% 0%, var(--felt-500) 0%, var(--felt-700) 55%, var(--felt-800) 100%);
+    color: var(--cream-100);
+    font-family: -apple-system, "SF Pro Text", sans-serif;
+  }
+  .phone .screen::-webkit-scrollbar { display: none; }
+  .phone .notch {
+    position: sticky; top: 0; z-index: 10;
+    display: flex; justify-content: center;
+  }
+  .phone .notch-pill {
+    width: 90px; height: 24px; background: #0a0a0b; border-radius: 14px;
+    margin-top: 8px;
+  }
+  .phone .home-indicator {
+    position: sticky; bottom: 0;
+    display: flex; justify-content: center; padding: 8px 0;
+  }
+  .phone .home-indicator div {
+    width: 110px; height: 4px; border-radius: 2px;
+    background: rgba(243,236,214,0.5);
+  }
+  .label {
+    margin-top: 12px; font-size: 11px; color: var(--page-fg); text-align: center;
+    font-family: "SF Mono", Menlo, monospace; letter-spacing: 0.3px;
+    max-width: 300px;
+  }
+  .label .num { color: var(--gold-500); margin-right: 6px; }
+  .label .note { display: block; color: var(--muted); font-size: 10px; margin-top: 3px; line-height: 1.5; }
+
+  /* Shared in-phone styles */
+  .hdr {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 16px 8px; position: sticky; top: 32px; z-index: 5;
+    background: rgba(8,42,33,0.92); backdrop-filter: blur(8px);
+  }
+  .hdr .back { color: var(--cream-200); font-size: 18px; cursor: pointer; }
+  .hdr .center { font-size: 13px; color: var(--cream-100); }
+  .hdr .right { font-size: 11px; color: var(--gold-500); }
+
+  .eyebrow { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--cream-300); }
+  .serif { font-family: Georgia, serif; }
+  .gold { color: var(--gold-500); }
+
+  .card-face {
+    width: 28px; height: 40px; border-radius: 4px;
+    background: var(--cream-50);
+    display: inline-flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    font-family: Georgia, serif; font-weight: 700;
+    font-size: 12px; line-height: 1;
+    flex-shrink: 0; margin-right: 3px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  }
+  .card-face.red { color: var(--card-red); }
+  .card-face.blk { color: var(--card-black); }
+  .card-face.sm { width: 22px; height: 32px; font-size: 10px; }
+  .card-face.placeholder {
+    background: transparent; border: 1.5px dashed rgba(201,169,97,0.3);
+    box-shadow: none; color: var(--cream-400); font-size: 10px;
+  }
+
+  .hand-tile {
+    margin: 0 12px 10px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(0,0,0,0.2));
+    border: 1px solid rgba(201,169,97,0.22);
+    border-radius: 14px; padding: 12px;
+  }
+  .hand-tile.active {
+    border-color: rgba(212,179,104,0.7);
+    box-shadow: 0 0 0 1px rgba(212,179,104,0.2), 0 2px 16px rgba(212,179,104,0.08);
+  }
+  .hand-tile.dimmed { opacity: 0.5; }
+
+  .act-row { display: flex; gap: 5px; margin-top: 8px; }
+  .act-btn {
+    flex: 1; padding: 8px 4px; text-align: center; border-radius: 8px;
+    background: rgba(0,0,0,0.25); border: 1px solid rgba(201,169,97,0.25);
+    color: var(--cream-100); font-size: 11px; font-weight: 500;
+  }
+  .act-btn.primary {
+    background: rgba(212,179,104,0.18); border-color: rgba(212,179,104,0.6); color: var(--gold-500);
+  }
+  .act-btn.danger {
+    border-color: rgba(196,77,66,0.5); color: var(--claret);
+  }
+
+  .action-log {
+    font-size: 11px; color: var(--cream-300); line-height: 1.5;
+    padding: 6px 8px; margin-top: 6px;
+    background: rgba(0,0,0,0.2); border-radius: 8px;
+  }
+  .action-log .entry { display: flex; gap: 6px; padding: 2px 0; }
+  .action-log .actor { color: var(--cream-200); font-weight: 500; min-width: 22px; }
+  .action-log .act { color: var(--cream-300); }
+  .action-log .amt { color: var(--gold-500); }
+  .action-log .street-sep {
+    font-size: 9px; letter-spacing: 1px; text-transform: uppercase;
+    color: var(--gold-500); padding: 3px 0 1px; opacity: 0.7;
+  }
+
+  .facing-banner {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 10px; margin-top: 6px;
+    background: rgba(212,179,104,0.08);
+    border: 1px solid rgba(212,179,104,0.3);
+    border-radius: 8px;
+  }
+  .facing-banner .icon { font-size: 16px; }
+  .facing-banner .text { font-size: 12px; color: var(--cream-100); }
+  .facing-banner .amount { font-family: Georgia, serif; color: var(--gold-500); font-size: 14px; }
+
+  .pot-line {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 11px; color: var(--cream-300); margin-top: 6px;
+  }
+  .pot-line .pot { color: var(--cream-100); font-weight: 500; }
+
+  .chip-pill {
+    display: inline-block; padding: 2px 8px; border-radius: 10px;
+    font-size: 10px; font-weight: 500;
+    background: rgba(0,0,0,0.3); border: 1px solid rgba(201,169,97,0.2);
+    color: var(--cream-200);
+  }
+
+  .tag {
+    display: inline-block; padding: 2px 6px; border-radius: 4px;
+    font-size: 9px; letter-spacing: 0.5px; text-transform: uppercase; font-weight: 600;
+  }
+  .tag.allin { background: rgba(196,77,66,0.15); color: var(--claret); }
+  .tag.street { background: rgba(212,179,104,0.12); color: var(--gold-500); }
+  .tag.fold { background: rgba(100,100,100,0.2); color: var(--cream-300); }
+  .tag.done { background: rgba(212,179,104,0.12); color: var(--gold-500); }
+
+  .progress-dots {
+    display: flex; gap: 4px; align-items: center;
+  }
+  .progress-dots .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: rgba(201,169,97,0.2);
+  }
+  .progress-dots .dot.active { background: var(--gold-500); }
+  .progress-dots .dot.done { background: var(--cream-300); }
+
+  .detail-sheet {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(180deg, var(--felt-700), var(--felt-900));
+    border-top: 1px solid var(--gold-600);
+    border-radius: 18px 18px 0 0;
+    padding: 16px 14px 28px;
+    z-index: 6;
+    box-shadow: 0 -12px 40px rgba(0,0,0,0.4);
+    max-height: 75%;
+    overflow-y: auto;
+  }
+  .detail-sheet .handle {
+    width: 36px; height: 4px; border-radius: 2px;
+    background: rgba(243,236,214,0.35);
+    margin: 0 auto 10px;
+  }
+  .dim-overlay {
+    position: absolute; inset: 0; background: rgba(0,0,0,0.55); z-index: 5;
+  }
+
+  @media (max-width: 720px) {
+    header.page, .section { padding-left: 20px; padding-right: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="page">
+  <div class="eyebrow">Tilted · Turn View Exploration · 10 Options</div>
+  <h1>Hand Card Redesign</h1>
+  <p>Ten variations for the turn view, exploring how to present action history, what's facing the player, pot context, and betting controls. All use the Classic Premium design tokens. Mix of inline-rich and tap-to-expand patterns.</p>
+</header>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- OPTION 1: Inline Action Log -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section class="section">
+  <h2>Option 01</h2>
+  <h3>Inline Action Log</h3>
+  <p class="desc">Every hand card shows the full action history inline as a compact log beneath the cards. The "facing" callout is prominent above the action buttons. Cards are taller but you always have full context without tapping.</p>
+  <div class="grid">
+    <div class="phone-wrap">
+      <div class="phone"><div class="screen">
+        <div class="notch"><div class="notch-pill"></div></div>
+        <div class="hdr">
+          <span class="back">‹</span>
+          <span class="center">3 of 10 hands left</span>
+          <span class="right">Avail: 1,420</span>
+        </div>
+
+        <!-- Active hand -->
+        <div class="hand-tile active">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span class="eyebrow">Hand 3</span>
+            <span class="tag street">Flop</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+            <div style="display:flex;">
+              <div class="card-face red"><span>A</span><span>♥</span></div>
+              <div class="card-face blk"><span>K</span><span>♠</span></div>
+            </div>
+            <div style="display:flex;gap:3px;">
+              <div class="card-face red"><span>Q</span><span>♦</span></div>
+              <div class="card-face blk"><span>7</span><span>♣</span></div>
+              <div class="card-face red"><span>2</span><span>♥</span></div>
+              <div class="card-face placeholder"><span>?</span></div>
+              <div class="card-face placeholder"><span>?</span></div>
+            </div>
+          </div>
+          <div class="action-log">
+            <div class="street-sep">Preflop</div>
+            <div class="entry"><span class="actor">You</span><span class="act">raised to</span><span class="amt">30</span></div>
+            <div class="entry"><span class="actor">SF</span><span class="act">called</span><span class="amt">30</span></div>
+            <div class="street-sep">Flop · Q♦ 7♣ 2♥</div>
+            <div class="entry"><span class="actor">SF</span><span class="act">bet</span><span class="amt">40</span></div>
+          </div>
+          <div class="facing-banner">
+            <span class="icon">→</span>
+            <span class="text">Facing a bet of</span>
+            <span class="amount">40</span>
+          </div>
+          <div class="pot-line">
+            <span>Pot: <span class="pot">100</span></span>
+            <span>Your bet: 30 · SF bet: 70</span>
+          </div>
+          <div class="act-row">
+            <div class="act-btn danger">Fold</div>
+            <div class="act-btn primary">Call 40</div>
+            <div class="act-btn">Raise</div>
+            <div class="act-btn">All-In</div>
+          </div>
+        </div>
+
+        <!-- Resolved hand -->
+        <div class="hand-tile dimmed">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span class="eyebrow">Hand 1</span>
+            <span class="tag fold">Folded</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:6px;">
+            <div style="font-size:11px;color:var(--cream-300);">You folded preflop · SF wins 15</div>
+          </div>
+        </div>
+
+        <!-- Awaiting runout hand -->
+        <div class="hand-tile" style="opacity:0.7;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span class="eyebrow">Hand 5</span>
+            <span class="tag allin">All-In</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:6px;">
+            <div style="display:flex;">
+              <div class="card-face blk"><span>J</span><span>♠</span></div>
+              <div class="card-face blk"><span>J</span><span>♣</span></div>
+            </div>
+            <div style="font-size:11px;color:var(--cream-300);">Pot: 800 · Awaiting runout</div>
+          </div>
+        </div>
+
+        <div class="home-indicator"><div></div></div>
+      </div></div>
+      <div class="label"><span class="num">01</span>Inline Action Log<span class="note">Full history always visible. Tall cards, maximum context. "Facing" banner makes the decision clear.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- OPTION 2: Compact + Tap to Expand -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section class="section">
+  <h2>Option 02</h2>
+  <h3>Compact Card + Tap to Expand</h3>
+  <p class="desc">Cards are compact with just the key decision info (what's facing you, pot size). Tapping a card expands a bottom sheet with full action history, board progression, and betting controls.</p>
+  <div class="grid">
+    <div class="phone-wrap">
+      <div class="phone"><div class="screen">
+        <div class="notch"><div class="notch-pill"></div></div>
+        <div class="hdr">
+          <span class="back">‹</span>
+          <span class="center">3 of 10 hands left</span>
+          <span class="right">Avail: 1,420</span>
+        </div>
+
+        <!-- Compact cards -->
+        <div class="hand-tile active" style="cursor:pointer;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span class="eyebrow">Hand 3</span>
+              <span class="tag street">Flop</span>
+            </div>
+            <span style="font-size:11px;color:var(--gold-500);">Facing 40 →</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
+            <div style="display:flex;">
+              <div class="card-face red"><span>A</span><span>♥</span></div>
+              <div class="card-face blk"><span>K</span><span>♠</span></div>
+            </div>
+            <div style="font-size:12px;color:var(--cream-100);">Pot: 100</div>
+            <div style="display:flex;gap:3px;">
+              <div class="card-face sm red"><span>Q</span><span>♦</span></div>
+              <div class="card-face sm blk"><span>7</span><span>♣</span></div>
+              <div class="card-face sm red"><span>2</span><span>♥</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="hand-tile active" style="cursor:pointer;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span class="eyebrow">Hand 7</span>
+              <span class="tag street">Preflop</span>
+            </div>
+            <span style="font-size:11px;color:var(--cream-300);">Check to you →</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
+            <div style="display:flex;">
+              <div class="card-face blk"><span>9</span><span>♠</span></div>
+              <div class="card-face red"><span>9</span><span>♥</span></div>
+            </div>
+            <div style="font-size:12px;color:var(--cream-100);">Pot: 20</div>
+          </div>
+        </div>
+
+        <div class="hand-tile active" style="cursor:pointer;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span class="eyebrow">Hand 9</span>
+              <span class="tag street">Turn</span>
+            </div>
+            <span style="font-size:11px;color:var(--gold-500);">Facing 120 →</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
+            <div style="display:flex;">
+              <div class="card-face blk"><span>A</span><span>♣</span></div>
+              <div class="card-face blk"><span>Q</span><span>♠</span></div>
+            </div>
+            <div style="font-size:12px;color:var(--cream-100);">Pot: 340</div>
+            <div style="display:flex;gap:3px;">
+              <div class="card-face sm blk"><span>K</span><span>♣</span></div>
+              <div class="card-face sm red"><span>T</span><span>♥</span></div>
+              <div class="card-face sm blk"><span>4</span><span>♠</span></div>
+              <div class="card-face sm red"><span>8</span><span>♦</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="hand-tile dimmed">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span class="eyebrow">Hand 1</span>
+            <span class="tag fold">Folded</span>
+          </div>
+        </div>
+        <div class="hand-tile dimmed">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span class="eyebrow">Hand 2</span>
+            <span class="tag done">Won 45</span>
+          </div>
+        </div>
+        <div class="hand-tile" style="opacity:0.7;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span class="eyebrow">Hand 5</span>
+            <span class="tag allin">All-In · Pot 800</span>
+          </div>
+        </div>
+
+        <!-- Expanded detail sheet -->
+        <div class="dim-overlay"></div>
+        <div class="detail-sheet">
+          <div class="handle"></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-family:Georgia,serif;font-size:18px;">Hand 3</span>
+            <span class="tag street">Flop</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;margin-top:10px;">
+            <div style="display:flex;">
+              <div class="card-face red"><span>A</span><span>♥</span></div>
+              <div class="card-face blk"><span>K</span><span>♠</span></div>
+            </div>
+            <div style="display:flex;gap:3px;">
+              <div class="card-face red"><span>Q</span><span>♦</span></div>
+              <div class="card-face blk"><span>7</span><span>♣</span></div>
+              <div class="card-face red"><span>2</span><span>♥</span></div>
+              <div class="card-face placeholder"><span>?</span></div>
+              <div class="card-face placeholder"><span>?</span></div>
+            </div>
+          </div>
+          <div class="action-log" style="margin-top:10px;">
+            <div class="street-sep">Preflop</div>
+            <div class="entry"><span class="actor">You</span><span class="act">raised to</span><span class="amt">30</span></div>
+            <div class="entry"><span class="actor">SF</span><span class="act">called</span><span class="amt">30</span></div>
+            <div class="street-sep">Flop · Q♦ 7♣ 2♥</div>
+            <div class="entry"><span class="actor">SF</span><span class="act">bet</span><span class="amt">40</span></div>
+          </div>
+          <div class="facing-banner">
+            <span class="icon">→</span>
+            <span class="text">Facing a bet of</span>
+            <span class="amount">40</span>
+          </div>
+          <div class="pot-line">
+            <span>Pot: <span class="pot">100</span></span>
+            <span>After call: 1,380 avail</span>
+          </div>
+          <div class="act-row">
+            <div class="act-btn danger">Fold</div>
+            <div class="act-btn primary">Call 40</div>
+            <div class="act-btn">Raise</div>
+            <div class="act-btn">All-In</div>
+          </div>
+        </div>
+
+        <div class="home-indicator"><div></div></div>
+      </div></div>
+      <div class="label"><span class="num">02</span>Compact + Bottom Sheet<span class="note">Scan all hands quickly. Tap to expand full history + controls. Best for 5+ pending hands.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- OPTION 3: Timeline View -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section class="section">
+  <h2>Option 03</h2>
+  <h3>Timeline / Chat-style History</h3>
+  <p class="desc">Action history shown as a vertical timeline with alternating sides (you on right, opponent on left), like a chat thread. Board cards appear inline at street transitions.</p>
+  <div class="grid">
+    <div class="phone-wrap">
+      <div class="phone"><div class="screen">
+        <div class="notch"><div class="notch-pill"></div></div>
+        <div class="hdr">
+          <span class="back">‹</span>
+          <span class="center" style="font-family:Georgia,serif;font-size:16px;">Hand 3 · Flop</span>
+          <span class="right">3/10</span>
+        </div>
+
+        <div style="padding:12px 14px;">
+          <!-- Cards -->
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <div style="display:flex;gap:3px;">
+              <div class="card-face red"><span>A</span><span>♥</span></div>
+              <div class="card-face blk"><span>K</span><span>♠</span></div>
+            </div>
+            <div style="text-align:center;">
+              <div class="eyebrow">Pot</div>
+              <div style="font-family:Georgia,serif;font-size:20px;color:var(--gold-500);">100</div>
+            </div>
+            <div style="display:flex;gap:3px;">
+              <div class="card-face red"><span>Q</span><span>♦</span></div>
+              <div class="card-face blk"><span>7</span><span>♣</span></div>
+              <div class="card-face red"><span>2</span><span>♥</span></div>
+            </div>
+          </div>
+
+          <!-- Timeline -->
+          <div style="border-left:2px solid rgba(201,169,97,0.2);margin-left:20px;padding-left:14px;">
+            <div style="position:relative;padding-bottom:10px;">
+              <div style="position:absolute;left:-21px;top:2px;width:10px;height:10px;border-radius:50%;background:var(--cream-300);"></div>
+              <div class="eyebrow" style="color:var(--gold-500);">Preflop</div>
+            </div>
+            <div style="position:relative;padding-bottom:8px;">
+              <div style="position:absolute;left:-19px;top:4px;width:6px;height:6px;border-radius:50%;background:var(--gold-500);"></div>
+              <div style="font-size:12px;"><span style="color:var(--cream-200);font-weight:500;">You</span> <span style="color:var(--cream-300);">raised to</span> <span style="color:var(--gold-500);">30</span></div>
+            </div>
+            <div style="position:relative;padding-bottom:8px;">
+              <div style="position:absolute;left:-19px;top:4px;width:6px;height:6px;border-radius:50%;background:var(--cream-300);"></div>
+              <div style="font-size:12px;"><span style="color:var(--cream-200);font-weight:500;">Sarah</span> <span style="color:var(--cream-300);">called</span> <span style="color:var(--gold-500);">30</span></div>
+            </div>
+            <div style="position:relative;padding-bottom:10px;">
+              <div style="position:absolute;left:-21px;top:2px;width:10px;height:10px;border-radius:50%;background:var(--cream-300);"></div>
+              <div class="eyebrow" style="color:var(--gold-500);">Flop · Q♦ 7♣ 2♥</div>
+            </div>
+            <div style="position:relative;padding-bottom:8px;">
+              <div style="position:absolute;left:-19px;top:4px;width:6px;height:6px;border-radius:50%;background:var(--cream-300);"></div>
+              <div style="font-size:12px;"><span style="color:var(--cream-200);font-weight:500;">Sarah</span> <span style="color:var(--cream-300);">bet</span> <span style="color:var(--gold-500);">40</span></div>
+            </div>
+            <div style="position:relative;">
+              <div style="position:absolute;left:-21px;top:2px;width:10px;height:10px;border-radius:50%;background:var(--gold-500);border:2px solid var(--felt-700);"></div>
+              <div style="font-size:12px;color:var(--gold-500);font-weight:600;">Your action</div>
+            </div>
+          </div>
+
+          <!-- Facing -->
+          <div class="facing-banner" style="margin-top:12px;">
+            <span class="icon">→</span>
+            <span class="text">Facing a bet of</span>
+            <span class="amount">40</span>
+            <span style="margin-left:auto;font-size:10px;color:var(--cream-300);">to call · 1,380 after</span>
+          </div>
+
+          <div class="act-row" style="margin-top:10px;">
+            <div class="act-btn danger">Fold</div>
+            <div class="act-btn primary">Call 40</div>
+            <div class="act-btn">Raise</div>
+            <div class="act-btn">All-In</div>
+          </div>
+
+          <!-- Nav to other hands -->
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding-top:12px;border-top:1px solid rgba(201,169,97,0.15);">
+            <span style="font-size:12px;color:var(--cream-300);">← Hand 2</span>
+            <div class="progress-dots">
+              <div class="dot done"></div><div class="dot done"></div><div class="dot active"></div>
+              <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+              <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+            </div>
+            <span style="font-size:12px;color:var(--cream-200);">Hand 7 →</span>
+          </div>
+        </div>
+
+        <div class="home-indicator"><div></div></div>
+      </div></div>
+      <div class="label"><span class="num">03</span>Timeline View<span class="note">One hand at a time, full screen. Vertical timeline shows every action. Swipe or tap arrows to move between hands.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- OPTION 4: Split Screen — Overview + Focus -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section class="section">
+  <h2>Option 04</h2>
+  <h3>Split Screen — Overview + Focus Hand</h3>
+  <p class="desc">Top half shows a mini-overview of all 10 hands as tiny thumbnails. Bottom half shows the focused hand with full detail. Tap a thumbnail to switch focus.</p>
+  <div class="grid">
+    <div class="phone-wrap">
+      <div class="phone"><div class="screen">
+        <div class="notch"><div class="notch-pill"></div></div>
+        <div class="hdr">
+          <span class="back">‹</span>
+          <span class="center">Your Turn · 3 pending</span>
+          <span class="right">Avail: 1,420</span>
+        </div>
+
+        <!-- Mini overview -->
+        <div style="padding:8px 12px;display:flex;flex-wrap:wrap;gap:6px;">
+          <div style="width:52px;padding:6px;border-radius:8px;background:rgba(100,100,100,0.2);text-align:center;">
+            <div style="font-size:8px;color:var(--cream-300);">H1</div>
+            <div style="font-size:9px;color:var(--claret);">Fold</div>
+          </div>
+          <div style="width:52px;padding:6px;border-radius:8px;background:rgba(100,100,100,0.2);text-align:center;">
+            <div style="font-size:8px;color:var(--cream-300);">H2</div>
+            <div style="font-size:9px;color:var(--gold-500);">+45</div>
+          </div>
+          <div style="width:52px;padding:6px;border-radius:8px;background:rgba(212,179,104,0.15);border:1px solid var(--gold-500);text-align:center;">
+            <div style="font-size:8px;color:var(--gold-500);">H3</div>
+            <div style="font-size:9px;color:var(--cream-100);">Flop</div>
+          </div>
+          <div style="width:52px;padding:6px;border-radius:8px;background:rgba(100,100,100,0.2);text-align:center;">
+            <div style="font-size:8px;color:var(--cream-300);">H4</div>
+            <div style="font-size:9px;color:var(--cream-300);">Wait</div>
+          </div>
+          <div style="width:52px;padding:6px;border-radius:8px;background:rgba(196,77,66,0.1);text-align:center;">
+            <div style="font-size:8px;color:var(--cream-300);">H5</div>
+            <div style="font-size:9px;color:var(--claret);">AI</div>
+          </div>
+          <div style="width:52px;padding:6px;border-radius:8px;background:rgba(100,100,100,0.2);text-align:center;">
+            <div style="font-size:8px;color:var(--cream-300);">H6</div>
+            <div style="font-size:9px;color:var(--cream-300);">Wait</div>
+          </div>
+          <div style="width:52px;padding:6px;border-radius:8px;background:rgba(212,179,104,0.08);border:1px solid rgba(201,169,97,0.3);text-align:center;">
+            <div style="font-size:8px;color:var(--gold-500);">H7</div>
+            <div style="font-size:9px;color:var(--cream-100);">Pre</div>
+          </div>
+          <div style="width:52px;padding:6px;border-radius:8px;background:rgba(100,100,100,0.2);text-align:center;">
+            <div style="font-size:8px;color:var(--cream-300);">H8</div>
+            <div style="font-size:9px;color:var(--cream-300);">Wait</div>
+          </div>
+          <div style="width:52px;padding:6px;border-radius:8px;background:rgba(212,179,104,0.08);border:1px solid rgba(201,169,97,0.3);text-align:center;">
+            <div style="font-size:8px;color:var(--gold-500);">H9</div>
+            <div style="font-size:9px;color:var(--cream-100);">Turn</div>
+          </div>
+          <div style="width:52px;padding:6px;border-radius:8px;background:rgba(100,100,100,0.2);text-align:center;">
+            <div style="font-size:8px;color:var(--cream-300);">H10</div>
+            <div style="font-size:9px;color:var(--claret);">Fold</div>
+          </div>
+        </div>
+
+        <div style="height:1px;background:linear-gradient(to right,transparent,var(--gold-600),transparent);opacity:0.5;margin:4px 12px;"></div>
+
+        <!-- Focus hand -->
+        <div style="padding:10px 14px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-family:Georgia,serif;font-size:18px;">Hand 3</span>
+            <span class="tag street">Flop</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;margin-top:10px;">
+            <div style="display:flex;">
+              <div class="card-face red"><span>A</span><span>♥</span></div>
+              <div class="card-face blk"><span>K</span><span>♠</span></div>
+            </div>
+            <div style="display:flex;gap:3px;">
+              <div class="card-face red"><span>Q</span><span>♦</span></div>
+              <div class="card-face blk"><span>7</span><span>♣</span></div>
+              <div class="card-face red"><span>2</span><span>♥</span></div>
+              <div class="card-face placeholder"><span>?</span></div>
+              <div class="card-face placeholder"><span>?</span></div>
+            </div>
+          </div>
+          <div class="action-log" style="margin-top:10px;">
+            <div class="street-sep">Preflop</div>
+            <div class="entry"><span class="actor">You</span><span class="act">raised to</span><span class="amt">30</span></div>
+            <div class="entry"><span class="actor">SF</span><span class="act">called</span><span class="amt">30</span></div>
+            <div class="street-sep">Flop</div>
+            <div class="entry"><span class="actor">SF</span><span class="act">bet</span><span class="amt">40</span></div>
+          </div>
+          <div class="facing-banner" style="margin-top:8px;">
+            <span class="icon">→</span>
+            <span class="text">Facing</span>
+            <span class="amount">40</span>
+            <span style="margin-left:auto;font-size:10px;color:var(--cream-300);">Pot: 100</span>
+          </div>
+          <div class="act-row" style="margin-top:8px;">
+            <div class="act-btn danger">Fold</div>
+            <div class="act-btn primary">Call 40</div>
+            <div class="act-btn">Raise</div>
+            <div class="act-btn">All-In</div>
+          </div>
+        </div>
+
+        <div class="home-indicator"><div></div></div>
+      </div></div>
+      <div class="label"><span class="num">04</span>Split Overview + Focus<span class="note">Top row = bird's eye view of all 10 hands. Bottom = full detail on focused hand. Tap thumbnails to switch.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- OPTION 5: Stacked Sections by Status -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section class="section">
+  <h2>Option 05</h2>
+  <h3>Grouped by Status</h3>
+  <p class="desc">Hands grouped into sections: "Action Required" (expanded with full detail), "Waiting on Sarah" (collapsed), "Resolved" (minimal). Clear hierarchy of what needs attention.</p>
+  <div class="grid">
+    <div class="phone-wrap">
+      <div class="phone"><div class="screen">
+        <div class="notch"><div class="notch-pill"></div></div>
+        <div class="hdr">
+          <span class="back">‹</span>
+          <span class="center">Round 7 · Your Turn</span>
+          <span class="right">1,420 avail</span>
+        </div>
+
+        <div style="padding:6px 12px;">
+          <div class="eyebrow" style="color:var(--gold-500);padding:8px 0 4px;">Action Required · 3 hands</div>
+
+          <div class="hand-tile active">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-family:Georgia,serif;font-size:15px;">Hand 3 · <span style="color:var(--gold-500);">Flop</span></span>
+              <span style="font-size:11px;color:var(--cream-100);">Pot 100</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+              <div style="display:flex;">
+                <div class="card-face red"><span>A</span><span>♥</span></div>
+                <div class="card-face blk"><span>K</span><span>♠</span></div>
+              </div>
+              <div style="display:flex;gap:3px;">
+                <div class="card-face sm red"><span>Q</span><span>♦</span></div>
+                <div class="card-face sm blk"><span>7</span><span>♣</span></div>
+                <div class="card-face sm red"><span>2</span><span>♥</span></div>
+              </div>
+            </div>
+            <div class="action-log">
+              <div class="entry"><span class="actor">You</span><span class="act">raised to</span><span class="amt">30</span></div>
+              <div class="entry"><span class="actor">SF</span><span class="act">called 30, then bet</span><span class="amt">40</span></div>
+            </div>
+            <div class="facing-banner">
+              <span class="text">Facing</span>
+              <span class="amount">40</span>
+            </div>
+            <div class="act-row">
+              <div class="act-btn danger">Fold</div>
+              <div class="act-btn primary">Call 40</div>
+              <div class="act-btn">Raise</div>
+            </div>
+          </div>
+
+          <div class="hand-tile active">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-family:Georgia,serif;font-size:15px;">Hand 7 · <span style="color:var(--gold-500);">Preflop</span></span>
+              <span style="font-size:11px;color:var(--cream-100);">Pot 20</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+              <div style="display:flex;">
+                <div class="card-face blk"><span>9</span><span>♠</span></div>
+                <div class="card-face red"><span>9</span><span>♥</span></div>
+              </div>
+              <span style="font-size:11px;color:var(--cream-300);">SF limped · No bet facing you</span>
+            </div>
+            <div class="act-row">
+              <div class="act-btn primary">Check</div>
+              <div class="act-btn">Raise</div>
+              <div class="act-btn">All-In</div>
+            </div>
+          </div>
+
+          <div class="eyebrow" style="color:var(--cream-300);padding:12px 0 4px;">Waiting on Sarah · 4 hands</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;padding-bottom:8px;">
+            <span class="chip-pill">H4 · Pre · Pot 40</span>
+            <span class="chip-pill">H6 · Flop · Pot 60</span>
+            <span class="chip-pill">H8 · Pre · Pot 20</span>
+            <span class="chip-pill">H10 · Pre · Pot 30</span>
+          </div>
+
+          <div class="eyebrow" style="color:var(--cream-300);padding:8px 0 4px;">Resolved · 3 hands</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;padding-bottom:8px;">
+            <span class="chip-pill">H1 · Folded</span>
+            <span class="chip-pill" style="color:var(--gold-500);">H2 · Won 45</span>
+            <span class="chip-pill" style="color:var(--claret);">H5 · All-In · 800</span>
+          </div>
+        </div>
+
+        <div class="home-indicator"><div></div></div>
+      </div></div>
+      <div class="label"><span class="num">05</span>Grouped by Status<span class="note">Clear triage: actionable hands expanded, waiting/resolved collapsed to pills. Focus on what matters.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- OPTION 6: Paged / Carousel -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section class="section">
+  <h2>Option 06</h2>
+  <h3>Full-Screen Paged Carousel</h3>
+  <p class="desc">Each pending hand is a full-screen page. Swipe left/right to move between hands. Maximum real estate for every detail. A persistent top strip shows hand count and navigation.</p>
+  <div class="grid">
+    <div class="phone-wrap">
+      <div class="phone"><div class="screen">
+        <div class="notch"><div class="notch-pill"></div></div>
+        <div class="hdr">
+          <span class="back">‹ Home</span>
+          <span class="center"></span>
+          <span class="right">1,420 avail</span>
+        </div>
+
+        <!-- Pagination strip -->
+        <div style="display:flex;justify-content:center;gap:6px;padding:4px 0 10px;">
+          <div style="width:20px;height:3px;border-radius:2px;background:var(--cream-300);"></div>
+          <div style="width:20px;height:3px;border-radius:2px;background:var(--cream-300);"></div>
+          <div style="width:20px;height:3px;border-radius:2px;background:var(--gold-500);"></div>
+        </div>
+
+        <div style="padding:0 16px;">
+          <!-- Hand header -->
+          <div style="display:flex;justify-content:space-between;align-items:baseline;">
+            <span style="font-family:Georgia,serif;font-size:24px;">Hand 3</span>
+            <span class="tag street" style="font-size:11px;padding:3px 8px;">Flop</span>
+          </div>
+
+          <!-- Your cards -->
+          <div style="margin-top:16px;text-align:center;">
+            <div class="eyebrow">Your Cards</div>
+            <div style="display:flex;justify-content:center;gap:6px;margin-top:6px;">
+              <div class="card-face red" style="width:44px;height:62px;font-size:18px;border-radius:6px;"><span>A</span><span>♥</span></div>
+              <div class="card-face blk" style="width:44px;height:62px;font-size:18px;border-radius:6px;"><span>K</span><span>♠</span></div>
+            </div>
+          </div>
+
+          <!-- Board -->
+          <div style="margin-top:16px;text-align:center;">
+            <div class="eyebrow">Board</div>
+            <div style="display:flex;justify-content:center;gap:4px;margin-top:6px;">
+              <div class="card-face red" style="width:38px;height:54px;font-size:15px;border-radius:5px;"><span>Q</span><span>♦</span></div>
+              <div class="card-face blk" style="width:38px;height:54px;font-size:15px;border-radius:5px;"><span>7</span><span>♣</span></div>
+              <div class="card-face red" style="width:38px;height:54px;font-size:15px;border-radius:5px;"><span>2</span><span>♥</span></div>
+              <div class="card-face placeholder" style="width:38px;height:54px;font-size:15px;border-radius:5px;"><span>?</span></div>
+              <div class="card-face placeholder" style="width:38px;height:54px;font-size:15px;border-radius:5px;"><span>?</span></div>
+            </div>
+          </div>
+
+          <!-- Pot -->
+          <div style="text-align:center;margin-top:14px;">
+            <span style="font-family:Georgia,serif;font-size:28px;color:var(--gold-500);">Pot: 100</span>
+          </div>
+
+          <!-- Action log -->
+          <div class="action-log" style="margin-top:12px;">
+            <div class="street-sep">Preflop</div>
+            <div class="entry"><span class="actor">You</span><span class="act">raised to</span><span class="amt">30</span></div>
+            <div class="entry"><span class="actor">SF</span><span class="act">called</span><span class="amt">30</span></div>
+            <div class="street-sep">Flop · Q♦ 7♣ 2♥</div>
+            <div class="entry"><span class="actor">SF</span><span class="act">bet</span><span class="amt">40</span></div>
+          </div>
+
+          <!-- Facing -->
+          <div class="facing-banner" style="margin-top:10px;">
+            <span class="icon">→</span>
+            <span class="text">Facing</span>
+            <span class="amount">40</span>
+            <span style="margin-left:auto;font-size:10px;color:var(--cream-300);">1,380 after call</span>
+          </div>
+
+          <!-- Actions -->
+          <div class="act-row" style="margin-top:10px;">
+            <div class="act-btn danger">Fold</div>
+            <div class="act-btn primary">Call 40</div>
+            <div class="act-btn">Raise</div>
+            <div class="act-btn">All-In</div>
+          </div>
+        </div>
+
+        <div class="home-indicator"><div></div></div>
+      </div></div>
+      <div class="label"><span class="num">06</span>Full-Screen Carousel<span class="note">One hand fills the screen. Swipe to navigate. Largest cards, most legible. Best when hands need deep thought.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- OPTION 7: Condensed Table -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section class="section">
+  <h2>Option 07</h2>
+  <h3>Condensed Decision Table</h3>
+  <p class="desc">All 10 hands in a dense table. Each row shows: hand, your cards, street, facing amount, pot, and a quick-action button. For the rapid decision-maker who wants to see everything at once.</p>
+  <div class="grid">
+    <div class="phone-wrap">
+      <div class="phone"><div class="screen">
+        <div class="notch"><div class="notch-pill"></div></div>
+        <div class="hdr">
+          <span class="back">‹</span>
+          <span class="center">Your Turn · Round 7</span>
+          <span class="right">1,420</span>
+        </div>
+
+        <div style="padding:8px 10px;">
+          <!-- Table header -->
+          <div style="display:flex;gap:4px;padding:4px 6px;font-size:9px;color:var(--cream-300);letter-spacing:0.5px;text-transform:uppercase;">
+            <span style="width:24px;">#</span>
+            <span style="width:56px;">Cards</span>
+            <span style="width:36px;">St.</span>
+            <span style="flex:1;">Facing</span>
+            <span style="width:44px;text-align:right;">Pot</span>
+            <span style="width:60px;text-align:right;">Action</span>
+          </div>
+
+          <!-- Pending rows -->
+          <div style="display:flex;gap:4px;align-items:center;padding:8px 6px;border-bottom:1px solid rgba(201,169,97,0.1);background:rgba(212,179,104,0.05);border-radius:6px;margin-bottom:2px;">
+            <span style="width:24px;font-size:11px;color:var(--gold-500);font-weight:600;">3</span>
+            <div style="width:56px;display:flex;">
+              <div class="card-face sm red"><span>A</span><span>♥</span></div>
+              <div class="card-face sm blk"><span>K</span><span>♠</span></div>
+            </div>
+            <span style="width:36px;font-size:10px;color:var(--gold-500);">FLP</span>
+            <span style="flex:1;font-size:12px;color:var(--cream-100);">Bet 40</span>
+            <span style="width:44px;text-align:right;font-size:12px;color:var(--cream-100);">100</span>
+            <span style="width:60px;text-align:right;font-size:11px;color:var(--gold-500);cursor:pointer;">Act →</span>
+          </div>
+
+          <div style="display:flex;gap:4px;align-items:center;padding:8px 6px;border-bottom:1px solid rgba(201,169,97,0.1);background:rgba(212,179,104,0.05);border-radius:6px;margin-bottom:2px;">
+            <span style="width:24px;font-size:11px;color:var(--gold-500);font-weight:600;">7</span>
+            <div style="width:56px;display:flex;">
+              <div class="card-face sm blk"><span>9</span><span>♠</span></div>
+              <div class="card-face sm red"><span>9</span><span>♥</span></div>
+            </div>
+            <span style="width:36px;font-size:10px;color:var(--gold-500);">PRE</span>
+            <span style="flex:1;font-size:12px;color:var(--cream-300);">Check</span>
+            <span style="width:44px;text-align:right;font-size:12px;color:var(--cream-100);">20</span>
+            <span style="width:60px;text-align:right;font-size:11px;color:var(--gold-500);cursor:pointer;">Act →</span>
+          </div>
+
+          <div style="display:flex;gap:4px;align-items:center;padding:8px 6px;border-bottom:1px solid rgba(201,169,97,0.1);background:rgba(212,179,104,0.05);border-radius:6px;margin-bottom:2px;">
+            <span style="width:24px;font-size:11px;color:var(--gold-500);font-weight:600;">9</span>
+            <div style="width:56px;display:flex;">
+              <div class="card-face sm blk"><span>A</span><span>♣</span></div>
+              <div class="card-face sm blk"><span>Q</span><span>♠</span></div>
+            </div>
+            <span style="width:36px;font-size:10px;color:var(--gold-500);">TRN</span>
+            <span style="flex:1;font-size:12px;color:var(--cream-100);">Raise 120</span>
+            <span style="width:44px;text-align:right;font-size:12px;color:var(--cream-100);">340</span>
+            <span style="width:60px;text-align:right;font-size:11px;color:var(--gold-500);cursor:pointer;">Act →</span>
+          </div>
+
+          <!-- Non-pending rows -->
+          <div style="margin-top:8px;opacity:0.5;">
+            <div style="display:flex;gap:4px;align-items:center;padding:6px;font-size:11px;color:var(--cream-300);">
+              <span style="width:24px;">1</span>
+              <span>Folded</span>
+            </div>
+            <div style="display:flex;gap:4px;align-items:center;padding:6px;font-size:11px;color:var(--gold-500);">
+              <span style="width:24px;">2</span>
+              <span>Won 45</span>
+            </div>
+            <div style="display:flex;gap:4px;align-items:center;padding:6px;font-size:11px;color:var(--cream-300);">
+              <span style="width:24px;">4</span>
+              <span>Waiting · Pre</span>
+            </div>
+            <div style="display:flex;gap:4px;align-items:center;padding:6px;font-size:11px;color:var(--claret);">
+              <span style="width:24px;">5</span>
+              <span>All-In · Pot 800</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="home-indicator"><div></div></div>
+      </div></div>
+      <div class="label"><span class="num">07</span>Decision Table<span class="note">All 10 hands visible at a glance in a dense table. Tap "Act →" to open that hand's controls. For quick scanners.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- OPTION 8: Inline Rich + Collapsible History -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section class="section">
+  <h2>Option 08</h2>
+  <h3>Inline Rich with Collapsible History</h3>
+  <p class="desc">Each card shows cards, facing amount, and one-line summary. Tap "Show history" to expand the action log inline without leaving the list. Best of both compact and detailed worlds.</p>
+  <div class="grid">
+    <div class="phone-wrap">
+      <div class="phone"><div class="screen">
+        <div class="notch"><div class="notch-pill"></div></div>
+        <div class="hdr">
+          <span class="back">‹</span>
+          <span class="center">3 of 10 · Your Turn</span>
+          <span class="right">1,420</span>
+        </div>
+
+        <!-- Hand with expanded history -->
+        <div class="hand-tile active">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="font-family:Georgia,serif;font-size:15px;">Hand 3</span>
+              <span class="tag street">Flop</span>
+            </div>
+            <span style="font-size:12px;color:var(--cream-100);">Pot 100</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+            <div style="display:flex;">
+              <div class="card-face red"><span>A</span><span>♥</span></div>
+              <div class="card-face blk"><span>K</span><span>♠</span></div>
+            </div>
+            <div style="display:flex;gap:3px;">
+              <div class="card-face sm red"><span>Q</span><span>♦</span></div>
+              <div class="card-face sm blk"><span>7</span><span>♣</span></div>
+              <div class="card-face sm red"><span>2</span><span>♥</span></div>
+            </div>
+          </div>
+
+          <!-- One-line summary -->
+          <div style="font-size:11px;color:var(--cream-300);margin-top:6px;">
+            You raised 30, SF called; SF bet 40 on flop
+          </div>
+
+          <!-- Expanded action log (toggle) -->
+          <div style="font-size:10px;color:var(--gold-500);margin-top:4px;cursor:pointer;">▼ Hide history</div>
+          <div class="action-log">
+            <div class="street-sep">Preflop</div>
+            <div class="entry"><span class="actor">You</span><span class="act">raised to</span><span class="amt">30</span></div>
+            <div class="entry"><span class="actor">SF</span><span class="act">called</span><span class="amt">30</span></div>
+            <div class="street-sep">Flop · Q♦ 7♣ 2♥</div>
+            <div class="entry"><span class="actor">SF</span><span class="act">bet</span><span class="amt">40</span></div>
+          </div>
+
+          <div class="facing-banner">
+            <span class="text">Facing</span>
+            <span class="amount">40</span>
+            <span style="margin-left:auto;font-size:10px;color:var(--cream-300);">1,380 after</span>
+          </div>
+          <div class="act-row">
+            <div class="act-btn danger">Fold</div>
+            <div class="act-btn primary">Call 40</div>
+            <div class="act-btn">Raise</div>
+          </div>
+        </div>
+
+        <!-- Hand with collapsed history -->
+        <div class="hand-tile active">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="font-family:Georgia,serif;font-size:15px;">Hand 7</span>
+              <span class="tag street">Preflop</span>
+            </div>
+            <span style="font-size:12px;color:var(--cream-100);">Pot 20</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+            <div style="display:flex;">
+              <div class="card-face blk"><span>9</span><span>♠</span></div>
+              <div class="card-face red"><span>9</span><span>♥</span></div>
+            </div>
+          </div>
+          <div style="font-size:11px;color:var(--cream-300);margin-top:6px;">SF limped · No bet facing you</div>
+          <div style="font-size:10px;color:var(--gold-500);margin-top:4px;cursor:pointer;">▶ Show history</div>
+          <div class="act-row">
+            <div class="act-btn primary">Check</div>
+            <div class="act-btn">Raise</div>
+            <div class="act-btn">All-In</div>
+          </div>
+        </div>
+
+        <div class="hand-tile" style="opacity:0.7;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span class="eyebrow">Hand 5</span>
+            <span class="tag allin">All-In · Pot 800</span>
+          </div>
+        </div>
+
+        <div class="home-indicator"><div></div></div>
+      </div></div>
+      <div class="label"><span class="num">08</span>Inline + Collapsible History<span class="note">One-line summary always visible. Tap to expand full log inline. Good balance of density and detail.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- OPTION 9: HUD-style with Position Context -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section class="section">
+  <h2>Option 09</h2>
+  <h3>HUD-style with Cross-Hand Budget</h3>
+  <p class="desc">A persistent "budget bar" at the top shows how chips are allocated across all 10 hands. Each hand card shows the percentage of your stack committed. Emphasizes the portfolio-decision aspect.</p>
+  <div class="grid">
+    <div class="phone-wrap">
+      <div class="phone"><div class="screen">
+        <div class="notch"><div class="notch-pill"></div></div>
+        <div class="hdr">
+          <span class="back">‹</span>
+          <span class="center">Your Turn</span>
+          <span class="right"></span>
+        </div>
+
+        <!-- Budget bar -->
+        <div style="padding:6px 14px 10px;">
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--cream-300);margin-bottom:4px;">
+            <span>Stack: 2,000</span>
+            <span>Reserved: 580</span>
+            <span style="color:var(--gold-500);">Available: 1,420</span>
+          </div>
+          <div style="display:flex;height:12px;border-radius:6px;overflow:hidden;background:rgba(0,0,0,0.3);">
+            <div style="width:5%;background:var(--claret);border-right:1px solid var(--felt-700);" title="H1 fold"></div>
+            <div style="width:3%;background:var(--gold-700);border-right:1px solid var(--felt-700);" title="H2 won"></div>
+            <div style="width:5%;background:var(--gold-500);border-right:1px solid var(--felt-700);" title="H3 active"></div>
+            <div style="width:3%;background:rgba(201,169,97,0.3);border-right:1px solid var(--felt-700);" title="H4 wait"></div>
+            <div style="width:20%;background:var(--claret);opacity:0.7;border-right:1px solid var(--felt-700);" title="H5 all-in"></div>
+            <div style="width:2%;background:rgba(201,169,97,0.3);border-right:1px solid var(--felt-700);"></div>
+            <div style="width:2%;background:var(--gold-500);border-right:1px solid var(--felt-700);"></div>
+            <div style="width:2%;background:rgba(201,169,97,0.3);border-right:1px solid var(--felt-700);"></div>
+            <div style="width:8%;background:var(--gold-500);border-right:1px solid var(--felt-700);"></div>
+            <div style="width:2%;background:var(--claret);"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:8px;color:var(--cream-400);margin-top:2px;">
+            <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span>
+          </div>
+        </div>
+
+        <div class="hand-tile active">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="font-family:Georgia,serif;font-size:15px;">Hand 3</span>
+              <span class="tag street">Flop</span>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:11px;color:var(--cream-100);">Pot 100</div>
+              <div style="font-size:9px;color:var(--cream-300);">30 committed (1.5%)</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+            <div style="display:flex;">
+              <div class="card-face red"><span>A</span><span>♥</span></div>
+              <div class="card-face blk"><span>K</span><span>♠</span></div>
+            </div>
+            <div style="display:flex;gap:3px;">
+              <div class="card-face sm red"><span>Q</span><span>♦</span></div>
+              <div class="card-face sm blk"><span>7</span><span>♣</span></div>
+              <div class="card-face sm red"><span>2</span><span>♥</span></div>
+            </div>
+          </div>
+          <div class="action-log">
+            <div class="entry"><span class="actor">You</span><span class="act">raised 30 · SF called</span></div>
+            <div class="entry"><span class="actor">SF</span><span class="act">bet</span><span class="amt">40</span></div>
+          </div>
+          <div class="facing-banner">
+            <span class="text">Facing</span>
+            <span class="amount">40</span>
+            <span style="margin-left:auto;font-size:10px;color:var(--cream-300);">1,380 avail after</span>
+          </div>
+          <div class="act-row">
+            <div class="act-btn danger">Fold</div>
+            <div class="act-btn primary">Call 40</div>
+            <div class="act-btn">Raise</div>
+            <div class="act-btn">All-In</div>
+          </div>
+        </div>
+
+        <div class="hand-tile" style="opacity:0.7;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span class="eyebrow">Hand 5</span>
+              <span class="tag allin">All-In</span>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:11px;color:var(--claret);">Pot 800</div>
+              <div style="font-size:9px;color:var(--cream-300);">400 committed (20%)</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="home-indicator"><div></div></div>
+      </div></div>
+      <div class="label"><span class="num">09</span>HUD + Budget Bar<span class="note">Persistent allocation bar shows where your stack is. Percentage committed per hand. Emphasizes portfolio thinking.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<!-- OPTION 10: Hybrid — Grouped List + Full-Screen Focus -->
+<!-- ═══════════════════════════════════════════════════════════════════ -->
+<section class="section">
+  <h2>Option 10</h2>
+  <h3>Hybrid — Quick List + Full-Screen on Tap</h3>
+  <p class="desc">Default view is a compact list showing all hands with key info and a one-line action summary. Tapping any pending hand opens a full-screen focus view (like Option 3/6) with complete history and large controls. Combines scanability with depth.</p>
+  <div class="grid">
+    <div class="phone-wrap">
+      <div class="phone"><div class="screen">
+        <div class="notch"><div class="notch-pill"></div></div>
+        <div class="hdr">
+          <span class="back">‹</span>
+          <span class="center">Round 7 · 3 of 10</span>
+          <span class="right">1,420</span>
+        </div>
+
+        <!-- Quick list -->
+        <div style="padding:4px 12px;">
+          <div class="eyebrow" style="padding:6px 0;color:var(--gold-500);">Your Action</div>
+
+          <div class="hand-tile active" style="cursor:pointer;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="display:flex;">
+                <div class="card-face sm red"><span>A</span><span>♥</span></div>
+                <div class="card-face sm blk"><span>K</span><span>♠</span></div>
+              </div>
+              <div style="flex:1;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <span style="font-size:13px;color:var(--cream-100);">Hand 3 · Flop</span>
+                  <span style="font-size:12px;color:var(--gold-500);">Facing 40</span>
+                </div>
+                <div style="font-size:11px;color:var(--cream-300);margin-top:2px;">You raised 30, SF called · SF bet 40 · Pot 100</div>
+              </div>
+              <span style="color:var(--cream-300);font-size:16px;">›</span>
+            </div>
+          </div>
+
+          <div class="hand-tile active" style="cursor:pointer;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="display:flex;">
+                <div class="card-face sm blk"><span>9</span><span>♠</span></div>
+                <div class="card-face sm red"><span>9</span><span>♥</span></div>
+              </div>
+              <div style="flex:1;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <span style="font-size:13px;color:var(--cream-100);">Hand 7 · Preflop</span>
+                  <span style="font-size:12px;color:var(--cream-300);">Check to you</span>
+                </div>
+                <div style="font-size:11px;color:var(--cream-300);margin-top:2px;">SF limped · Pot 20</div>
+              </div>
+              <span style="color:var(--cream-300);font-size:16px;">›</span>
+            </div>
+          </div>
+
+          <div class="hand-tile active" style="cursor:pointer;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="display:flex;">
+                <div class="card-face sm blk"><span>A</span><span>♣</span></div>
+                <div class="card-face sm blk"><span>Q</span><span>♠</span></div>
+              </div>
+              <div style="flex:1;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <span style="font-size:13px;color:var(--cream-100);">Hand 9 · Turn</span>
+                  <span style="font-size:12px;color:var(--gold-500);">Facing 120</span>
+                </div>
+                <div style="font-size:11px;color:var(--cream-300);margin-top:2px;">3-bet pot · SF barrels turn · Pot 340</div>
+              </div>
+              <span style="color:var(--cream-300);font-size:16px;">›</span>
+            </div>
+          </div>
+
+          <div class="eyebrow" style="padding:10px 0 4px;color:var(--cream-300);">Other Hands</div>
+
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+            <span class="chip-pill">H1 Folded</span>
+            <span class="chip-pill" style="color:var(--gold-500);">H2 Won 45</span>
+            <span class="chip-pill">H4 Waiting</span>
+            <span class="chip-pill" style="color:var(--claret);">H5 All-In 800</span>
+            <span class="chip-pill">H6 Waiting</span>
+            <span class="chip-pill">H8 Waiting</span>
+            <span class="chip-pill">H10 Folded</span>
+          </div>
+        </div>
+
+        <div class="home-indicator"><div></div></div>
+      </div></div>
+      <div class="label"><span class="num">10</span>Compact List + Full Focus<span class="note">Scan all hands with one-line summaries. Tap a hand → full-screen focus with history, big cards, and controls. Best hybrid.</span></div>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>

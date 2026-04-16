@@ -163,18 +163,13 @@ export async function advanceRound(
             })
             .where(eq(hands.handId, h.handId));
 
-          // Update match totals based on awards
-          for (const award of result.awards) {
-            if (award.userId === m.userAId) {
-              await tx.update(matches).set({
-                userATotal: sql`${matches.userATotal} + ${award.amount} - ${h.userAReserved}`,
-              }).where(eq(matches.matchId, m.matchId));
-            } else {
-              await tx.update(matches).set({
-                userBTotal: sql`${matches.userBTotal} + ${award.amount} - ${h.userBReserved}`,
-              }).where(eq(matches.matchId, m.matchId));
-            }
-          }
+          // Settle chips: new_total = old_total - reserved + award (0 for loser)
+          const aAward = result.awards.find(a => a.userId === m.userAId)?.amount ?? 0;
+          const bAward = result.awards.find(a => a.userId === m.userBId)?.amount ?? 0;
+          await tx.update(matches).set({
+            userATotal: sql`${matches.userATotal} + ${aAward - h.userAReserved}`,
+            userBTotal: sql`${matches.userBTotal} + ${bAward - h.userBReserved}`,
+          }).where(eq(matches.matchId, m.matchId));
         }
       }
 
