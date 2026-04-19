@@ -370,27 +370,43 @@ struct TurnView: View {
         if let updatedRound = store.matchState?.currentRound,
            let updatedHand = updatedRound.hands.first(where: { $0.handId == hand.handId }),
            updatedHand.status == "complete" {
-            // On fold, server blanks the folder's hole cards. The user
-            // just folded — show the cards they gave up by splicing the
-            // pre-action snapshot in.
-            let displayHand = updatedHand.myHole.isEmpty
-                ? HandView(
-                    handId: updatedHand.handId,
-                    handIndex: updatedHand.handIndex,
-                    myHole: hand.myHole,
-                    opponentHole: updatedHand.opponentHole,
-                    board: updatedHand.board,
-                    pot: updatedHand.pot,
-                    myReserved: updatedHand.myReserved,
-                    opponentReserved: updatedHand.opponentReserved,
-                    street: updatedHand.street,
-                    status: updatedHand.status,
-                    actionOnMe: updatedHand.actionOnMe,
-                    terminalReason: updatedHand.terminalReason,
-                    winnerUserId: updatedHand.winnerUserId,
-                    actionSummary: updatedHand.actionSummary
-                )
-                : updatedHand
+            // The server zeroes both players' reserved fields during
+            // settlement (for folds AND showdowns) and blanks the
+            // folder's hole cards. Splice the pre-action snapshot in so
+            // the result screen shows what the user actually committed
+            // — blinds and any bets they made on this hand.
+            //
+            // Chips added this action depend on the action type. "bet"
+            // and "raise" use amount as the new total; "call" equalizes
+            // to opponent's reserved; fold/check adds nothing.
+            let chipsAddedThisAction: Int = {
+                switch type {
+                case "fold", "check": return 0
+                case "call": return hand.callCost
+                case "bet": return max(0, (amount ?? 0) - hand.myReserved)
+                case "raise": return max(0, (amount ?? 0) - hand.myReserved)
+                case "all_in": return store.matchState?.myAvailable ?? 0
+                default: return 0
+                }
+            }()
+            let myFinalReserved = hand.myReserved + chipsAddedThisAction
+            let oppFinalReserved = max(hand.opponentReserved, myFinalReserved)
+            let displayHand = HandView(
+                handId: updatedHand.handId,
+                handIndex: updatedHand.handIndex,
+                myHole: updatedHand.myHole.isEmpty ? hand.myHole : updatedHand.myHole,
+                opponentHole: updatedHand.opponentHole,
+                board: updatedHand.board,
+                pot: updatedHand.pot,
+                myReserved: myFinalReserved,
+                opponentReserved: oppFinalReserved,
+                street: updatedHand.street,
+                status: updatedHand.status,
+                actionOnMe: updatedHand.actionOnMe,
+                terminalReason: updatedHand.terminalReason,
+                winnerUserId: updatedHand.winnerUserId,
+                actionSummary: updatedHand.actionSummary
+            )
 
             if updatedHand.terminalReason == "showdown" {
                 showdownsThisTurn.append(updatedHand)
