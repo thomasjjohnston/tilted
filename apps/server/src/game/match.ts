@@ -6,6 +6,7 @@ import { STARTING_STACK, BLIND_SMALL, BLIND_BIG, HANDS_PER_ROUND, MIN_CHIPS_FOR_
 import { openRound } from './round.js';
 import { generateActionSketch } from './action-sketch.js';
 import { dispatch } from '../notif/dispatchers.js';
+import { enqueueReminder } from '../notif/reminder-cron.js';
 
 /**
  * Create a new match between the two hardcoded users.
@@ -51,6 +52,9 @@ export async function createMatch(db: Database, requestingUserId: string) {
     matchId: result.match.matchId,
     roundId: result.roundId,
     dedupeKey: `match-started:${result.match.matchId}`,
+  });
+  await enqueueReminder(db, 'match_started', opponentId, result.match.matchId, result.roundId, {
+    fromUserId: requestingUserId,
   });
 
   return result.match;

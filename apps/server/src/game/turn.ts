@@ -9,6 +9,7 @@ import type { ActionType, Card, Street, Action } from '../engine/types.js';
 import { getMatchState } from './match.js';
 import { logEvent } from '../events/logger.js';
 import { dispatch } from '../notif/dispatchers.js';
+import { enqueueReminder } from '../notif/reminder-cron.js';
 
 export interface ApplyActionInput {
   handId: string;
@@ -367,10 +368,13 @@ async function fireNotifications(db: Database, notif: PendingNotifState, actingU
       handsPending: h.handsPending,
       dedupeKey: `handoff:${h.handoffId}`,
     });
+    await enqueueReminder(db, 'turn_handoff', h.toUserId, h.matchId, h.roundId, {
+      fromUserId: h.fromUserId,
+      handsPending: h.handsPending,
+    });
   }
   if (notif.roundComplete) {
     const rc = notif.roundComplete;
-    // Both players are told the round wrapped
     for (const toUserId of [rc.userAId, rc.userBId]) {
       const fromUserId = toUserId === rc.userAId ? rc.userBId : rc.userAId;
       await dispatch(db, {
@@ -382,6 +386,11 @@ async function fireNotifications(db: Database, notif: PendingNotifState, actingU
         roundIndex: rc.roundIndex,
         allInCount: rc.allInCount,
         dedupeKey: `round-complete:${rc.roundId}:${toUserId}`,
+      });
+      await enqueueReminder(db, 'round_complete', toUserId, rc.matchId, rc.roundId, {
+        fromUserId,
+        roundIndex: rc.roundIndex,
+        allInCount: rc.allInCount,
       });
     }
   }
