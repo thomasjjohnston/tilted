@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tilted — Match-Up Page (15 Options)</title>
+<style>
+  :root {
+    --felt-900: #051c15; --felt-800: #082a21; --felt-700: #0e3b2e;
+    --felt-600: #164a3a; --felt-500: #1a5a43;
+    --gold-500: #d4b368; --gold-600: #c9a961; --gold-700: #a88334; --gold-800: #7a5f2b;
+    --cream-50: #f6f1e1; --cream-100: #f3ecd6; --cream-200: #d9cfb2; --cream-300: #9eb7a4; --cream-400: #6a8a7a;
+    --claret: #c44d42; --card-red: #c92b2b; --card-black: #111;
+    --page-bg: #15161a; --page-fg: #e8e6df; --muted: #8a8a8a; --rule: #2a2a30;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--page-bg); color: var(--page-fg); font-family: -apple-system, "SF Pro Text", sans-serif; -webkit-font-smoothing: antialiased; }
+  .page-hdr { padding: 48px 48px 20px; max-width: 1400px; margin: 0 auto; }
+  .page-hdr .ey { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: var(--gold-500); margin-bottom: 10px; }
+  .page-hdr h1 { font-family: Georgia, serif; font-weight: 400; font-size: 36px; margin: 0 0 8px; }
+  .page-hdr p { color: var(--muted); font-size: 13px; line-height: 1.7; max-width: 680px; }
+  .section { padding: 36px 48px; max-width: 1400px; margin: 0 auto; border-top: 1px solid var(--rule); }
+  .section h2 { font-size: 12px; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); font-weight: 500; margin: 0 0 4px; }
+  .section h3 { font-family: Georgia, serif; font-weight: 400; font-size: 24px; margin: 0 0 4px; }
+  .section .desc { color: var(--muted); font-size: 13px; max-width: 700px; line-height: 1.6; margin: 0 0 24px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 340px)); gap: 40px 28px; justify-content: start; }
+
+  .phone { width: 320px; height: 700px; border-radius: 44px; padding: 10px; background: #0a0a0b; box-shadow: 0 20px 60px rgba(0,0,0,0.55), inset 0 0 0 1.5px #2a2a2e; position: relative; overflow: hidden; }
+  .scr { width: 100%; height: 100%; border-radius: 34px; overflow-y: auto; overflow-x: hidden; position: relative; background: radial-gradient(ellipse at 50% 0%, var(--felt-500) 0%, var(--felt-700) 55%, var(--felt-800) 100%); color: var(--cream-100); }
+  .scr::-webkit-scrollbar { display: none; }
+  .notch { position: sticky; top: 0; z-index: 10; display: flex; justify-content: center; }
+  .notch-pill { width: 90px; height: 24px; background: #0a0a0b; border-radius: 14px; margin-top: 8px; }
+  .phone-wrap { display: flex; flex-direction: column; align-items: center; }
+  .label { margin-top: 12px; font-size: 11px; color: var(--page-fg); text-align: center; font-family: "SF Mono", Menlo, monospace; max-width: 320px; }
+  .label .num { color: var(--gold-500); margin-right: 6px; }
+  .label .note { display: block; color: var(--muted); font-size: 10px; margin-top: 3px; line-height: 1.5; }
+
+  .ey { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--cream-300); }
+  .serif { font-family: Georgia, serif; }
+  .gold { color: var(--gold-500); }
+  .thin-rule { height: 1px; background: linear-gradient(to right, transparent, var(--gold-600), transparent); opacity: 0.5; margin: 12px 0; }
+  .hdr-pad { padding: 12px 16px 8px; }
+
+  .avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, var(--gold-500), var(--gold-800)); color: var(--felt-700); font-weight: 700; font-family: Georgia, serif; font-size: 15px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .avatar.lg { width: 64px; height: 64px; font-size: 24px; }
+  .avatar.xl { width: 80px; height: 80px; font-size: 32px; }
+  .avatar.sm { width: 28px; height: 28px; font-size: 11px; }
+  .avatar.sl { background: linear-gradient(135deg, var(--cream-200), var(--cream-400)); color: var(--felt-800); }
+
+  .cf { width: 24px; height: 34px; border-radius: 3px; background: var(--cream-50); display: inline-flex; flex-direction: column; align-items: center; justify-content: center; font-family: Georgia, serif; font-weight: 700; font-size: 10px; line-height: 1; margin-right: 2px; box-shadow: 0 1px 2px rgba(0,0,0,0.3); flex-shrink: 0; }
+  .cf.red { color: var(--card-red); } .cf.blk { color: var(--card-black); }
+
+  .tab-bar { position: sticky; bottom: 0; background: rgba(8,42,33,0.95); backdrop-filter: blur(8px); border-top: 1px solid rgba(201,169,97,0.15); display: flex; padding: 6px 0 4px; z-index: 5; }
+  .tab { flex: 1; text-align: center; font-size: 9px; color: var(--cream-300); padding: 4px 0; }
+  .tab .icon { font-size: 16px; display: block; margin-bottom: 1px; }
+  .tab.active { color: var(--gold-500); }
+
+  .stat-tile { padding: 10px; border-radius: 10px; background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(0,0,0,0.2)); border: 1px solid rgba(201,169,97,0.2); }
+  .stat-tile .lbl { font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: var(--cream-300); margin-bottom: 4px; }
+  .stat-tile .val { font-family: Georgia, serif; font-size: 22px; color: var(--cream-100); line-height: 1.1; }
+  .stat-tile .sub { font-size: 10px; color: var(--cream-400); margin-top: 2px; }
+
+  .tag { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 9px; letter-spacing: 0.5px; text-transform: uppercase; font-weight: 600; }
+  .tag.gold { background: rgba(212,179,104,0.15); color: var(--gold-500); }
+  .tag.claret { background: rgba(196,77,66,0.15); color: var(--claret); }
+  .tag.cream { background: rgba(158,183,164,0.12); color: var(--cream-300); }
+
+  @media (max-width: 720px) { .page-hdr, .section { padding-left: 20px; padding-right: 20px; } }
+</style>
+</head>
+<body>
+
+<div class="page-hdr">
+  <div class="ey">Tilted · Match-Up Page · 15 Options</div>
+  <h1>Head-to-Head Summary</h1>
+  <p>Fifteen directions for the Match-Up tab. Stats in Big Blinds (a 120 BB pot is meaningful; chip amounts vary by blind level). Leaning into poker concepts: Bad Beat, Cooler, Suckout, Aggression Factor, VPIP. New top-level nav tab.</p>
+</div>
+
+<!-- 01 Scoreboard -->
+<section class="section"><h2>Option 01</h2><h3>Scoreboard</h3><p class="desc">Big centered W/L record. Classic head-to-head framing. Stats as supporting tiles.</p>
+<div class="grid"><div class="phone-wrap"><div class="phone"><div class="scr">
+  <div class="notch"><div class="notch-pill"></div></div>
+  <div class="hdr-pad" style="text-align:center;"><div class="ey gold">CAREER MATCH-UP</div><div class="serif" style="font-size:16px;margin-top:4px;">Thomas vs Stephen</div></div>
+  <div style="padding:8px 16px 16px;">
+    <div style="display:flex;align-items:center;justify-content:space-around;padding:18px 0;">
+      <div style="text-align:center;"><div class="avatar xl">TJ</div><div class="serif gold" style="font-size:52px;line-height:1;margin-top:8px;">7</div><div class="ey">wins</div></div>
+      <div class="serif" style="font-size:28px;color:var(--cream-300);">–</div>
+      <div style="text-align:center;"><div class="avatar xl sl">SL</div><div class="serif" style="font-size:52px;color:var(--cream-100);line-height:1;margin-top:8px;">4</div><div class="ey">wins</div></div>
+    </div>
+    <div class="thin-rule"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div class="stat-tile"><div class="lbl">Biggest Pot</div><div class="val gold">240<span style="font-size:12px;color:var(--cream-300);"> BB</span></div><div class="sub">TJ, Match 3</div></div>
+      <div class="stat-tile"><div class="lbl">Hands played</div><div class="val">1,432</div><div class="sub">11 matches</div></div>
+      <div class="stat-tile"><div class="lbl">Current streak</div><div class="val gold">3 wins</div><div class="sub">Thomas</div></div>
+      <div class="stat-tile"><div class="lbl">Longest streak</div><div class="val">5</div><div class="sub">Thomas, Feb</div></div>
+    </div>
+  </div>
+  <div class="tab-bar"><div class="tab"><span class="icon">♠</span>Home</div><div class="tab active"><span class="icon">⚔</span>Match-up</div><div class="tab"><span class="icon">📜</span>History</div><div class="tab"><span class="icon">⚙</span>Settings</div></div>
+</div></div><div class="label"><span class="num">01</span>Scoreboard<span class="note">Big W/L front and center. Classic rivalry framing.</span></div></div></div></section>
+
+<!-- 02 Stats Grid -->
+<section class="section"><h2>Option 02</h2><h3>Stats Grid Dashboard</h3><p class="desc">Every stat as a tile. Dense, analytical, poker-nerd paradise.</p>
+<div class="grid"><div class="phone-wrap"><div class="phone"><div class="scr">
+  <div class="notch"><div class="notch-pill"></div></div>
+  <div class="hdr-pad"><div class="ey gold">MATCH-UP</div><div class="serif" style="font-size:18px;margin-top:4px;">Thomas vs Stephen</div></div>
+  <div style="padding:0 14px 16px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+      <div class="stat-tile"><div class="lbl">Matches</div><div class="val"><span class="gold">7</span><span style="color:var(--cream-400);font-size:14px;">–</span>4</div></div>
+      <div class="stat-tile"><div class="lbl">Hands</div><div class="val">1,432</div></div>
+      <div class="stat-tile"><div class="lbl">Rounds</div><div class="val">143</div></div>
+      <div class="stat-tile"><div class="lbl">Showdowns</div><div class="val">89</div></div>
+      <div class="stat-tile"><div class="lbl">Biggest pot</div><div class="val gold">240 BB</div></div>
+      <div class="stat-tile"><div class="lbl">Avg pot</div><div class="val">34 BB</div></div>
+      <div class="stat-tile"><div class="lbl">TJ aggression</div><div class="val">1.8</div><div class="sub">bets+raises÷calls</div></div>
+      <div class="stat-tile"><div class="lbl">SL aggression</div><div class="val">1.2</div></div>
+      <div class="stat-tile"><div class="lbl">TJ VPIP</div><div class="val">48%</div></div>
+      <div class="stat-tile"><div class="lbl">SL VPIP</div><div class="val">39%</div></div>
+      <div class="stat-tile"><div class="lbl">Bad beats</div><div class="val" style="color:var(--claret);">3</div><div class="sub">on TJ</div></div>
+      <div class="stat-tile"><div class="lbl">Coolers</div><div class="val">8</div></div>
+    </div>
+  </div>
+  <div class="tab-bar"><div class="tab"><span class="icon">♠</span>Home</div><div class="tab active"><span class="icon">⚔</span>Match-up</div><div class="tab"><span class="icon">📜</span>History</div><div class="tab"><span class="icon">⚙</span>Settings</div></div>
+</div></div><div class="label"><span class="num">02</span>Stats Grid<span class="note">Every stat visible. Dense. For analytical players.</span></div></div></div></section>
+
+<!-- 03 Magazine -->
+<section class="section"><h2>Option 03</h2><h3>Magazine Feature</h3><p class="desc">Editorial-style cards highlighting notable moments: "Bad beat of the month", "Biggest pot ever", etc.</p>
+<div class="grid"><div class="phone-wrap"><div class="phone"><div class="scr">
+  <div class="notch"><div class="notch-pill"></div></div>
+  <div class="hdr-pad" style="text-align:center;"><div class="serif" style="font-size:22px;">The Match-Up</div><div class="ey" style="margin-top:2px;">TJ vs Stephen · 11 matches</div></div>
+  <div style="padding:0 14px 16px;">
+    <div style="padding:14px;border-radius:12px;background:linear-gradient(180deg,rgba(212,179,104,0.08),rgba(0,0,0,0.25));border:1px solid rgba(212,179,104,0.4);margin-bottom:10px;">
+      <div class="ey" style="color:var(--claret);">Bad Beat of the Month</div>
+      <div class="serif" style="font-size:17px;margin-top:6px;">Pocket Aces</div>
+      <div style="font-size:12px;color:var(--cream-300);margin-top:2px;">lost to runner-runner flush</div>
+      <div style="display:flex;gap:6px;margin-top:10px;align-items:center;">
+        <div class="cf red"><span>A</span><span>♥</span></div><div class="cf blk"><span>A</span><span>♣</span></div>
+        <span style="font-size:10px;color:var(--cream-400);">vs</span>
+        <div class="cf red"><span>7</span><span>♦</span></div><div class="cf red"><span>4</span><span>♦</span></div>
+        <span style="margin-left:auto;" class="serif gold">180 BB</span>
+      </div>
+    </div>
+    <div style="padding:14px;border-radius:12px;background:linear-gradient(180deg,rgba(255,255,255,0.04),rgba(0,0,0,0.2));border:1px solid rgba(201,169,97,0.2);margin-bottom:10px;">
+      <div class="ey">Biggest Pot Ever</div>
+      <div class="serif" style="font-size:17px;margin-top:6px;">240 BB Cooler</div>
+      <div style="font-size:12px;color:var(--cream-300);">Set over set, Match 3</div>
+    </div>
+    <div style="padding:14px;border-radius:12px;background:linear-gradient(180deg,rgba(255,255,255,0.04),rgba(0,0,0,0.2));border:1px solid rgba(201,169,97,0.2);">
+      <div class="ey">Current Story</div>
+      <div class="serif" style="font-size:17px;margin-top:6px;">Thomas · 3 wins</div>
+      <div style="font-size:12px;color:var(--cream-300);">last: Stephen busted on round 14</div>
+    </div>
+  </div>
+  <div class="tab-bar"><div class="tab"><span class="icon">♠</span>Home</div><div class="tab active"><span class="icon">⚔</span>Match-up</div><div class="tab"><span class="icon">📜</span>History</div><div class="tab"><span class="icon">⚙</span>Settings</div></div>
+</div></div><div class="label"><span class="num">03</span>Magazine Feature<span class="note">Editorial moments. Bad beat of the month. Memorable, human.</span></div></div></div></section>
+
+<!-- 04 Timeline -->
+<section class="section"><h2>Option 04</h2><h3>Match Timeline</h3><p class="desc">Chronological list of every match. Tap any row for details.</p>
+<div class="grid"><div class="phone-wrap"><div class="phone"><div class="scr">
+  <div class="notch"><div class="notch-pill"></div></div>
+  <div class="hdr-pad"><div class="ey gold">MATCH-UP</div><div class="serif" style="font-size:18px;margin-top:4px;">Thomas <span class="gold">7</span>–4 Stephen</div></div>
+  <div style="padding:0 14px 16px;">
+    <div style="position:relative;padding-left:20px;">
+      <div style="position:absolute;left:6px;top:4px;bottom:4px;width:2px;background:rgba(201,169,97,0.25);"></div>
+      <div style="position:relative;padding:10px 0;">
+        <div style="position:absolute;left:-14px;top:16px;width:10px;height:10px;border-radius:50%;background:var(--gold-500);border:2px solid var(--felt-700);"></div>
+        <div style="font-size:11px;color:var(--cream-300);">Yesterday</div>
+        <div class="serif" style="font-size:14px;">Match 11 · <span class="gold">TJ wins</span></div>
+        <div style="font-size:11px;color:var(--cream-400);">16 rounds · Stephen busted · 3 all-ins</div>
+      </div>
+      <div style="position:relative;padding:10px 0;">
+        <div style="position:absolute;left:-14px;top:16px;width:10px;height:10px;border-radius:50%;background:var(--gold-500);border:2px solid var(--felt-700);"></div>
+        <div style="font-size:11px;color:var(--cream-300);">Apr 14</div>
+        <div class="serif" style="font-size:14px;">Match 10 · <span class="gold">TJ wins</span></div>
+        <div style="font-size:11px;color:var(--cream-400);">9 rounds · set-over-set round 7</div>
+      </div>
+      <div style="position:relative;padding:10px 0;">
+        <div style="position:absolute;left:-14px;top:16px;width:10px;height:10px;border-radius:50%;background:var(--claret);border:2px solid var(--felt-700);"></div>
+        <div style="font-size:11px;color:var(--cream-300);">Apr 8</div>
+        <div class="serif" style="font-size:14px;">Match 9 · <span style="color:var(--claret);">SL wins</span></div>
+        <div style="font-size:11px;color:var(--cream-400);">22 rounds · longest match yet</div>
+      </div>
+      <div style="position:relative;padding:10px 0;">
+        <div style="position:absolute;left:-14px;top:16px;width:10px;height:10px;border-radius:50%;background:var(--gold-500);border:2px solid var(--felt-700);"></div>
+        <div style="font-size:11px;color:var(--cream-300);">Apr 2</div>
+        <div class="serif" style="font-size:14px;">Match 8 · <span class="gold">TJ wins</span></div>
+        <div style="font-size:11px;color:var(--cream-400);">12 rounds · 180 BB bad beat</div>
+      </div>
+    </div>
+  </div>
+  <div class="tab-bar"><div class="tab"><span class="icon">♠</span>Home</div><div class="tab active"><span class="icon">⚔</span>Match-up</div><div class="tab"><span class="icon">📜</span>History</div><div class="tab"><span class="icon">⚙</span>Settings</div></div>
+</div></div><div class="label"><span class="num">04</span>Match Timeline<span class="note">Chronological feed. Tap for round-level drilldown.</span></div></div></div></section>
+
+<!-- 05 Trophy Case -->
+<section class="section"><h2>Option 05</h2><h3>Trophy Case</h3><p class="desc">Badge/achievement grid. Unlocked = gold, locked = grey. Gamification.</p>
+<div class="grid"><div class="phone-wrap"><div class="phone"><div class="scr">
+  <div class="notch"><div class="notch-pill"></div></div>
+  <div class="hdr-pad" style="text-align:center;"><div class="serif" style="font-size:20px;">Trophy Case</div><div class="ey" style="margin-top:2px;">12 of 24 earned</div></div>
+  <div style="padding:0 14px 16px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+      <div style="padding:14px 8px;border-radius:12px;background:rgba(212,179,104,0.08);border:1px solid rgba(212,179,104,0.4);text-align:center;"><div style="font-size:28px;">🏆</div><div style="font-size:10px;color:var(--gold-500);margin-top:4px;font-weight:600;">First Win</div></div>
+      <div style="padding:14px 8px;border-radius:12px;background:rgba(212,179,104,0.08);border:1px solid rgba(212,179,104,0.4);text-align:center;"><div style="font-size:28px;">♠</div><div style="font-size:10px;color:var(--gold-500);margin-top:4px;font-weight:600;">Royal Flush</div></div>
+      <div style="padding:14px 8px;border-radius:12px;background:rgba(212,179,104,0.08);border:1px solid rgba(212,179,104,0.4);text-align:center;"><div style="font-size:28px;">💰</div><div style="font-size:10px;color:var(--gold-500);margin-top:4px;font-weight:600;">200 BB Pot</div></div>
+      <div style="padding:14px 8px;border-radius:12px;background:rgba(196,77,66,0.06);border:1px solid rgba(196,77,66,0.3);text-align:center;"><div style="font-size:28px;opacity:0.5;">💔</div><div style="font-size:10px;color:var(--claret);margin-top:4px;font-weight:600;">Bad Beat</div></div>
+      <div style="padding:14px 8px;border-radius:12px;background:rgba(212,179,104,0.08);border:1px solid rgba(212,179,104,0.4);text-align:center;"><div style="font-size:28px;">🎯</div><div style="font-size:10px;color:var(--gold-500);margin-top:4px;font-weight:600;">Bluff Catch</div></div>
+      <div style="padding:14px 8px;border-radius:12px;background:rgba(0,0,0,0.2);border:1px solid rgba(201,169,97,0.15);text-align:center;opacity:0.35;"><div style="font-size:28px;">🔥</div><div style="font-size:10px;color:var(--cream-300);margin-top:4px;">5-Win Streak</div></div>
+      <div style="padding:14px 8px;border-radius:12px;background:rgba(0,0,0,0.2);border:1px solid rgba(201,169,97,0.15);text-align:center;opacity:0.35;"><div style="font-size:28px;">👑</div><div style="font-size:10px;color:var(--cream-300);margin-top:4px;">10 Wins</div></div>
+      <div style="padding:14px 8px;border-radius:12px;background:rgba(0,0,0,0.2);border:1px solid rgba(201,169,97,0.15);text-align:center;opacity:0.35;"><div style="font-size:28px;">⚡</div><div style="font-size:10px;color:var(--cream-300);margin-top:4px;">Suckout</div></div>
+      <div style="padding:14px 8px;border-radius:12px;background:rgba(0,0,0,0.2);border:1px solid rgba(201,169,97,0.15);text-align:center;opacity:0.35;"><div style="font-size:28px;">🥶</div><div style="font-size:10px;color:var(--cream-300);margin-top:4px;">Cooler</div></div>
+    </div>
+  </div>
+  <div class="tab-bar"><div class="tab"><span class="icon">♠</span>Home</div><div class="tab active"><span class="icon">⚔</span>Match-up</div><div class="tab"><span class="icon">📜</span>History</div><div class="tab"><span class="icon">⚙</span>Settings</div></div>
+</div></div><div class="label"><span class="num">05</span>Trophy Case<span class="note">Badges for poker milestones. Gamification.</span></div></div></div></section>
+
+<!-- 06 Head-to-Head -->
+<section class="section"><h2>Option 06</h2><h3>Head-to-Head Comparison</h3><p class="desc">Side-by-side stat bars. Reveals playing styles.</p>
+<div class="grid"><div class="phone-wrap"><div class="phone"><div class="scr">
+  <div class="notch"><div class="notch-pill"></div></div>
+  <div class="hdr-pad"><div class="ey gold" style="text-align:center;">HEAD TO HEAD</div></div>
+  <div style="padding:0 14px 16px;">
+    <div style="display:flex;justify-content:space-around;align-items:center;padding:12px 0 20px;">
+      <div style="text-align:center;"><div class="avatar lg">TJ</div><div class="ey" style="margin-top:4px;">Thomas</div></div>
+      <div class="serif" style="font-size:28px;color:var(--cream-300);">vs</div>
+      <div style="text-align:center;"><div class="avatar lg sl">SL</div><div class="ey" style="margin-top:4px;">Stephen</div></div>
+    </div>
+    <div style="margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px;"><span class="gold">7</span><span class="ey">matches won</span><span>4</span></div>
+      <div style="display:flex;height:6px;border-radius:3px;overflow:hidden;background:rgba(0,0,0,0.3);"><div style="width:63%;background:var(--gold-500);"></div><div style="width:37%;background:var(--cream-200);"></div></div>
+    </div>
+    <div style="margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px;"><span>48%</span><span class="ey">VPIP</span><span>39%</span></div>
+      <div style="display:flex;height:6px;border-radius:3px;overflow:hidden;background:rgba(0,0,0,0.3);"><div style="width:55%;background:var(--gold-500);"></div><div style="width:45%;background:var(--cream-200);"></div></div>
+    </div>
+    <div style="margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px;"><span class="gold">1.8</span><span class="ey">aggression</span><span>1.2</span></div>
+      <div style="display:flex;height:6px;border-radius:3px;overflow:hidden;background:rgba(0,0,0,0.3);"><div style="width:60%;background:var(--gold-500);"></div><div style="width:40%;background:var(--cream-200);"></div></div>
+    </div>
+    <div style="margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px;"><span>54%</span><span class="ey">showdown win %</span><span class="gold">46%</span></div>
+      <div style="display:flex;height:6px;border-radius:3px;overflow:hidden;background:rgba(0,0,0,0.3);"><div style="width:54%;background:var(--cream-200);"></div><div style="width:46%;background:var(--gold-500);"></div></div>
+    </div>
+    <div style="padding-top:8px;border-top:1px solid rgba(201,169,97,0.15);display:flex;justify-content:space-between;font-size:11px;"><span class="ey">Avg pot</span><span><span class="gold">34 BB</span> · 29 BB</span></div>
+  </div>
+  <div class="tab-bar"><div class="tab"><span class="icon">♠</span>Home</div><div class="tab active"><span class="icon">⚔</span>Match-up</div><div class="tab"><span class="icon">📜</span>History</div><div class="tab"><span class="icon">⚙</span>Settings</div></div>
+</div></div><div class="label"><span class="num">06</span>Head-to-Head<span class="note">Stat bars. Who's more aggressive, who calls more.</span></div></div></div></section>
+
+<!-- 07 Favorites Gallery -->
+<section class="section"><h2>Option 07</h2><h3>Favorites Gallery</h3><p class="desc">Visual grid of bookmarked hands. Score compact at top.</p>
+<div class="grid"><div class="phone-wrap"><div class="phone"><div class="scr">
+  <div class="notch"><div class="notch-pill"></div></div>
+  <div class="hdr-pad"><div style="display:flex;justify-content:space-between;align-items:baseline;"><div class="serif" style="font-size:18px;">Match-Up</div><div class="serif"><span class="gold">7</span>–4</div></div></div>
+  <div style="padding:0 14px 16px;">
+    <div class="ey" style="margin-bottom:8px;">★ Memorable Hands · 18</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div style="padding:10px;border-radius:10px;background:linear-gradient(180deg,rgba(212,179,104,0.08),rgba(0,0,0,0.2));border:1px solid rgba(212,179,104,0.3);">
+        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--cream-300);margin-bottom:6px;"><span>M3 H7</span><span class="gold">240 BB</span></div>
+        <div style="display:flex;margin-bottom:4px;"><div class="cf red"><span>A</span><span>♥</span></div><div class="cf red"><span>A</span><span>♦</span></div></div>
+        <div class="tag claret">COOLER</div>
+      </div>
+      <div style="padding:10px;border-radius:10px;background:linear-gradient(180deg,rgba(212,179,104,0.08),rgba(0,0,0,0.2));border:1px solid rgba(212,179,104,0.3);">
+        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--cream-300);margin-bottom:6px;"><span>M5 H2</span><span class="gold">180 BB</span></div>
+        <div style="display:flex;margin-bottom:4px;"><div class="cf blk"><span>7</span><span>♠</span></div><div class="cf red"><span>2</span><span>♥</span></div></div>
+        <div class="tag gold">BLUFF</div>
+      </div>
+      <div style="padding:10px;border-radius:10px;background:linear-gradient(180deg,rgba(255,255,255,0.04),rgba(0,0,0,0.2));border:1px solid rgba(201,169,97,0.2);">
+        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--cream-300);margin-bottom:6px;"><span>M7 H5</span><span>160 BB</span></div>
+        <div style="display:flex;margin-bottom:4px;"><div class="cf blk"><span>K</span><span>♠</span></div><div class="cf blk"><span>K</span><span>♣</span></div></div>
+        <div class="tag claret">BAD BEAT</div>
+      </div>
+      <div style="padding:10px;border-radius:10px;background:linear-gradient(180deg,rgba(255,255,255,0.04),rgba(0,0,0,0.2));border:1px solid rgba(201,169,97,0.2);">
+        <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--cream-300);margin-bottom:6px;"><span>M8 H9</span><span>140 BB</span></div>
+        <div style="display:flex;margin-bottom:4px;"><div class="cf red"><span>Q</span><span>♥</span></div><div class="cf red"><span>J</span><span>♥</span></div></div>
+        <div class="tag gold">FLUSH</div>
+      </div>
+    </div>
+  </div>
+  <div class="tab-bar"><div class="tab"><span class="icon">♠</span>Home</div><div class="tab active"><span class="icon">⚔</span>Match-up</div><div class="tab"><span class="icon">📜</span>History</div><div class="tab"><span class="icon">⚙</span>Settings</div></div>
+</div></div><div class="label"><span class="num">07</span>Favorites Gallery<span class="note">Bookmarked hands visual grid. Tags for moments.</span></div></div></div></section>
+
+<!-- 08 Circular Win Rate -->
+<section class="section"><h2>Option 08</h2><h3>Circular Win Rate</h3><p class="desc">Donut showing match win %. Key stats below.</p>
+<div class="grid"><div class="phone-wrap"><div class="phone"><div class="scr">
+  <div class="notch"><div class="notch-pill"></div></div>
+  <div class="hdr-pad" style="text-align:center;"><div class="serif" style="font-size:18px;">Match-Up</div><div class="ey" style="margin-top:2px;">TJ vs Stephen</div></div>
+  <div style="padding:12px;text-align:center;">
+    <div style="position:relative;width:200px;height:200px;margin:0 auto;">
+      <svg width="200" height="200" viewBox="0 0 200 200">
+        <circle cx="100" cy="100" r="80" fill="none" stroke="rgba(201,169,97,0.15)" stroke-width="16"/>
+        <circle cx="100" cy="100" r="80" fill="none" stroke="#d4b368" stroke-width="16" stroke-dasharray="317 502" stroke-dashoffset="125" stroke-linecap="round" transform="rotate(-90 100 100)"/>
+      </svg>
+      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;">
+        <div class="serif gold" style="font-size:44px;line-height:1;">63<span style="font-size:22px;">%</span></div>
+        <div class="ey" style="margin-top:4px;">your win rate</div>
+        <div class="serif" style="font-size:14px;color:var(--cream-300);margin-top:2px;">7 of 11</div>
+      </div>
+    </div>
+    <div class="thin-rule" style="margin:20px 20px;"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:0 8px;">
+      <div><div class="serif gold" style="font-size:20px;">240</div><div class="ey">biggest BB</div></div>
+      <div><div class="serif" style="font-size:20px;">W3</div><div class="ey">streak</div></div>
+      <div><div class="serif" style="font-size:20px;">1.8</div><div class="ey">aggression</div></div>
+    </div>
+  </div>
+  <div class="tab-bar"><div class="tab"><span class="icon">♠</span>Home</div><div class="tab active"><span class="icon">⚔</span>Match-up</div><div class="tab"><span class="icon">📜</span>History</div><div class="tab"><span class="icon">⚙</span>Settings</div></div>
+</div></div><div class="label"><span class="num">08</span>Circular Win Rate<span class="note">Donut chart. Bold visual. Clear percentage.</span></div></div></div></section>
+
+<!-- 09 Season Recap -->
+<section class="section"><h2>Option 09</h2><h3>Season Recap</h3><p class="desc">Sparkline of matches with color showing outcome.</p>
+<div class="grid"><div class="phone-wrap"><div class="phone"><div class="scr">
+  <div class="notch"><div class="notch-pill"></div></div>
+  <div class="hdr-pad"><div class="ey gold">2026 SEASON</div><div class="serif" style="font-size:20px;margin-top:4px;">11 matches played</div></div>
+  <div style="padding:0 16px 16px;">
+    <div style="display:flex;gap:6px;align-items:end;height:60px;margin-bottom:6px;">
+      <div style="flex:1;height:70%;border-radius:3px;background:var(--gold-500);"></div>
+      <div style="flex:1;height:40%;border-radius:3px;background:var(--claret);"></div>
+      <div style="flex:1;height:85%;border-radius:3px;background:var(--gold-500);"></div>
+      <div style="flex:1;height:55%;border-radius:3px;background:var(--gold-500);"></div>
+      <div style="flex:1;height:30%;border-radius:3px;background:var(--claret);"></div>
+      <div style="flex:1;height:75%;border-radius:3px;background:var(--gold-500);"></div>
+      <div style="flex:1;height:45%;border-radius:3px;background:var(--claret);"></div>
+      <div style="flex:1;height:90%;border-radius:3px;background:var(--gold-500);"></div>
+      <div style="flex:1;height:35%;border-radius:3px;background:var(--claret);"></div>
+      <div style="flex:1;height:65%;border-radius:3px;background:var(--gold-500);"></div>
+      <div style="flex:1;height:95%;border-radius:3px;background:var(--gold-500);"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--cream-400);margin-bottom:16px;"><span>M1</span><span>M11</span></div>
+    <div class="thin-rule"></div>
+    <div style="display:flex;justify-content:space-between;padding:8px 0;"><span class="ey">Record</span><span class="serif"><span class="gold">7</span>–4</span></div>
+    <div style="display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid rgba(201,169,97,0.1);"><span class="ey">Current streak</span><span class="serif gold">W3</span></div>
+    <div style="display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid rgba(201,169,97,0.1);"><span class="ey">Longest streak</span><span class="serif">5 (Feb)</span></div>
+    <div style="display:flex;justify-content:space-between;padding:8px 0;border-top:1px solid rgba(201,169,97,0.1);"><span class="ey">Biggest pot</span><span class="serif gold">240 BB</span></div>
+  </div>
+  <div class="tab-bar"><div class="tab"><span class="icon">♠</span>Home</div><div class="tab active"><span class="icon">⚔</span>Match-up</div><div class="tab"><span class="icon">📜</span>History</div><div class="tab"><span class="icon">⚙</span>Settings</div></div>
+</div></div><div class="label"><span class="num">09</span>Season Recap<span class="note">Sparkline of matches. Sports-season feel.</span></div></div></div></section>
+
+<!-- 10 Narrative -->
+<section class="section"><h2>Option 10</h2><h3>Narrative Rivalry</h3><p class="desc">Auto-generated prose from stats. Feels human.</p>
+<div class="grid"><div class="phone-wrap"><div class="phone"><div class="scr">
+  <div class="notch"><div class="notch-pill"></div></div>
+  <div class="hdr-pad"><div class="ey gold">THE RIVALRY</div></div>
+  <div style="padding:0 16px 16px;">
+    <div class="serif" style="font-size:20px;line-height:1.35;margin-bottom:14px;">
+      <span class="gold">Thomas</span> leads the series <span class="gold">7–4</span> and rides a <span class="gold">3-match win streak</span>.
+    </div>
+    <div style="padding:12px;border-radius:10px;background:rgba(0,0,0,0.2);border:1px solid rgba(201,169,97,0.15);margin-bottom:10px;">
+      <div class="ey" style="color:var(--claret);margin-bottom:4px;">The dark chapter</div>
+      <div style="font-size:13px;line-height:1.5;">Stephen took 4 of 5 in March, including the brutal 180 BB bad beat when TJ's aces ran into runner-runner flush.</div>
+    </div>
+    <div style="padding:12px;border-radius:10px;background:rgba(0,0,0,0.2);border:1px solid rgba(212,179,104,0.2);margin-bottom:10px;">
+      <div class="ey gold" style="margin-bottom:4px;">The comeback</div>
+      <div style="font-size:13px;line-height:1.5;">3 straight wins in April. Most memorable: the 240 BB set-over-set in round 7 of Match 10.</div>
+    </div>
+    <div style="padding:12px;border-radius:10px;background:rgba(0,0,0,0.2);border:1px solid rgba(201,169,97,0.15);">
+      <div class="ey" style="margin-bottom:4px;">Playing styles</div>
+      <div style="font-size:13px;line-height:1.5;">TJ plays more hands (VPIP 48%) and gets there with raises (AF 1.8). Stephen is tighter but bigger bluffs when in.</div>
+    </div>
+  </div>
+  <div class="tab-bar"><div class="tab"><span class="icon">♠</span>Home</div><div class="tab active"><span class="icon">⚔</span>Match-up</div><div class="tab"><span class="icon">📜</span>History</div><div class="tab"><span class="icon">⚙</span>Settings</div></div>
+</div></div><div class="label"><span class="num">10</span>Narrative Rivalry<span class="note">Auto-generated prose. Story-driven.</span></div></div></div></section>
+
+<!-- 11 Activity Heatmap -->
+<section class="section"><h2>Option 11</h2><h3>Activity Heatmap</h3><p class="desc">GitHub-style calendar. Days colored by who won.</p>
+<div class="grid"><div class="phone-wrap"><div class="phone"><div class="scr">
+  <div class="notch"><div class="notch-pill"></div></div>
+  <div class="hdr-pad"><div class="ey gold">2026 ACTIVITY</div></div>
+  <div style="padding:0 16px 16px;">
+    <div style="display:grid;grid-template-columns:repeat(14,1fr);gap:3px;margin-bottom:8px;">
+      <div style="aspect-ratio:1;border-radius:2px;background:rgba(158,183,164,0.15);"></div>
+      <div style="aspect-ratio:1;border-radius:2px;background:rgba(212,179,104,0.4);"></div>
+      <div style="aspect-ratio:1;border-radius:2px;background:rgba(158,183,164,0.15);"></div>
+      <div style="aspect-ratio:1;border-radius:2px;background:rgba(212,179,104,0.8);"></div>
+      <div style="aspect-ratio:1;border-radius:2px;background:rgba(196,77,66,0.4);"></div>
+      <div style="aspect-ratio:1;border-radius:2px;background:rgba(158,183,164,0.15);"></div>
+      <div style="aspect-ratio:1;border-radius:2px;background:rgba(212,179,104,0.4);"></div>
+      <div style="aspect-ratio:1;border-radius:2px;background:rgba(212,179,104,0.8);"></div>
+      <div style="aspect-ratio:1;border-radius:2px;background:rgba(196,77,66,0.6);"></div>
+      <div style="aspect-ratio:1;border-radius:2px;background:rgba(158,183,164,0.15);"></div>
+      <div style="aspect-ratio:1;border-radius:2px;background:rgba(212,179,104,0.4);"></div>
+      <div style="aspect-ratio:1;border-radius:2px;background:rgba(212,179,104,0.6);"></div>
+      <div style="aspect-ratio:1;border-radius:2px;background:rgba(196,77,66,0.4);"></div>
+      <div style="aspect-ratio:1;border-radius:2px;background:rgba(212,179,104,0.8);"></div>
+      <div style="aspect-ratio:1;border-radius:2px;background:rgba(158,183,164,0.15);"></div>
+      <div style="aspect-ratio:1;border-radius:2px;background:rgba(212,179,104,0.6);"></div>
+      <div style="aspect-ratio:1;border-radius:2px;background:rgba(196,77,66,0.8);"></div>
+      <div style="aspect-ratio:1;border-radius:2px;background:rgba(158,183,164,0.15);"></div>
+      <div style="aspect-ratio:1;border-radius:2px;background:rgba(212,179,104,0.8);"></div>
+      <div style="aspect-ratio:1;border-radius:2px;background:rgba(212,179,104,0.4);"></div>
+      <div style="aspect-ratio:1;border-radius:2px;background:rgba(196,77,66,0.4);"></div>
+      <div style="aspect-ratio:1;border-radius:2px;background:rgba(212,179,104,0.8);"></div>
+      <div style="aspect-ratio:1;border-radius:2px;background:rgba(212,179,104,0.6);"></div>
+      <div style="aspect-ratio:1;border-radius:2px;background:rgba(158,183,164,0.15);"></div>
+      <div style="aspect-ratio:1;border-radius:2px;background:rgba(196,77,66,0.4);"></div>
+      <div style="aspect-ratio:1;border-radius:2px;background:rgba(212,179,104,0.8);"></div>
+      <div style="aspect-ratio:1;border-radius:2px;background:rgba(212,179,104,0.8);"></div>
+      <div style="aspect-ratio:1;border-radius:2px;background:rgba(212,179,104,0.4);"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--cream-400);margin-bottom:16px;"><span>Feb</span><span>Mar</span><span>Apr</span></div>
+    <div style="display:flex;align-items:center;gap:8px;font-size:10px;color:var(--cream-300);margin-bottom:18px;">
+      <span>Less</span>
+      <div style="width:10px;height:10px;border-radius:2px;background:rgba(158,183,164,0.15);"></div>
+      <div style="width:10px;height:10px;border-radius:2px;background:rgba(212,179,104,0.4);"></div>
+      <div style="width:10px;height:10px;border-radius:2px;background:rgba(212,179,104,0.8);"></div>
+      <span>You won</span>
+      <div style="width:10px;height:10px;border-radius:2px;background:rgba(196,77,66,0.8);margin-left:auto;"></div>
+      <span>SL won</span>
+    </div>
+    <div class="thin-rule"></div>
+    <div style="display:flex;justify-content:space-between;margin-top:12px;">
+      <div><div class="ey">Matches</div><div class="serif" style="font-size:20px;"><span class="gold">7</span>–4</div></div>
+      <div><div class="ey">Streak</div><div class="serif gold" style="font-size:20px;">W3</div></div>
+      <div><div class="ey">Biggest</div><div class="serif gold" style="font-size:20px;">240 BB</div></div>
+    </div>
+  </div>
+  <div class="tab-bar"><div class="tab"><span class="icon">♠</span>Home</div><div class="tab active"><span class="icon">⚔</span>Match-up</div><div class="tab"><span class="icon">📜</span>History</div><div class="tab"><span class="icon">⚙</span>Settings</div></div>
+</div></div><div class="label"><span class="num">11</span>Activity Heatmap<span class="note">Calendar colored by winner. Patterns emerge.</span></div></div></div></section>
+
+<!-- 12 Minimal -->
+<section class="section"><h2>Option 12</h2><h3>Minimal</h3><p class="desc">Just the score. Zen. Tap for details.</p>
+<div class="grid"><div class="phone-wrap"><div class="phone"><div class="scr">
+  <div class="notch"><div class="notch-pill"></div></div>
+  <div style="height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:40px 20px;">
+    <div class="ey gold" style="margin-bottom:20px;">CAREER RECORD</div>
+    <div style="display:flex;align-items:baseline;gap:16px;margin-bottom:4px;">
+      <div class="serif gold" style="font-size:88px;line-height:1;">7</div>
+      <div class="serif" style="font-size:48px;color:var(--cream-300);">–</div>
+      <div class="serif" style="font-size:88px;color:var(--cream-100);line-height:1;">4</div>
+    </div>
+    <div style="display:flex;gap:40px;margin-top:12px;">
+      <div style="text-align:center;"><div class="avatar sm">TJ</div><div class="ey" style="margin-top:4px;">Thomas</div></div>
+      <div style="text-align:center;"><div class="avatar sm sl">SL</div><div class="ey" style="margin-top:4px;">Stephen</div></div>
+    </div>
+    <div style="margin-top:auto;margin-bottom:20px;font-size:11px;color:var(--cream-300);">Tap to explore stats</div>
+  </div>
+  <div class="tab-bar"><div class="tab"><span class="icon">♠</span>Home</div><div class="tab active"><span class="icon">⚔</span>Match-up</div><div class="tab"><span class="icon">📜</span>History</div><div class="tab"><span class="icon">⚙</span>Settings</div></div>
+</div></div><div class="label"><span class="num">12</span>Minimal<span class="note">Just the score. Zen simplicity.</span></div></div></div></section>
+
+<!-- 13 Leaderboard Card -->
+<section class="section"><h2>Option 13</h2><h3>Leaderboard Card</h3><p class="desc">Trading-card aesthetic. Premium feel.</p>
+<div class="grid"><div class="phone-wrap"><div class="phone"><div class="scr">
+  <div class="notch"><div class="notch-pill"></div></div>
+  <div style="padding:20px;">
+    <div style="padding:18px;border-radius:18px;background:linear-gradient(180deg,rgba(212,179,104,0.15),rgba(8,42,33,0.8));border:2px solid rgba(212,179,104,0.6);box-shadow:0 10px 40px rgba(212,179,104,0.1);">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">
+        <div><div class="ey gold">CURRENT LEADER</div><div class="serif" style="font-size:22px;margin-top:4px;">Thomas Johnston</div></div>
+        <div class="avatar lg">TJ</div>
+      </div>
+      <div style="display:flex;justify-content:space-around;padding:14px 0;border-top:1px solid rgba(201,169,97,0.3);border-bottom:1px solid rgba(201,169,97,0.3);">
+        <div style="text-align:center;"><div class="serif gold" style="font-size:30px;">7</div><div class="ey">wins</div></div>
+        <div style="text-align:center;"><div class="serif" style="font-size:30px;color:var(--cream-300);">4</div><div class="ey">losses</div></div>
+        <div style="text-align:center;"><div class="serif gold" style="font-size:30px;">W3</div><div class="ey">streak</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-top:12px;">
+        <div><div class="ey">Biggest pot</div><div class="serif gold" style="font-size:15px;">240 BB</div></div>
+        <div><div class="ey">Aggression</div><div class="serif" style="font-size:15px;">1.8</div></div>
+        <div><div class="ey">VPIP</div><div class="serif" style="font-size:15px;">48%</div></div>
+        <div><div class="ey">Showdown</div><div class="serif" style="font-size:15px;">54%</div></div>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:14px;font-size:11px;color:var(--cream-300);">vs. Stephen Layton (4–7)</div>
+  </div>
+  <div class="tab-bar"><div class="tab"><span class="icon">♠</span>Home</div><div class="tab active"><span class="icon">⚔</span>Match-up</div><div class="tab"><span class="icon">📜</span>History</div><div class="tab"><span class="icon">⚙</span>Settings</div></div>
+</div></div><div class="label"><span class="num">13</span>Leaderboard Card<span class="note">Trading-card aesthetic. Celebrates leader.</span></div></div></div></section>
+
+<!-- 14 Split Tabs -->
+<section class="section"><h2>Option 14</h2><h3>Split Tabs</h3><p class="desc">Sub-tabs: Overview / Style / Hands / Matches. Organized, explorable.</p>
+<div class="grid"><div class="phone-wrap"><div class="phone"><div class="scr">
+  <div class="notch"><div class="notch-pill"></div></div>
+  <div class="hdr-pad"><div style="display:flex;justify-content:space-between;align-items:baseline;"><div class="serif" style="font-size:18px;">Match-Up</div><div class="serif"><span class="gold">7</span>–4</div></div></div>
+  <div style="padding:0 14px;">
+    <div style="display:flex;gap:4px;padding:4px;background:rgba(0,0,0,0.3);border-radius:10px;margin-bottom:14px;">
+      <div style="flex:1;padding:7px;text-align:center;font-size:11px;border-radius:7px;background:rgba(212,179,104,0.2);color:var(--gold-500);font-weight:600;">Overview</div>
+      <div style="flex:1;padding:7px;text-align:center;font-size:11px;color:var(--cream-300);">Style</div>
+      <div style="flex:1;padding:7px;text-align:center;font-size:11px;color:var(--cream-300);">Hands</div>
+      <div style="flex:1;padding:7px;text-align:center;font-size:11px;color:var(--cream-300);">Matches</div>
+    </div>
+  </div>
+  <div style="padding:0 14px 16px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+      <div class="stat-tile"><div class="lbl">Matches</div><div class="val"><span class="gold">7</span>–4</div></div>
+      <div class="stat-tile"><div class="lbl">Current streak</div><div class="val gold">W3</div></div>
+      <div class="stat-tile"><div class="lbl">Hands played</div><div class="val">1,432</div></div>
+      <div class="stat-tile"><div class="lbl">Biggest pot</div><div class="val gold">240 BB</div></div>
+    </div>
+    <div class="ey" style="margin-bottom:6px;">Recent form</div>
+    <div style="display:flex;gap:4px;">
+      <div style="flex:1;aspect-ratio:1;border-radius:4px;background:var(--gold-500);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--felt-800);font-size:10px;">W</div>
+      <div style="flex:1;aspect-ratio:1;border-radius:4px;background:var(--gold-500);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--felt-800);font-size:10px;">W</div>
+      <div style="flex:1;aspect-ratio:1;border-radius:4px;background:var(--gold-500);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--felt-800);font-size:10px;">W</div>
+      <div style="flex:1;aspect-ratio:1;border-radius:4px;background:var(--claret);display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:10px;">L</div>
+      <div style="flex:1;aspect-ratio:1;border-radius:4px;background:var(--gold-500);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--felt-800);font-size:10px;">W</div>
+      <div style="flex:1;aspect-ratio:1;border-radius:4px;background:var(--claret);display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:10px;">L</div>
+      <div style="flex:1;aspect-ratio:1;border-radius:4px;background:var(--gold-500);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--felt-800);font-size:10px;">W</div>
+    </div>
+  </div>
+  <div class="tab-bar"><div class="tab"><span class="icon">♠</span>Home</div><div class="tab active"><span class="icon">⚔</span>Match-up</div><div class="tab"><span class="icon">📜</span>History</div><div class="tab"><span class="icon">⚙</span>Settings</div></div>
+</div></div><div class="label"><span class="num">14</span>Split Tabs<span class="note">Sub-tabs organize sections. Explorable.</span></div></div></div></section>
+
+<!-- 15 Moment Stream -->
+<section class="section"><h2>Option 15</h2><h3>Moment Stream</h3><p class="desc">Scrollable social feed of notable moments — coolers, bad beats, streaks, milestones.</p>
+<div class="grid"><div class="phone-wrap"><div class="phone"><div class="scr">
+  <div class="notch"><div class="notch-pill"></div></div>
+  <div class="hdr-pad"><div style="display:flex;justify-content:space-between;align-items:baseline;"><div class="serif" style="font-size:18px;">Match-Up</div><div class="ey"><span class="gold">7</span>–4</div></div></div>
+  <div style="padding:0 14px 16px;">
+    <div style="padding:12px;border-radius:12px;background:linear-gradient(180deg,rgba(212,179,104,0.08),rgba(0,0,0,0.2));border:1px solid rgba(212,179,104,0.25);margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px;">
+        <div class="tag gold">COOLER</div>
+        <div style="font-size:9px;color:var(--cream-400);">Match 10 · yesterday</div>
+      </div>
+      <div style="font-size:13px;line-height:1.4;">TJ's <span class="gold">set of Kings</span> beats Stephen's <span class="gold">set of Queens</span></div>
+      <div style="margin-top:6px;display:flex;align-items:center;gap:6px;">
+        <div style="display:flex;"><div class="cf blk"><span>K</span><span>♠</span></div><div class="cf blk"><span>K</span><span>♣</span></div></div>
+        <span style="font-size:11px;color:var(--cream-300);">vs</span>
+        <div style="display:flex;"><div class="cf red"><span>Q</span><span>♥</span></div><div class="cf red"><span>Q</span><span>♦</span></div></div>
+        <span class="serif gold" style="margin-left:auto;">240 BB</span>
+      </div>
+    </div>
+    <div style="padding:12px;border-radius:12px;background:linear-gradient(180deg,rgba(196,77,66,0.04),rgba(0,0,0,0.2));border:1px solid rgba(196,77,66,0.25);margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px;">
+        <div class="tag claret">BAD BEAT</div>
+        <div style="font-size:9px;color:var(--cream-400);">Match 7 · 5 days ago</div>
+      </div>
+      <div style="font-size:13px;line-height:1.4;">TJ's <span class="gold">Pocket Aces</span> loses to runner-runner flush</div>
+      <div style="font-size:10px;color:var(--claret);margin-top:4px;">–180 BB</div>
+    </div>
+    <div style="padding:12px;border-radius:12px;background:linear-gradient(180deg,rgba(212,179,104,0.08),rgba(0,0,0,0.2));border:1px solid rgba(212,179,104,0.25);margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px;">
+        <div class="tag gold">STREAK</div>
+        <div style="font-size:9px;color:var(--cream-400);">last 3 matches</div>
+      </div>
+      <div style="font-size:13px;line-height:1.4;">Thomas on a <span class="gold">3-match win streak</span></div>
+    </div>
+    <div style="padding:12px;border-radius:12px;background:rgba(0,0,0,0.15);border:1px solid rgba(201,169,97,0.15);">
+      <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px;">
+        <div class="tag cream">MILESTONE</div>
+        <div style="font-size:9px;color:var(--cream-400);">Match 11</div>
+      </div>
+      <div style="font-size:13px;line-height:1.4;">1,000th hand played together</div>
+    </div>
+  </div>
+  <div class="tab-bar"><div class="tab"><span class="icon">♠</span>Home</div><div class="tab active"><span class="icon">⚔</span>Match-up</div><div class="tab"><span class="icon">📜</span>History</div><div class="tab"><span class="icon">⚙</span>Settings</div></div>
+</div></div><div class="label"><span class="num">15</span>Moment Stream<span class="note">Scrollable feed of notable moments. Mixed types.</span></div></div></div></section>
+
+</body>
+</html>

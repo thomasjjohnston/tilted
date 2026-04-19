@@ -219,7 +219,11 @@ export async function applyAction(db: Database, input: ApplyActionInput) {
         });
       }
     } else if (newState.streetClosed) {
-      if (bothAllIn(newState)) {
+      // Check if either player is all-in — no more betting possible
+      const eitherAllIn = newState.players.some(p => p.isAllIn) || bothAllIn(newState);
+
+      if (eitherAllIn) {
+        // No more action possible — freeze hand for runout at round end
         handUpdate.status = 'awaiting_runout';
         handUpdate.actionOnUserId = null;
       } else {
@@ -403,4 +407,156 @@ export async function getLegalActions(db: Database, handId: string, userId: stri
     available_after_min_raise: myAvailable - legal.minRaise,
     available_after_max_bet: myAvailable - legal.maxBet,
   };
+}
+
+/**
+ * Apply multiple actions in a single transaction.
+ * Used for auto-act (check/fold remaining hands when 0 available).
+ * Locks the match once and processes all actions within one tx.
+ */
+export async function applyBatchActions(
+  db: Database,
+  userId: string,
+  batchActions: { handId: string; actionType: ActionType; amount: number; clientTxId: string }[],
+) {
+  if (batchActions.length === 0) return null;
+
+  const pendingHandoffs: { handoffId: string; toUserId: string; roundId: string }[] = [];
+
+  const result = await db.transaction(async (tx) => {
+    // Load the first hand to find the match, then lock it once
+    const firstHand = await tx.query.hands.findFirst({
+      where: eq(hands.handId, batchActions[0].handId),
+    });
+    if (!firstHand) throw new Error('Hand not found');
+
+    const round = await tx.query.rounds.findFirst({
+      where: eq(rounds.roundId, firstHand.roundId),
+    });
+    if (!round) throw new Error('Round not found');
+
+    // Lock the match ONCE for the entire batch
+    await tx.execute(sql`SELECT 1 FROM matches WHERE match_id = ${round.matchId} FOR UPDATE`);
+    const match = await tx.query.matches.findFirst({
+      where: eq(matches.matchId, round.matchId),
+    });
+    if (!match) throw new Error('Match not found');
+
+    const isUserA = match.userAId === userId;
+    const opponentId = isUserA ? match.userBId : match.userAId;
+
+    for (const action of batchActions) {
+      // Check idempotency
+      const existing = await tx.query.actions.findFirst({
+        where: and(
+          eq(actions.handId, action.handId),
+          eq(actions.clientTxId, action.clientTxId),
+        ),
+      });
+      if (existing) continue;
+
+      const hand = await tx.query.hands.findFirst({
+        where: eq(hands.handId, action.handId),
+      });
+      if (!hand || hand.status !== 'in_progress' || hand.actionOnUserId !== userId) continue;
+
+      // For simple folds/checks with 0 available, we can fast-path
+      if (action.actionType === 'fold') {
+        const winnerId = opponentId;
+        const aReserved = hand.userAReserved;
+        const bReserved = hand.userBReserved;
+
+        // Settle: winner gets loser's reserved
+        const aAward = winnerId === match.userAId ? hand.pot : 0;
+        const bAward = winnerId === match.userBId ? hand.pot : 0;
+        await tx.update(matches).set({
+          userATotal: sql`${matches.userATotal} + ${aAward - aReserved}`,
+          userBTotal: sql`${matches.userBTotal} + ${bAward - bReserved}`,
+        }).where(eq(matches.matchId, match.matchId));
+
+        await tx.insert(actions).values({
+          handId: hand.handId,
+          street: hand.street,
+          actingUserId: userId,
+          actionType: 'fold',
+          amount: 0,
+          potAfter: hand.pot,
+          clientTxId: action.clientTxId,
+        });
+
+        // Discard folder's hole cards
+        const holeUpdate = userId === match.userAId
+          ? { userAHole: [] } : { userBHole: [] };
+
+        await tx.update(hands).set({
+          status: 'complete',
+          street: 'complete',
+          terminalReason: 'fold',
+          winnerUserId: winnerId,
+          actionOnUserId: null,
+          completedAt: new Date(),
+          userAReserved: 0,
+          userBReserved: 0,
+          ...holeUpdate,
+        }).where(eq(hands.handId, hand.handId));
+
+      } else if (action.actionType === 'check') {
+        await tx.insert(actions).values({
+          handId: hand.handId,
+          street: hand.street,
+          actingUserId: userId,
+          actionType: 'check',
+          amount: 0,
+          potAfter: hand.pot,
+          clientTxId: action.clientTxId,
+        });
+
+        // Check passes action to opponent (or closes street)
+        await tx.update(hands).set({
+          actionOnUserId: opponentId,
+        }).where(eq(hands.handId, hand.handId));
+      }
+    }
+
+    // After all actions, check round state
+    const allHands = await tx.query.hands.findMany({
+      where: eq(hands.roundId, firstHand.roundId),
+    });
+
+    const myPending = allHands.filter(h => h.status === 'in_progress' && h.actionOnUserId === userId).length;
+    const oppPending = allHands.filter(h => h.status === 'in_progress' && h.actionOnUserId === opponentId).length;
+
+    if (myPending === 0 && oppPending > 0) {
+      const [handoff] = await tx.insert(turnHandoffs).values({
+        roundId: firstHand.roundId,
+        fromUserId: userId,
+        toUserId: opponentId,
+      }).returning();
+
+      pendingHandoffs.push({
+        handoffId: handoff.handoffId,
+        toUserId: opponentId,
+        roundId: firstHand.roundId,
+      });
+    }
+
+    if (myPending === 0 && oppPending === 0) {
+      await tx.update(rounds).set({ status: 'revealing' }).where(eq(rounds.roundId, firstHand.roundId));
+    }
+
+    await assertLedgerInvariant(tx, match.matchId);
+
+    return getMatchState(tx, match.matchId, userId);
+  });
+
+  // Post-commit: dispatch APNS
+  for (const handoff of pendingHandoffs) {
+    try {
+      await dispatchPush(handoff.toUserId, handoff.handoffId, handoff.roundId);
+    } catch (err) {
+      console.error('Failed to dispatch push:', err);
+    }
+  }
+
+  return result;
 }

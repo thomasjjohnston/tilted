@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { eq } from 'drizzle-orm';
 import { getDb } from '../context.js';
-import { applyAction, getLegalActions } from '../../game/turn.js';
+import { applyAction, applyBatchActions, getLegalActions } from '../../game/turn.js';
 import { getHandDetail } from '../../game/hand.js';
 import { toggleFavorite } from '../../game/favorites.js';
 
@@ -11,6 +11,15 @@ const actionBody = z.object({
   amount: z.number().int().nonnegative().optional(),
   client_tx_id: z.string().min(1),
   client_sent_at: z.string().datetime().optional(),
+});
+
+const batchActionBody = z.object({
+  actions: z.array(z.object({
+    hand_id: z.string().uuid(),
+    type: z.enum(['fold', 'check', 'call', 'bet', 'raise', 'all_in']),
+    amount: z.number().int().nonnegative().optional(),
+    client_tx_id: z.string().min(1),
+  })),
 });
 
 const favoriteBody = z.object({
@@ -34,6 +43,19 @@ export async function handRoutes(app: FastifyInstance) {
     });
 
     return result;
+  });
+
+  // Batch apply actions to multiple hands in a single transaction
+  app.post('/batch-actions', async (req) => {
+    const { actions } = batchActionBody.parse(req.body);
+    const db = getDb();
+
+    return applyBatchActions(db, req.userId, actions.map(a => ({
+      handId: a.hand_id,
+      actionType: a.type,
+      amount: a.amount ?? 0,
+      clientTxId: a.client_tx_id,
+    })));
   });
 
   // Get legal actions for a hand

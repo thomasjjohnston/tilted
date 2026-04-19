@@ -2,31 +2,44 @@ import SwiftUI
 
 struct HomeView: View {
     @Environment(AppStore.self) private var store
+    @State private var showCoinFlip = false
+    @State private var isCreatingMatch = false
+    @State private var revealMatch: MatchState?
+    @State private var revealRound: RoundView?
 
     var body: some View {
         NavigationStack {
             ZStack {
                 Color.clear.feltBackground()
 
-                ScrollView {
-                    VStack(spacing: 0) {
-                        if let match = store.matchState {
-                            if match.status == "ended" {
-                                matchEndedView(match: match)
-                            } else if let round = match.currentRound {
-                                activeMatchView(match: match, round: round)
-                            } else {
-                                noRoundView(match: match)
-                            }
-                        } else {
-                            noMatchView
-                        }
+                if !store.hasInitiallyLoaded {
+                    VStack {
+                        Spacer()
+                        ProgressView()
+                            .tint(.gold500)
+                        Spacer()
                     }
-                    .padding(.horizontal, 18)
-                    .padding(.top, 16)
-                }
-                .refreshable {
-                    await store.refresh()
+                } else {
+                    ScrollView {
+                        VStack(spacing: 0) {
+                            if let match = store.matchState {
+                                if match.status == "ended" {
+                                    matchEndedView(match: match)
+                                } else if let round = match.currentRound {
+                                    activeMatchView(match: match, round: round)
+                                } else {
+                                    noRoundView(match: match)
+                                }
+                            } else {
+                                noMatchView
+                            }
+                        }
+                        .padding(.horizontal, 18)
+                        .padding(.top, 16)
+                    }
+                    .refreshable {
+                        await store.refresh()
+                    }
                 }
             }
             .ignoresSafeArea(edges: .bottom)
@@ -56,15 +69,28 @@ struct HomeView: View {
                         .environment(store)
                 }
             }
-            .fullScreenCover(isPresented: showReveal) {
-                if let match = store.matchState, let round = match.currentRound {
-                    RevealView(match: match, round: round)
+            .fullScreenCover(isPresented: Binding(
+                get: { revealMatch != nil },
+                set: { if !$0 { revealMatch = nil; revealRound = nil; store.activeScreen = .home } }
+            )) {
+                if let m = revealMatch, let r = revealRound {
+                    RevealView(match: m, round: r)
                         .environment(store)
                 }
             }
             .fullScreenCover(isPresented: showHistory) {
                 HistoryView()
                     .environment(store)
+            }
+            .fullScreenCover(isPresented: $showCoinFlip) {
+                if let match = store.matchState {
+                    CoinFlipView(match: match) {
+                        showCoinFlip = false
+                        if match.currentRound?.handsPendingMe ?? 0 > 0 {
+                            store.activeScreen = .turn
+                        }
+                    }
+                }
             }
         }
     }
@@ -79,9 +105,7 @@ struct HomeView: View {
         Binding(get: { store.activeScreen == .turn }, set: { if !$0 { store.activeScreen = .home } })
     }
 
-    private var showReveal: Binding<Bool> {
-        Binding(get: { store.activeScreen == .reveal }, set: { if !$0 { store.activeScreen = .home } })
-    }
+    // showReveal is now driven by revealMatch/revealRound state
 
     private var showHistory: Binding<Bool> {
         Binding(get: { store.activeScreen == .history }, set: { if !$0 { store.activeScreen = .home } })
@@ -148,17 +172,42 @@ struct HomeView: View {
             Spacer().frame(height: Spacing.lg)
 
             // Main CTA area
-            if round.status == "revealing" {
+            let allResolved = round.handsPendingMe == 0 && round.handsPendingOpponent == 0
+            if round.status == "revealing" || allResolved {
                 // Round reveal ready
-                Text("Round complete")
+                let allInCount = round.hands.filter { $0.status == "awaiting_runout" }.count
+
+                Text("ROUND \(round.roundIndex) COMPLETE")
                     .font(.eyebrow)
                     .tracking(1.5)
                     .foregroundColor(.gold500)
 
+                Spacer().frame(height: Spacing.sm)
+
+                if allInCount > 0 {
+                    Text("\(allInCount) all-in hand\(allInCount == 1 ? "" : "s") to reveal")
+                        .font(.custom("Georgia", size: 20))
+                        .foregroundColor(.cream100)
+                        .multilineTextAlignment(.center)
+
+                    Text("Cards will be dealt to determine the winner\(allInCount == 1 ? "" : "s").")
+                        .font(.system(size: 12))
+                        .foregroundColor(.cream300)
+                        .multilineTextAlignment(.center)
+                        .padding(.top, 2)
+                } else {
+                    Text("All hands resolved")
+                        .font(.custom("Georgia", size: 20))
+                        .foregroundColor(.cream100)
+                }
+
                 Spacer().frame(height: Spacing.md)
 
-                Button("Watch the reveal") {
-                    store.activeScreen = .reveal
+                Button(allInCount > 0 ? "Watch the reveal \u{2192}" : "See round summary \u{2192}") {
+                    // Capture the current match/round BEFORE advancing
+                    // so RevealView has stable data that won't change mid-animation
+                    revealMatch = store.matchState
+                    revealRound = store.matchState?.currentRound
                 }
                 .buttonStyle(.primary)
             } else if round.handsPendingMe > 0 {
@@ -239,10 +288,20 @@ struct HomeView: View {
 
             Spacer().frame(height: Spacing.xl)
 
-            Button("Start new match") {
-                Task { await store.startNewMatch() }
+            Button {
+                Task { await createMatch() }
+            } label: {
+                if isCreatingMatch {
+                    HStack(spacing: 8) {
+                        ProgressView().tint(.felt800)
+                        Text("Dealing...")
+                    }
+                } else {
+                    Text("Start new match")
+                }
             }
             .buttonStyle(.primary)
+            .disabled(isCreatingMatch)
 
             Spacer().frame(height: Spacing.sm)
 
@@ -265,14 +324,24 @@ struct HomeView: View {
                 .fontDesign(.serif)
                 .foregroundColor(iWon ? .gold500 : .claret)
 
-            Text("Final stacks: You \(match.myTotal) \u{2014} \(match.opponent.displayName.components(separatedBy: " ").first ?? "Opp") \(match.opponentTotal)")
+            Text("Final chips: You \(match.myAvailable) \u{2014} \(match.opponent.displayName.components(separatedBy: " ").first ?? "Opp") \(match.opponentAvailable)")
                 .font(.bodySecondary)
                 .foregroundColor(.cream300)
 
-            Button("Start new match") {
-                Task { await store.startNewMatch() }
+            Button {
+                Task { await createMatch() }
+            } label: {
+                if isCreatingMatch {
+                    HStack(spacing: 8) {
+                        ProgressView().tint(.felt800)
+                        Text("Dealing...")
+                    }
+                } else {
+                    Text("Start new match")
+                }
             }
             .buttonStyle(.primary)
+            .disabled(isCreatingMatch)
 
             Button("View history") {
                 store.activeScreen = .history
@@ -286,6 +355,15 @@ struct HomeView: View {
             Text("Match active, waiting for round...")
                 .foregroundColor(.cream300)
         }
+    }
+
+    // MARK: - Actions
+
+    private func createMatch() async {
+        isCreatingMatch = true
+        await store.startNewMatch()
+        isCreatingMatch = false
+        if store.matchState != nil { showCoinFlip = true }
     }
 
     // MARK: - Helpers

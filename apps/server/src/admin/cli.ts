@@ -16,7 +16,7 @@
 
 import 'dotenv/config';
 import { createDb } from '../db/connection.js';
-import { seedUsers, USER_TJ_ID, USER_SF_ID } from '../db/seed.js';
+import { seedUsers, USER_TJ_ID, USER_SL_ID } from '../db/seed.js';
 import { users, matches, rounds, hands, actions } from '../db/schema.js';
 import { eq, sql } from 'drizzle-orm';
 
@@ -33,7 +33,7 @@ async function main() {
   switch (command) {
     case 'seed-users': {
       await seedUsers(db);
-      console.log('Seeded users: TJ and SF');
+      console.log('Seeded users: TJ and SL');
       break;
     }
 

@@ -2,6 +2,7 @@ import { eq, and } from 'drizzle-orm';
 import type { Database } from '../db/connection.js';
 import { hands, actions, rounds, matches, favorites } from '../db/schema.js';
 import type { Card } from '../engine/types.js';
+import { evaluate } from '../engine/evaluator.js';
 
 export interface HandDetailView {
   hand_id: string;
@@ -17,6 +18,8 @@ export interface HandDetailView {
   terminal_reason: string | null;
   winner_user_id: string | null;
   is_favorited: boolean;
+  my_hand_rank: string | null;
+  opponent_hand_rank: string | null;
   actions: ActionView[];
 }
 
@@ -90,6 +93,22 @@ export async function getHandDetail(
     ),
   });
 
+  // Compute hand ranks if we have enough cards for evaluation
+  const board = hand.board as Card[];
+  let myHandRank: string | null = null;
+  let opponentHandRank: string | null = null;
+
+  if (myHole.length === 2 && board.length >= 3) {
+    try {
+      myHandRank = evaluate(myHole as Card[], board).name;
+    } catch { /* not enough cards */ }
+  }
+  if (opponentHole && opponentHole.length === 2 && board.length >= 3) {
+    try {
+      opponentHandRank = evaluate(opponentHole as Card[], board).name;
+    } catch { /* not enough cards */ }
+  }
+
   return {
     hand_id: hand.handId,
     hand_index: hand.handIndex,
@@ -104,6 +123,8 @@ export async function getHandDetail(
     terminal_reason: hand.terminalReason,
     winner_user_id: hand.winnerUserId,
     is_favorited: !!fav,
+    my_hand_rank: myHandRank,
+    opponent_hand_rank: opponentHandRank,
     actions: handActions.map(a => ({
       action_id: a.actionId,
       street: a.street,

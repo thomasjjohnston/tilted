@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tilted — Match-Up Page v2 (5 Options)</title>
+<style>
+  :root {
+    --felt-900: #051c15; --felt-800: #082a21; --felt-700: #0e3b2e;
+    --felt-600: #164a3a; --felt-500: #1a5a43;
+    --gold-500: #d4b368; --gold-600: #c9a961; --gold-700: #a88334; --gold-800: #7a5f2b;
+    --cream-50: #f6f1e1; --cream-100: #f3ecd6; --cream-200: #d9cfb2; --cream-300: #9eb7a4; --cream-400: #6a8a7a;
+    --claret: #c44d42; --card-red: #c92b2b; --card-black: #111;
+    --page-bg: #15161a; --page-fg: #e8e6df; --muted: #8a8a8a; --rule: #2a2a30;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--page-bg); color: var(--page-fg); font-family: -apple-system, "SF Pro Text", sans-serif; -webkit-font-smoothing: antialiased; }
+  .page-hdr { padding: 48px 48px 20px; max-width: 1400px; margin: 0 auto; }
+  .page-hdr .ey { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: var(--gold-500); margin-bottom: 10px; }
+  .page-hdr h1 { font-family: Georgia, serif; font-weight: 400; font-size: 36px; margin: 0 0 8px; }
+  .page-hdr p { color: var(--muted); font-size: 13px; line-height: 1.7; max-width: 680px; }
+  .section { padding: 36px 48px; max-width: 1400px; margin: 0 auto; border-top: 1px solid var(--rule); }
+  .section h2 { font-size: 12px; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); font-weight: 500; margin: 0 0 4px; }
+  .section h3 { font-family: Georgia, serif; font-weight: 400; font-size: 24px; margin: 0 0 4px; }
+  .section .desc { color: var(--muted); font-size: 13px; max-width: 700px; line-height: 1.6; margin: 0 0 24px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 340px)); gap: 40px 28px; justify-content: start; }
+
+  .phone { width: 320px; height: 700px; border-radius: 44px; padding: 10px; background: #0a0a0b; box-shadow: 0 20px 60px rgba(0,0,0,0.55), inset 0 0 0 1.5px #2a2a2e; position: relative; overflow: hidden; }
+  .scr { width: 100%; height: 100%; border-radius: 34px; overflow-y: auto; overflow-x: hidden; position: relative; background: radial-gradient(ellipse at 50% 0%, var(--felt-500) 0%, var(--felt-700) 55%, var(--felt-800) 100%); color: var(--cream-100); }
+  .scr::-webkit-scrollbar { display: none; }
+  .notch { position: sticky; top: 0; z-index: 10; display: flex; justify-content: center; }
+  .notch-pill { width: 90px; height: 24px; background: #0a0a0b; border-radius: 14px; margin-top: 8px; }
+  .phone-wrap { display: flex; flex-direction: column; align-items: center; }
+  .label { margin-top: 12px; font-size: 11px; color: var(--page-fg); text-align: center; font-family: "SF Mono", Menlo, monospace; max-width: 320px; }
+  .label .num { color: var(--gold-500); margin-right: 6px; }
+  .label .note { display: block; color: var(--muted); font-size: 10px; margin-top: 3px; line-height: 1.5; }
+
+  .ey { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--cream-300); }
+  .serif { font-family: Georgia, serif; }
+  .gold { color: var(--gold-500); }
+  .thin-rule { height: 1px; background: linear-gradient(to right, transparent, var(--gold-600), transparent); opacity: 0.5; margin: 10px 0; }
+  .hdr-pad { padding: 12px 16px 8px; }
+
+  .avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, var(--gold-500), var(--gold-800)); color: var(--felt-700); font-weight: 700; font-family: Georgia, serif; font-size: 15px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .avatar.lg { width: 56px; height: 56px; font-size: 20px; }
+  .avatar.xl { width: 72px; height: 72px; font-size: 28px; }
+  .avatar.sm { width: 28px; height: 28px; font-size: 11px; }
+  .avatar.sl { background: linear-gradient(135deg, var(--cream-200), var(--cream-400)); color: var(--felt-800); }
+
+  .cf { width: 22px; height: 32px; border-radius: 3px; background: var(--cream-50); display: inline-flex; flex-direction: column; align-items: center; justify-content: center; font-family: Georgia, serif; font-weight: 700; font-size: 10px; line-height: 1; margin-right: 2px; box-shadow: 0 1px 2px rgba(0,0,0,0.3); flex-shrink: 0; }
+  .cf.red { color: var(--card-red); } .cf.blk { color: var(--card-black); }
+
+  .tab-bar { position: sticky; bottom: 0; background: rgba(8,42,33,0.95); backdrop-filter: blur(8px); border-top: 1px solid rgba(201,169,97,0.15); display: flex; padding: 6px 0 4px; z-index: 5; }
+  .tab { flex: 1; text-align: center; font-size: 9px; color: var(--cream-300); padding: 4px 0; }
+  .tab .icon { font-size: 16px; display: block; margin-bottom: 1px; }
+  .tab.active { color: var(--gold-500); }
+
+  .stat-tile { padding: 10px; border-radius: 10px; background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(0,0,0,0.2)); border: 1px solid rgba(201,169,97,0.2); }
+  .stat-tile .lbl { font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: var(--cream-300); margin-bottom: 4px; }
+  .stat-tile .val { font-family: Georgia, serif; font-size: 20px; color: var(--cream-100); line-height: 1.1; }
+  .stat-tile .sub { font-size: 10px; color: var(--cream-400); margin-top: 2px; }
+
+  .tag { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 9px; letter-spacing: 0.5px; text-transform: uppercase; font-weight: 600; }
+  .tag.gold { background: rgba(212,179,104,0.15); color: var(--gold-500); }
+  .tag.claret { background: rgba(196,77,66,0.15); color: var(--claret); }
+  .tag.cream { background: rgba(158,183,164,0.12); color: var(--cream-300); }
+
+  .h2h-bar { margin-bottom: 8px; }
+  .h2h-bar .row { display: flex; justify-content: space-between; font-size: 10px; margin-bottom: 3px; }
+  .h2h-bar .bar { display: flex; height: 5px; border-radius: 3px; overflow: hidden; background: rgba(0,0,0,0.3); }
+
+  .pin-card { padding: 10px; border-radius: 10px; background: linear-gradient(180deg,rgba(212,179,104,0.08),rgba(0,0,0,0.2)); border: 1px solid rgba(212,179,104,0.3); position: relative; }
+  .pin-card::before { content: '📌'; position: absolute; top: 4px; right: 6px; font-size: 10px; opacity: 0.8; }
+
+  @media (max-width: 720px) { .page-hdr, .section { padding-left: 20px; padding-right: 20px; } }
+</style>
+</head>
+<body>
+
+<div class="page-hdr">
+  <div class="ey">Tilted · Match-Up Page v2 · 5 Combined Options</div>
+  <h1>Scoreboard + Magazine + H2H + Pinned Hands</h1>
+  <p>Five options combining your picks. All include: prominent scoreboard (Opt 01), magazine-style moments (Opt 03), head-to-head stat bars (Opt 06), plus a <strong>new pinned hands</strong> feature — let users elevate favorite memorable hands to the top of the match-up page.</p>
+</div>
+
+<!-- 01: Scoreboard Hero + Stacked Sections -->
+<section class="section"><h2>Option 01</h2><h3>Scoreboard Hero + Stacked Sections</h3><p class="desc">Full scoreboard header, then sections stacked: Moments (magazine), H2H bars, Pinned hands grid. Long-scroll canonical layout.</p>
+<div class="grid"><div class="phone-wrap"><div class="phone"><div class="scr">
+  <div class="notch"><div class="notch-pill"></div></div>
+
+  <!-- Scoreboard hero -->
+  <div style="padding:12px 16px 16px;text-align:center;">
+    <div class="ey gold">CAREER MATCH-UP</div>
+    <div style="display:flex;align-items:center;justify-content:space-around;padding:14px 0;">
+      <div style="text-align:center;"><div class="avatar lg">TJ</div><div class="serif gold" style="font-size:42px;line-height:1;margin-top:6px;">7</div></div>
+      <div class="serif" style="font-size:24px;color:var(--cream-300);">–</div>
+      <div style="text-align:center;"><div class="avatar lg sl">SL</div><div class="serif" style="font-size:42px;color:var(--cream-100);line-height:1;margin-top:6px;">4</div></div>
+    </div>
+    <div style="font-size:11px;color:var(--cream-300);">W3 streak · 1,432 hands · Match 11 yesterday</div>
+  </div>
+
+  <!-- Moments -->
+  <div style="padding:0 14px 10px;">
+    <div class="ey gold" style="margin-bottom:6px;">💎 MOMENTS</div>
+    <div style="padding:10px;border-radius:10px;background:linear-gradient(180deg,rgba(196,77,66,0.06),rgba(0,0,0,0.2));border:1px solid rgba(196,77,66,0.25);margin-bottom:6px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><div class="tag claret">BAD BEAT</div><span style="font-size:9px;color:var(--cream-400);">M7</span></div>
+      <div style="font-size:12px;">TJ's <span class="gold">AA</span> lost to runner-runner flush · 180 BB</div>
+    </div>
+    <div style="padding:10px;border-radius:10px;background:linear-gradient(180deg,rgba(212,179,104,0.08),rgba(0,0,0,0.2));border:1px solid rgba(212,179,104,0.3);">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><div class="tag gold">COOLER</div><span style="font-size:9px;color:var(--cream-400);">M10</span></div>
+      <div style="font-size:12px;">Set over set · 240 BB biggest pot ever</div>
+    </div>
+  </div>
+
+  <!-- H2H bars -->
+  <div style="padding:0 14px 10px;">
+    <div class="ey" style="margin-bottom:6px;">⚔ HEAD TO HEAD</div>
+    <div class="h2h-bar"><div class="row"><span class="gold">48%</span><span>VPIP</span><span>39%</span></div><div class="bar"><div style="width:55%;background:var(--gold-500);"></div><div style="width:45%;background:var(--cream-200);"></div></div></div>
+    <div class="h2h-bar"><div class="row"><span class="gold">1.8</span><span>aggression</span><span>1.2</span></div><div class="bar"><div style="width:60%;background:var(--gold-500);"></div><div style="width:40%;background:var(--cream-200);"></div></div></div>
+    <div class="h2h-bar"><div class="row"><span>54%</span><span>showdown win</span><span class="gold">46%</span></div><div class="bar"><div style="width:54%;background:var(--cream-200);"></div><div style="width:46%;background:var(--gold-500);"></div></div></div>
+  </div>
+
+  <!-- Pinned hands -->
+  <div style="padding:0 14px 16px;">
+    <div class="ey gold" style="margin-bottom:6px;">📌 PINNED HANDS · 4</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+      <div class="pin-card"><div style="font-size:9px;color:var(--cream-400);">M3 H7</div><div style="display:flex;margin-top:4px;"><div class="cf red"><span>A</span><span>♥</span></div><div class="cf red"><span>A</span><span>♦</span></div></div><div style="font-size:10px;color:var(--gold-500);margin-top:4px;">240 BB cooler</div></div>
+      <div class="pin-card"><div style="font-size:9px;color:var(--cream-400);">M5 H2</div><div style="display:flex;margin-top:4px;"><div class="cf blk"><span>7</span><span>♠</span></div><div class="cf red"><span>2</span><span>♥</span></div></div><div style="font-size:10px;color:var(--gold-500);margin-top:4px;">180 BB bluff</div></div>
+      <div class="pin-card"><div style="font-size:9px;color:var(--cream-400);">M7 H5</div><div style="display:flex;margin-top:4px;"><div class="cf blk"><span>K</span><span>♠</span></div><div class="cf blk"><span>K</span><span>♣</span></div></div><div style="font-size:10px;color:var(--claret);margin-top:4px;">Bad beat</div></div>
+      <div class="pin-card"><div style="font-size:9px;color:var(--cream-400);">M10 H1</div><div style="display:flex;margin-top:4px;"><div class="cf red"><span>Q</span><span>♥</span></div><div class="cf red"><span>J</span><span>♥</span></div></div><div style="font-size:10px;color:var(--gold-500);margin-top:4px;">Flush runout</div></div>
+    </div>
+  </div>
+
+  <div class="tab-bar"><div class="tab"><span class="icon">♠</span>Home</div><div class="tab active"><span class="icon">⚔</span>Match-up</div><div class="tab"><span class="icon">📜</span>History</div><div class="tab"><span class="icon">⚙</span>Settings</div></div>
+</div></div><div class="label"><span class="num">01</span>Stacked Sections<span class="note">Long-scroll canonical layout. Scoreboard, moments, H2H, pinned. Everything in one view.</span></div></div></div></section>
+
+<!-- 02: Compact Header + Rich Body -->
+<section class="section"><h2>Option 02</h2><h3>Compact Scoreboard + Rich Body</h3><p class="desc">Scoreboard as a compact sticky header (small but ever-present). Body prioritizes pinned hands and moments.</p>
+<div class="grid"><div class="phone-wrap"><div class="phone"><div class="scr">
+  <div class="notch"><div class="notch-pill"></div></div>
+
+  <!-- Compact sticky scoreboard -->
+  <div style="padding:10px 16px;background:rgba(8,42,33,0.95);border-bottom:1px solid rgba(201,169,97,0.2);display:flex;align-items:center;gap:10px;position:sticky;top:32px;z-index:5;">
+    <div class="avatar sm">TJ</div>
+    <div class="serif"><span class="gold" style="font-size:20px;">7</span><span style="color:var(--cream-300);"> – </span><span style="font-size:20px;">4</span></div>
+    <div class="avatar sm sl">SL</div>
+    <div style="margin-left:auto;font-size:10px;color:var(--gold-500);">W3</div>
+  </div>
+
+  <div style="padding:14px 14px 16px;">
+    <!-- Big pinned hero -->
+    <div class="ey gold" style="margin-bottom:6px;">📌 FEATURED HAND</div>
+    <div class="pin-card" style="padding:14px;margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><div class="tag gold">COOLER</div><span style="font-size:10px;color:var(--cream-400);">Match 10 · Hand 7</span></div>
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+        <div style="display:flex;"><div class="cf blk"><span>K</span><span>♠</span></div><div class="cf blk"><span>K</span><span>♣</span></div></div>
+        <span style="font-size:10px;color:var(--cream-300);">beats</span>
+        <div style="display:flex;opacity:0.7;"><div class="cf red"><span>Q</span><span>♥</span></div><div class="cf red"><span>Q</span><span>♦</span></div></div>
+        <span class="serif gold" style="margin-left:auto;font-size:18px;">240 BB</span>
+      </div>
+      <div style="font-size:11px;color:var(--cream-300);">Set over set on the turn · biggest pot ever</div>
+    </div>
+
+    <!-- Other pinned as carousel/row -->
+    <div class="ey" style="margin-bottom:6px;">MORE PINNED · 3</div>
+    <div style="display:flex;gap:6px;overflow-x:auto;margin-bottom:12px;">
+      <div class="pin-card" style="min-width:110px;padding:8px;"><div style="font-size:9px;color:var(--cream-400);">M5 H2</div><div style="display:flex;margin-top:4px;"><div class="cf blk"><span>7</span><span>♠</span></div><div class="cf red"><span>2</span><span>♥</span></div></div><div style="font-size:10px;color:var(--gold-500);margin-top:4px;">180 BB bluff</div></div>
+      <div class="pin-card" style="min-width:110px;padding:8px;"><div style="font-size:9px;color:var(--cream-400);">M7 H5</div><div style="display:flex;margin-top:4px;"><div class="cf blk"><span>K</span><span>♠</span></div><div class="cf blk"><span>K</span><span>♣</span></div></div><div style="font-size:10px;color:var(--claret);margin-top:4px;">Bad beat</div></div>
+      <div class="pin-card" style="min-width:110px;padding:8px;"><div style="font-size:9px;color:var(--cream-400);">M10 H1</div><div style="display:flex;margin-top:4px;"><div class="cf red"><span>Q</span><span>♥</span></div><div class="cf red"><span>J</span><span>♥</span></div></div><div style="font-size:10px;color:var(--gold-500);margin-top:4px;">Flush</div></div>
+    </div>
+
+    <!-- H2H -->
+    <div class="ey" style="margin-bottom:6px;">⚔ HEAD TO HEAD</div>
+    <div class="h2h-bar"><div class="row"><span class="gold">48%</span><span>VPIP</span><span>39%</span></div><div class="bar"><div style="width:55%;background:var(--gold-500);"></div><div style="width:45%;background:var(--cream-200);"></div></div></div>
+    <div class="h2h-bar"><div class="row"><span class="gold">1.8</span><span>aggression</span><span>1.2</span></div><div class="bar"><div style="width:60%;background:var(--gold-500);"></div><div style="width:40%;background:var(--cream-200);"></div></div></div>
+  </div>
+
+  <div class="tab-bar"><div class="tab"><span class="icon">♠</span>Home</div><div class="tab active"><span class="icon">⚔</span>Match-up</div><div class="tab"><span class="icon">📜</span>History</div><div class="tab"><span class="icon">⚙</span>Settings</div></div>
+</div></div><div class="label"><span class="num">02</span>Compact + Rich Body<span class="note">Sticky compact scoreboard. Featured pinned hand. Carousel of others. H2H below.</span></div></div></div></section>
+
+<!-- 03: Tabbed Deep Dive -->
+<section class="section"><h2>Option 03</h2><h3>Tabbed Deep Dive</h3><p class="desc">Scoreboard header always visible. Sub-tabs: <strong>Overview</strong> (H2H+stats), <strong>Pinned</strong> (hand gallery), <strong>Moments</strong> (magazine feed).</p>
+<div class="grid"><div class="phone-wrap"><div class="phone"><div class="scr">
+  <div class="notch"><div class="notch-pill"></div></div>
+
+  <div style="padding:12px 16px;text-align:center;">
+    <div class="ey gold">TJ vs STEPHEN</div>
+    <div class="serif" style="font-size:26px;margin-top:2px;"><span class="gold">7</span> – 4</div>
+    <div style="font-size:10px;color:var(--cream-400);margin-top:2px;">W3 streak · 1,432 hands</div>
+  </div>
+
+  <!-- Sub-tabs -->
+  <div style="padding:0 14px;margin-bottom:10px;">
+    <div style="display:flex;gap:4px;padding:4px;background:rgba(0,0,0,0.3);border-radius:10px;">
+      <div style="flex:1;padding:7px;text-align:center;font-size:11px;border-radius:7px;background:rgba(212,179,104,0.2);color:var(--gold-500);font-weight:600;">Overview</div>
+      <div style="flex:1;padding:7px;text-align:center;font-size:11px;color:var(--cream-300);">Pinned · 4</div>
+      <div style="flex:1;padding:7px;text-align:center;font-size:11px;color:var(--cream-300);">Moments</div>
+    </div>
+  </div>
+
+  <div style="padding:0 14px 16px;">
+    <!-- Overview tab content -->
+    <div class="ey" style="margin-bottom:6px;">⚔ HEAD TO HEAD</div>
+    <div class="h2h-bar"><div class="row"><span class="gold">48%</span><span>VPIP</span><span>39%</span></div><div class="bar"><div style="width:55%;background:var(--gold-500);"></div><div style="width:45%;background:var(--cream-200);"></div></div></div>
+    <div class="h2h-bar"><div class="row"><span class="gold">1.8</span><span>aggression</span><span>1.2</span></div><div class="bar"><div style="width:60%;background:var(--gold-500);"></div><div style="width:40%;background:var(--cream-200);"></div></div></div>
+    <div class="h2h-bar"><div class="row"><span>54%</span><span>showdown win</span><span class="gold">46%</span></div><div class="bar"><div style="width:54%;background:var(--cream-200);"></div><div style="width:46%;background:var(--gold-500);"></div></div></div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:12px;">
+      <div class="stat-tile"><div class="lbl">Biggest pot</div><div class="val gold">240 BB</div></div>
+      <div class="stat-tile"><div class="lbl">Hands played</div><div class="val">1,432</div></div>
+      <div class="stat-tile"><div class="lbl">Showdowns</div><div class="val">89</div></div>
+      <div class="stat-tile"><div class="lbl">Bad beats</div><div class="val" style="color:var(--claret);">3</div></div>
+    </div>
+  </div>
+
+  <div class="tab-bar"><div class="tab"><span class="icon">♠</span>Home</div><div class="tab active"><span class="icon">⚔</span>Match-up</div><div class="tab"><span class="icon">📜</span>History</div><div class="tab"><span class="icon">⚙</span>Settings</div></div>
+</div></div><div class="label"><span class="num">03</span>Tabbed Deep Dive<span class="note">Scoreboard + 3 sub-tabs: Overview / Pinned / Moments. Organized, explorable.</span></div></div></div></section>
+
+<!-- 04: Hero Moment + Scoreboard Mid -->
+<section class="section"><h2>Option 04</h2><h3>Hero Moment + Scoreboard</h3><p class="desc">Lead with the most interesting moment (bad beat of month / cooler). Scoreboard mid-page. Pinned hands below.</p>
+<div class="grid"><div class="phone-wrap"><div class="phone"><div class="scr">
+  <div class="notch"><div class="notch-pill"></div></div>
+
+  <!-- Hero Moment -->
+  <div style="padding:14px 16px;">
+    <div class="ey gold" style="margin-bottom:6px;">💎 MOMENT OF THE WEEK</div>
+    <div style="padding:14px;border-radius:14px;background:linear-gradient(180deg,rgba(212,179,104,0.12),rgba(0,0,0,0.25));border:2px solid rgba(212,179,104,0.5);box-shadow:0 6px 20px rgba(212,179,104,0.08);">
+      <div class="tag gold" style="margin-bottom:8px;">COOLER</div>
+      <div class="serif" style="font-size:17px;margin-bottom:4px;">Set over set</div>
+      <div style="font-size:12px;color:var(--cream-300);margin-bottom:10px;">Biggest pot in the rivalry's history</div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <div style="display:flex;"><div class="cf blk"><span>K</span><span>♠</span></div><div class="cf blk"><span>K</span><span>♣</span></div></div>
+        <span style="font-size:10px;color:var(--cream-300);">beats</span>
+        <div style="display:flex;opacity:0.6;"><div class="cf red"><span>Q</span><span>♥</span></div><div class="cf red"><span>Q</span><span>♦</span></div></div>
+        <span class="serif gold" style="margin-left:auto;font-size:20px;">240 BB</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scoreboard -->
+  <div style="padding:0 16px 14px;">
+    <div class="thin-rule"></div>
+    <div style="display:flex;align-items:center;justify-content:space-around;padding:12px 0;">
+      <div style="text-align:center;"><div class="avatar lg">TJ</div><div class="serif gold" style="font-size:32px;line-height:1;margin-top:6px;">7</div></div>
+      <div class="serif" style="font-size:20px;color:var(--cream-300);">–</div>
+      <div style="text-align:center;"><div class="avatar lg sl">SL</div><div class="serif" style="font-size:32px;color:var(--cream-100);line-height:1;margin-top:6px;">4</div></div>
+    </div>
+    <div style="text-align:center;font-size:10px;color:var(--cream-400);">W3 streak · VPIP 48% vs 39% · 1,432 hands</div>
+    <div class="thin-rule"></div>
+  </div>
+
+  <!-- Pinned grid -->
+  <div style="padding:0 14px 16px;">
+    <div class="ey gold" style="margin-bottom:6px;">📌 PINNED · 4</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+      <div class="pin-card"><div style="font-size:9px;color:var(--cream-400);">M5 H2</div><div style="display:flex;margin-top:4px;"><div class="cf blk"><span>7</span><span>♠</span></div><div class="cf red"><span>2</span><span>♥</span></div></div><div style="font-size:10px;color:var(--gold-500);margin-top:4px;">180 BB bluff</div></div>
+      <div class="pin-card"><div style="font-size:9px;color:var(--cream-400);">M7 H5</div><div style="display:flex;margin-top:4px;"><div class="cf blk"><span>K</span><span>♠</span></div><div class="cf blk"><span>K</span><span>♣</span></div></div><div style="font-size:10px;color:var(--claret);margin-top:4px;">Bad beat</div></div>
+      <div class="pin-card"><div style="font-size:9px;color:var(--cream-400);">M10 H1</div><div style="display:flex;margin-top:4px;"><div class="cf red"><span>Q</span><span>♥</span></div><div class="cf red"><span>J</span><span>♥</span></div></div><div style="font-size:10px;color:var(--gold-500);margin-top:4px;">Flush</div></div>
+      <div class="pin-card"><div style="font-size:9px;color:var(--cream-400);">M3 H7</div><div style="display:flex;margin-top:4px;"><div class="cf red"><span>A</span><span>♥</span></div><div class="cf red"><span>A</span><span>♦</span></div></div><div style="font-size:10px;color:var(--gold-500);margin-top:4px;">Pocket rockets</div></div>
+    </div>
+  </div>
+
+  <div class="tab-bar"><div class="tab"><span class="icon">♠</span>Home</div><div class="tab active"><span class="icon">⚔</span>Match-up</div><div class="tab"><span class="icon">📜</span>History</div><div class="tab"><span class="icon">⚙</span>Settings</div></div>
+</div></div><div class="label"><span class="num">04</span>Hero Moment First<span class="note">Biggest hand headlines the page. Scoreboard secondary. Narrative-first.</span></div></div></div></section>
+
+<!-- 05: Pinned-First Gallery -->
+<section class="section"><h2>Option 05</h2><h3>Pinned-First Gallery</h3><p class="desc">Pinned hands are the visual hero. Scoreboard compact in header. H2H bars and moments tucked below.</p>
+<div class="grid"><div class="phone-wrap"><div class="phone"><div class="scr">
+  <div class="notch"><div class="notch-pill"></div></div>
+
+  <!-- Compact scoreboard header -->
+  <div style="padding:12px 16px;display:flex;justify-content:space-between;align-items:center;background:rgba(8,42,33,0.95);border-bottom:1px solid rgba(201,169,97,0.2);">
+    <div style="display:flex;gap:8px;align-items:center;">
+      <div class="avatar sm">TJ</div>
+      <div class="serif"><span class="gold" style="font-size:22px;">7</span><span style="color:var(--cream-300);">–</span><span style="font-size:22px;">4</span></div>
+      <div class="avatar sm sl">SL</div>
+    </div>
+    <div style="font-size:10px;color:var(--gold-500);">W3 streak</div>
+  </div>
+
+  <div style="padding:14px 14px 8px;">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">
+      <div class="ey gold">📌 PINNED HANDS</div>
+      <span style="font-size:10px;color:var(--cream-400);">4 pinned · 18 total</span>
+    </div>
+
+    <!-- Big pinned hand -->
+    <div class="pin-card" style="padding:12px;margin-bottom:8px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><div class="tag gold">COOLER · M10</div><span class="serif gold" style="font-size:16px;">240 BB</span></div>
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+        <div style="display:flex;"><div class="cf blk"><span>K</span><span>♠</span></div><div class="cf blk"><span>K</span><span>♣</span></div></div>
+        <span style="font-size:10px;color:var(--cream-300);">vs</span>
+        <div style="display:flex;opacity:0.7;"><div class="cf red"><span>Q</span><span>♥</span></div><div class="cf red"><span>Q</span><span>♦</span></div></div>
+      </div>
+      <div style="font-size:11px;color:var(--cream-300);">Set of Kings over set of Queens</div>
+    </div>
+
+    <!-- Grid of smaller pinned -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:14px;">
+      <div class="pin-card" style="padding:8px;"><div style="display:flex;"><div class="cf blk"><span>7</span><span>♠</span></div><div class="cf red"><span>2</span><span>♥</span></div></div><div style="font-size:9px;color:var(--gold-500);margin-top:3px;">180 BB</div></div>
+      <div class="pin-card" style="padding:8px;"><div style="display:flex;"><div class="cf blk"><span>K</span><span>♠</span></div><div class="cf blk"><span>K</span><span>♣</span></div></div><div style="font-size:9px;color:var(--claret);margin-top:3px;">Bad beat</div></div>
+      <div class="pin-card" style="padding:8px;"><div style="display:flex;"><div class="cf red"><span>Q</span><span>♥</span></div><div class="cf red"><span>J</span><span>♥</span></div></div><div style="font-size:9px;color:var(--gold-500);margin-top:3px;">140 BB</div></div>
+    </div>
+
+    <!-- H2H -->
+    <div class="ey" style="margin-bottom:6px;">⚔ HEAD TO HEAD</div>
+    <div class="h2h-bar"><div class="row"><span class="gold">1.8</span><span>aggression</span><span>1.2</span></div><div class="bar"><div style="width:60%;background:var(--gold-500);"></div><div style="width:40%;background:var(--cream-200);"></div></div></div>
+    <div class="h2h-bar"><div class="row"><span class="gold">48%</span><span>VPIP</span><span>39%</span></div><div class="bar"><div style="width:55%;background:var(--gold-500);"></div><div style="width:45%;background:var(--cream-200);"></div></div></div>
+  </div>
+
+  <div class="tab-bar"><div class="tab"><span class="icon">♠</span>Home</div><div class="tab active"><span class="icon">⚔</span>Match-up</div><div class="tab"><span class="icon">📜</span>History</div><div class="tab"><span class="icon">⚙</span>Settings</div></div>
+</div></div><div class="label"><span class="num">05</span>Pinned-First Gallery<span class="note">Pinned hands as visual hero. Scoreboard in thin header. Hand-focused rivalry.</span></div></div></div></section>
+
+</body>
+</html>

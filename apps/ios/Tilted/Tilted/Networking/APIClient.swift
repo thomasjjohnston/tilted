@@ -3,11 +3,7 @@ import Foundation
 actor APIClient {
     static let shared = APIClient()
 
-    #if DEBUG
-    private var baseURL = URL(string: "http://10.0.0.30:3000")!
-    #else
     private var baseURL = URL(string: "https://tilted-server.fly.dev")!
-    #endif
 
     private var token: String?
 
@@ -61,6 +57,23 @@ actor APIClient {
             body["amount"] = amount
         }
         return try await post("/v1/hand/\(handId)/action", body: body)
+    }
+
+    func submitBatchActions(actions: [(handId: String, type: String, amount: Int?)]) async throws -> MatchState {
+        let body: [String: Any] = [
+            "actions": actions.map { action -> [String: Any] in
+                var a: [String: Any] = [
+                    "hand_id": action.handId,
+                    "type": action.type,
+                    "client_tx_id": UUID().uuidString,
+                ]
+                if let amount = action.amount {
+                    a["amount"] = amount
+                }
+                return a
+            }
+        ]
+        return try await post("/v1/batch-actions", body: body)
     }
 
     func getLegalActions(handId: String) async throws -> LegalActionsResponse {
