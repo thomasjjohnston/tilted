@@ -2,6 +2,10 @@ import Foundation
 import UIKit
 import UserNotifications
 
+extension Notification.Name {
+    static let tiltedDeepLink = Notification.Name("tiltedDeepLink")
+}
+
 @Observable
 final class PushRegistrar: NSObject, UNUserNotificationCenterDelegate {
     static let shared = PushRegistrar()
@@ -40,7 +44,7 @@ final class PushRegistrar: NSObject, UNUserNotificationCenterDelegate {
         }
     }
 
-    // Handle notification tap while app is in foreground
+    // Foreground notification presentation
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification
@@ -48,15 +52,26 @@ final class PushRegistrar: NSObject, UNUserNotificationCenterDelegate {
         return [.banner, .sound]
     }
 
-    // Handle notification tap
+    // Notification tap
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         didReceive response: UNNotificationResponse
     ) async {
         let userInfo = response.notification.request.content.userInfo
-        if let _ = userInfo["match_id"] as? String {
-            // Deep link to turn view — trigger refresh
-            // The AppStore will handle navigation based on match state
+        let kind = (userInfo["kind"] as? String) ?? ""
+
+        await MainActor.run {
+            // All four notification kinds deep-link into Home. HomeView
+            // already branches on current match/round state to show the
+            // right CTA ("Take your turn", "Watch the reveal", etc).
+            store?.selectedTab = .home
+            NotificationCenter.default.post(
+                name: .tiltedDeepLink,
+                object: nil,
+                userInfo: ["kind": kind]
+            )
         }
+        // Refresh off the main thread so the deep-link handler returns fast.
+        await store?.refresh()
     }
 }
