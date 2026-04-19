@@ -135,17 +135,29 @@ struct TurnView: View {
                 .transition(.opacity)
             }
 
-            // Showdown result overlay
+            // Result overlay (showdown, fold, or split pot — fires for every
+            // deliberate completion; auto-acted batch hands never fire this)
             if let result = showdownResult {
+                let pendingOthers = pendingHands.filter { $0.handId != result.handId }
                 ShowdownResultView(
                     hand: result,
                     match: store.matchState ?? match,
+                    remainingPendingCount: pendingOthers.count,
+                    hasNextPending: !pendingOthers.isEmpty,
                     onFavorite: { fav in
                         Task { await store.toggleFavorite(handId: result.handId, favorite: fav) }
                     },
-                    onContinue: {
+                    onBackToList: {
                         showdownResult = nil
                         checkTurnComplete()
+                    },
+                    onNextHand: {
+                        showdownResult = nil
+                        if let next = pendingOthers.first {
+                            selectedHand = next
+                        } else {
+                            checkTurnComplete()
+                        }
                     }
                 )
                 .transition(.opacity)
@@ -352,12 +364,38 @@ struct TurnView: View {
         }
         deliberateActions.append((handIndex: hand.handIndex, summary: actionLabel))
 
-        // Check if this action caused a showdown (immediate completion)
+        // Fire the result screen for ANY hand that completed from this
+        // deliberate action (showdown, fold, or split pot). Auto-acted
+        // batch hands go through submitBatchActions and never hit this path.
         if let updatedRound = store.matchState?.currentRound,
            let updatedHand = updatedRound.hands.first(where: { $0.handId == hand.handId }),
-           updatedHand.status == "complete" && updatedHand.terminalReason == "showdown" {
-            showdownsThisTurn.append(updatedHand)
-            withAnimation { showdownResult = updatedHand }
+           updatedHand.status == "complete" {
+            // On fold, server blanks the folder's hole cards. The user
+            // just folded — show the cards they gave up by splicing the
+            // pre-action snapshot in.
+            let displayHand = updatedHand.myHole.isEmpty
+                ? HandView(
+                    handId: updatedHand.handId,
+                    handIndex: updatedHand.handIndex,
+                    myHole: hand.myHole,
+                    opponentHole: updatedHand.opponentHole,
+                    board: updatedHand.board,
+                    pot: updatedHand.pot,
+                    myReserved: updatedHand.myReserved,
+                    opponentReserved: updatedHand.opponentReserved,
+                    street: updatedHand.street,
+                    status: updatedHand.status,
+                    actionOnMe: updatedHand.actionOnMe,
+                    terminalReason: updatedHand.terminalReason,
+                    winnerUserId: updatedHand.winnerUserId,
+                    actionSummary: updatedHand.actionSummary
+                )
+                : updatedHand
+
+            if updatedHand.terminalReason == "showdown" {
+                showdownsThisTurn.append(updatedHand)
+            }
+            withAnimation { showdownResult = displayHand }
             return
         }
 
