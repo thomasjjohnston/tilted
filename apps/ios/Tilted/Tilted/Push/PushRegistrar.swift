@@ -39,8 +39,37 @@ final class PushRegistrar: NSObject, UNUserNotificationCenterDelegate {
 
     func handleDeviceToken(_ token: Data) {
         let tokenString = token.map { String(format: "%02.2hhx", $0) }.joined()
+        self.lastDeviceToken = tokenString
         Task {
-            try? await APIClient.shared.updateApnsToken(tokenString)
+            await uploadTokenIfAuthenticated(tokenString)
+        }
+    }
+
+    /// Re-attempt upload after auth becomes available. Called from
+    /// AppStore right after login / resumed session so the token lands
+    /// once we have a bearer.
+    func uploadTokenIfAuthenticated() {
+        guard let token = lastDeviceToken else {
+            // No device token yet — ask iOS for one (callback re-fires and
+            // we'll upload from there with auth in place).
+            UIApplication.shared.registerForRemoteNotifications()
+            return
+        }
+        Task { await uploadTokenIfAuthenticated(token) }
+    }
+
+    private var lastDeviceToken: String?
+
+    private func uploadTokenIfAuthenticated(_ tokenString: String) async {
+        guard store?.isAuthenticated == true else {
+            // Will be retried when AppStore calls uploadTokenIfAuthenticated()
+            // after login completes.
+            return
+        }
+        do {
+            try await APIClient.shared.updateApnsToken(tokenString)
+        } catch {
+            print("APNS token upload failed: \(error)")
         }
     }
 
