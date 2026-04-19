@@ -41,6 +41,7 @@ final class AppStore {
                 self.currentUserId = userId
                 self.currentUserName = KeychainHelper.load(key: "user_name")
                 self.isAuthenticated = true
+                PushRegistrar.shared.uploadTokenIfAuthenticated()
                 await refresh()
             }
         }
@@ -57,6 +58,7 @@ final class AppStore {
         self.currentUserId = response.userId
         self.currentUserName = response.displayName
         self.isAuthenticated = true
+        PushRegistrar.shared.uploadTokenIfAuthenticated()
 
         await refresh()
     }
