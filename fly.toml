@@ -2,6 +2,7 @@ app = 'tilted-server'
 primary_region = 'iad'
 
 [build]
+  dockerfile = "apps/server/Dockerfile"
 
 [http_service]
   internal_port = 3000

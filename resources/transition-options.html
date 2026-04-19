@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tilted — Hand-to-Hand Transition Options</title>
+<style>
+  :root {
+    --felt-900: #051c15; --felt-800: #082a21; --felt-700: #0e3b2e;
+    --felt-600: #164a3a; --felt-500: #1a5a43;
+    --gold-500: #d4b368; --gold-600: #c9a961; --gold-700: #a88334; --gold-800: #7a5f2b;
+    --cream-50: #f6f1e1; --cream-100: #f3ecd6; --cream-200: #d9cfb2; --cream-300: #9eb7a4; --cream-400: #6a8a7a;
+    --claret: #c44d42; --card-red: #c92b2b; --card-black: #111;
+    --page-bg: #15161a; --page-fg: #e8e6df; --muted: #8a8a8a; --rule: #2a2a30;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--page-bg); color: var(--page-fg); font-family: -apple-system, "SF Pro Text", sans-serif; -webkit-font-smoothing: antialiased; }
+  .page-hdr { padding: 48px 48px 20px; max-width: 1400px; margin: 0 auto; }
+  .page-hdr .ey { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: var(--gold-500); margin-bottom: 10px; }
+  .page-hdr h1 { font-family: Georgia, serif; font-weight: 400; font-size: 36px; margin: 0 0 8px; }
+  .page-hdr p { color: var(--muted); font-size: 13px; line-height: 1.7; max-width: 680px; }
+  .section { padding: 36px 48px; max-width: 1400px; margin: 0 auto; border-top: 1px solid var(--rule); }
+  .section h2 { font-size: 12px; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); font-weight: 500; margin: 0 0 4px; }
+  .section h3 { font-family: Georgia, serif; font-weight: 400; font-size: 24px; margin: 0 0 4px; }
+  .section .desc { color: var(--muted); font-size: 13px; max-width: 700px; line-height: 1.6; margin: 0 0 24px; }
+  .interaction-note { background: rgba(212,179,104,0.06); border: 1px solid rgba(212,179,104,0.2); border-radius: 8px; padding: 10px 12px; margin: 12px 0 20px; font-size: 12px; color: var(--cream-200); line-height: 1.5; max-width: 700px; }
+  .interaction-note strong { color: var(--gold-500); }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 340px)); gap: 40px 28px; justify-content: start; }
+  .phone-wrap { display: flex; flex-direction: column; align-items: center; }
+  .phone { width: 320px; height: 700px; border-radius: 44px; padding: 10px; background: #0a0a0b; box-shadow: 0 20px 60px rgba(0,0,0,0.55), inset 0 0 0 1.5px #2a2a2e; position: relative; overflow: hidden; }
+  .scr { width: 100%; height: 100%; border-radius: 34px; overflow: hidden; position: relative; background: radial-gradient(ellipse at 50% 0%, var(--felt-500) 0%, var(--felt-700) 55%, var(--felt-800) 100%); color: var(--cream-100); display: flex; flex-direction: column; }
+  .notch { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); width: 90px; height: 24px; background: #0a0a0b; border-radius: 14px; z-index: 10; }
+  .hind { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); width: 110px; height: 4px; border-radius: 2px; background: rgba(243,236,214,0.4); z-index: 10; }
+
+  .label { margin-top: 12px; font-size: 11px; color: var(--page-fg); text-align: center; font-family: "SF Mono", Menlo, monospace; max-width: 320px; }
+  .label .num { color: var(--gold-500); margin-right: 6px; }
+  .label .note { display: block; color: var(--muted); font-size: 10px; margin-top: 3px; line-height: 1.5; }
+
+  .ey { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--cream-300); }
+  .serif { font-family: Georgia, serif; }
+  .gold { color: var(--gold-500); }
+  .cf { width: 22px; height: 32px; border-radius: 3px; background: var(--cream-50); display: inline-flex; flex-direction: column; align-items: center; justify-content: center; font-family: Georgia, serif; font-weight: 700; font-size: 10px; line-height: 1; margin-right: 2px; box-shadow: 0 1px 2px rgba(0,0,0,0.3); flex-shrink: 0; }
+  .cf.red { color: var(--card-red); } .cf.blk { color: var(--card-black); }
+
+  .hdr-bar { padding: 12px 16px; background: rgba(8,42,33,0.95); display: flex; justify-content: space-between; align-items: center; font-size: 12px; border-bottom: 1px solid rgba(201,169,97,0.1); }
+
+  .hand-tile { padding: 10px 12px; border-radius: 12px; margin-bottom: 8px; background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(0,0,0,0.15)); border: 1px solid rgba(201,169,97,0.18); }
+  .hand-tile.pending { border-color: rgba(212,179,104,0.5); background: linear-gradient(180deg, rgba(212,179,104,0.04), rgba(0,0,0,0.18)); }
+  .hand-tile.resolved { opacity: 0.4; padding: 6px 10px; font-size: 10px; }
+
+  .chip-pill { display: inline-block; padding: 3px 8px; background: rgba(0,0,0,0.3); border: 1px solid rgba(201,169,97,0.2); border-radius: 8px; font-size: 10px; color: var(--cream-200); margin-right: 4px; }
+
+  .arrow-note { position: absolute; background: rgba(212,179,104,0.15); border: 1px solid var(--gold-500); border-radius: 8px; padding: 4px 8px; font-size: 10px; color: var(--gold-500); font-weight: 600; white-space: nowrap; z-index: 20; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+
+  @media (max-width: 720px) { .page-hdr, .section { padding-left: 20px; padding-right: 20px; } }
+</style>
+</head>
+<body>
+
+<div class="page-hdr">
+  <div class="ey">Tilted · Hand-to-Hand Transitions</div>
+  <h1>Reducing Friction, Preserving Strategy</h1>
+  <p>Core tenet: after acting, return to overview for strategic reassessment. But beta testers report friction finding the next pending hand. Six options for reducing that friction without auto-transitioning willy-nilly.</p>
+</div>
+
+<!-- Option 00: Current (baseline) -->
+<section class="section"><h2>Baseline</h2><h3>Current Behavior</h3><p class="desc">How it works today. Reference point.</p>
+<div class="interaction-note">
+  <strong>Current flow:</strong> Tap pending hand → detail sheet opens → act → sheet dismisses back to the list at its current scroll position. User scrolls to find the next pending hand and taps it.<br/>
+  <strong>Friction:</strong> After acting, user lands on the list wherever it was scrolled. They have to scan and scroll to find the next pending hand.
+</div>
+<div class="grid"><div class="phone-wrap"><div class="phone"><div class="scr">
+  <div class="notch"></div>
+  <div style="height:32px;"></div>
+  <div class="hdr-bar"><span>‹</span><span>3 of 10 hands left</span><span class="gold">1,420 to bet</span></div>
+  <div style="padding:10px 12px;overflow-y:auto;flex:1;">
+    <div class="ey gold" style="margin-bottom:4px;">ACTION REQUIRED · 3</div>
+    <div class="hand-tile resolved">H1 · Folded</div>
+    <div class="hand-tile resolved">H2 · Won 45</div>
+    <div class="hand-tile pending">
+      <div style="display:flex;justify-content:space-between;align-items:center;"><span>H3 · Flop</span><span class="gold" style="font-size:11px;">Facing 40</span></div>
+      <div style="display:flex;margin-top:4px;"><div class="cf red"><span>A</span><span>♥</span></div><div class="cf blk"><span>K</span><span>♠</span></div></div>
+    </div>
+    <div class="hand-tile resolved">H4 · Waiting on Stephen</div>
+    <div class="hand-tile resolved">H5 · All-In</div>
+    <div class="hand-tile resolved">H6 · Waiting</div>
+    <div class="hand-tile pending">
+      <div style="display:flex;justify-content:space-between;align-items:center;"><span>H7 · Preflop</span><span style="font-size:11px;color:var(--cream-300);">Check to you</span></div>
+    </div>
+    <div class="hand-tile resolved">H8 · Waiting</div>
+    <div class="hand-tile pending">
+      <div style="display:flex;justify-content:space-between;align-items:center;"><span>H9 · Turn</span><span class="gold" style="font-size:11px;">Facing 120</span></div>
+    </div>
+    <div class="hand-tile resolved">H10 · Folded</div>
+  </div>
+  <div class="hind"></div>
+</div></div><div class="label"><span class="num">B</span>Current<span class="note">User must scroll/scan to find next pending hand.</span></div></div></div></section>
+
+<!-- Option 01: Auto-scroll -->
+<section class="section"><h2>Option 01</h2><h3>Auto-scroll to First Pending</h3><p class="desc">After acting, the list auto-scrolls so the next pending hand is at the top.</p>
+<div class="interaction-note">
+  <strong>Interaction:</strong> Tap pending hand → sheet opens → act → sheet dismisses. <strong>As it dismisses, the list smoothly scrolls</strong> so the next Action Required hand is at the top of the visible area. User sees it immediately without scrolling.<br/>
+  <strong>Trade-off:</strong> Subtle. Doesn't add new UI. May feel magical or may feel like the app "did something" unexpectedly.
+</div>
+<div class="grid"><div class="phone-wrap"><div class="phone"><div class="scr">
+  <div class="notch"></div>
+  <div style="height:32px;"></div>
+  <div class="hdr-bar"><span>‹</span><span>2 of 10 hands left</span><span class="gold">1,380 to bet</span></div>
+  <div style="padding:10px 12px;overflow-y:auto;flex:1;position:relative;">
+    <div class="arrow-note" style="top:50px;right:20px;">↑ Auto-scrolled here</div>
+    <div class="ey gold" style="margin-bottom:4px;">ACTION REQUIRED · 2</div>
+    <div class="hand-tile pending" style="border-color:var(--gold-500);box-shadow:0 0 16px rgba(212,179,104,0.15);">
+      <div style="display:flex;justify-content:space-between;align-items:center;"><span>H7 · Preflop</span><span style="font-size:11px;color:var(--cream-300);">Check to you</span></div>
+      <div style="display:flex;margin-top:4px;"><div class="cf blk"><span>9</span><span>♠</span></div><div class="cf red"><span>9</span><span>♥</span></div></div>
+    </div>
+    <div class="hand-tile pending">
+      <div style="display:flex;justify-content:space-between;align-items:center;"><span>H9 · Turn</span><span class="gold" style="font-size:11px;">Facing 120</span></div>
+    </div>
+    <div class="ey" style="margin-top:12px;">RESOLVED · 6</div>
+    <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;">
+      <span class="chip-pill">H1 Fold</span><span class="chip-pill" style="color:var(--gold-500);">H2 +45</span><span class="chip-pill" style="color:var(--gold-500);">H3 +340</span><span class="chip-pill" style="color:var(--claret);">H5 All-In</span><span class="chip-pill">H10 Fold</span>
+    </div>
+  </div>
+  <div class="hind"></div>
+</div></div><div class="label"><span class="num">01</span>Auto-scroll<span class="note">List scrolls to next pending after acting. Invisible magic.</span></div></div></div></section>
+
+<!-- Option 02: Sticky "Next Pending" Button -->
+<section class="section"><h2>Option 02</h2><h3>Sticky "Next Pending" Button</h3><p class="desc">Persistent button at bottom of screen opens the next pending hand's detail sheet directly.</p>
+<div class="interaction-note">
+  <strong>Interaction:</strong> A sticky button "Next: Hand 7 →" appears above the tab bar whenever there are pending hands. <strong>Tap it to directly open the next pending hand's detail sheet</strong> — no need to scroll the list or find the tile.<br/>
+  <strong>Trade-off:</strong> Extra UI chrome. But explicit, discoverable, and keeps the strategic overview optional (user can still scroll and pick manually).
+</div>
+<div class="grid"><div class="phone-wrap"><div class="phone"><div class="scr">
+  <div class="notch"></div>
+  <div style="height:32px;"></div>
+  <div class="hdr-bar"><span>‹</span><span>3 of 10 hands left</span><span class="gold">1,420 to bet</span></div>
+  <div style="padding:10px 12px;overflow-y:auto;flex:1;">
+    <div class="ey gold" style="margin-bottom:4px;">ACTION REQUIRED · 3</div>
+    <div class="hand-tile pending"><div style="display:flex;justify-content:space-between;align-items:center;"><span>H3 · Flop</span><span class="gold" style="font-size:11px;">Facing 40</span></div></div>
+    <div class="hand-tile pending"><div style="display:flex;justify-content:space-between;align-items:center;"><span>H7 · Preflop</span><span style="font-size:11px;color:var(--cream-300);">Check to you</span></div></div>
+    <div class="hand-tile pending"><div style="display:flex;justify-content:space-between;align-items:center;"><span>H9 · Turn</span><span class="gold" style="font-size:11px;">Facing 120</span></div></div>
+    <div class="ey" style="margin-top:12px;">RESOLVED · 4</div>
+    <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;">
+      <span class="chip-pill">H1 Fold</span><span class="chip-pill" style="color:var(--gold-500);">H2 +45</span>
+    </div>
+  </div>
+  <!-- Sticky "Next" button -->
+  <div style="padding:12px 16px;border-top:1px solid rgba(201,169,97,0.2);background:rgba(8,42,33,0.95);">
+    <button style="width:100%;padding:12px;background:linear-gradient(180deg,var(--gold-500),var(--gold-700));color:var(--felt-800);border:none;border-radius:10px;font-weight:700;font-size:13px;box-shadow:0 3px 0 rgba(0,0,0,0.25);">Next: Hand 3 (Facing 40) →</button>
+  </div>
+  <div class="hind"></div>
+</div></div><div class="label"><span class="num">02</span>Sticky Button<span class="note">Persistent "Next: Hand X" button opens sheet directly.</span></div></div></div></section>
+
+<!-- Option 03: Swipe Gestures on Sheet -->
+<section class="section"><h2>Option 03</h2><h3>Swipe Gestures on Detail Sheet</h3><p class="desc">Within the detail sheet, swipe left to jump to next pending, swipe right for previous. Stay in the sheet instead of returning to the list.</p>
+<div class="interaction-note">
+  <strong>Interaction:</strong> Detail sheet is open. <strong>Swipe left to jump directly to the next pending hand's detail</strong>. Swipe right to go back. Swipe down (existing) still dismisses to list. Pagination dots at top show position.<br/>
+  <strong>Trade-off:</strong> Fast power-user flow — tap list once, then swipe through all pending. But bypasses the "always back to overview" principle. Could be offered alongside list-based flow, not as replacement.
+</div>
+<div class="grid"><div class="phone-wrap"><div class="phone"><div class="scr">
+  <div class="notch"></div>
+  <!-- Background: dimmed list -->
+  <div style="position:absolute;inset:0;opacity:0.15;padding-top:40px;">
+    <div style="padding:10px 14px;">
+      <div class="hand-tile resolved">H1</div><div class="hand-tile resolved">H2</div><div class="hand-tile resolved">H3</div>
+    </div>
+  </div>
+  <!-- Sheet with swipe indicators -->
+  <div style="position:absolute;left:0;right:0;bottom:0;top:100px;background:linear-gradient(180deg,var(--felt-600),var(--felt-900));border-top:2px solid var(--gold-600);border-radius:22px 22px 0 0;padding:16px 14px;">
+    <div style="width:36px;height:4px;border-radius:2px;background:rgba(243,236,214,0.35);margin:0 auto 8px;"></div>
+    <!-- Pagination dots -->
+    <div style="display:flex;justify-content:center;gap:6px;margin-bottom:14px;">
+      <div style="width:6px;height:6px;border-radius:50%;background:rgba(201,169,97,0.3);"></div>
+      <div style="width:6px;height:6px;border-radius:50%;background:var(--gold-500);"></div>
+      <div style="width:6px;height:6px;border-radius:50%;background:rgba(201,169,97,0.3);"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <span style="color:var(--cream-400);font-size:18px;">‹</span>
+      <div class="serif" style="font-size:18px;">Hand 7 · Preflop</div>
+      <span style="color:var(--gold-500);font-size:18px;">›</span>
+    </div>
+    <div style="display:flex;gap:4px;justify-content:center;margin-bottom:12px;">
+      <div class="cf blk"><span>9</span><span>♠</span></div><div class="cf red"><span>9</span><span>♥</span></div>
+    </div>
+    <div style="padding:8px 10px;background:rgba(212,179,104,0.08);border:1px solid rgba(212,179,104,0.3);border-radius:8px;text-align:center;font-size:12px;margin-bottom:12px;">No bet facing · Pot 20</div>
+    <div style="display:flex;gap:6px;">
+      <button style="flex:1;padding:10px;background:rgba(212,179,104,0.15);border:1px solid var(--gold-500);border-radius:8px;color:var(--gold-500);font-size:12px;font-weight:600;">Check</button>
+      <button style="flex:1;padding:10px;background:rgba(0,0,0,0.2);border:1px solid rgba(201,169,97,0.25);border-radius:8px;color:var(--cream-100);font-size:12px;">Bet</button>
+      <button style="flex:1;padding:10px;background:rgba(0,0,0,0.2);border:1px solid rgba(196,77,66,0.3);border-radius:8px;color:var(--cream-200);font-size:12px;">All-In</button>
+    </div>
+    <div style="text-align:center;margin-top:18px;font-size:10px;color:var(--cream-400);">← swipe to browse pending hands →</div>
+  </div>
+  <div class="arrow-note" style="top:120px;left:20px;">← swipe to Hand 3</div>
+  <div class="arrow-note" style="top:120px;right:20px;">swipe to Hand 9 →</div>
+  <div class="hind"></div>
+</div></div><div class="label"><span class="num">03</span>Swipe Sheet<span class="note">Swipe L/R in sheet to jump between pending. Fast power-user flow.</span></div></div></div></section>
+
+<!-- Option 04: Pending Badge in Sheet -->
+<section class="section"><h2>Option 04</h2><h3>Pending Badge in Sheet Header</h3><p class="desc">Detail sheet shows "2 more pending after this" with a pill badge. Clicking closes sheet and flows to list.</p>
+<div class="interaction-note">
+  <strong>Interaction:</strong> When detail sheet is open, the header shows <strong>"Hand 3 · 2 more pending"</strong>. After acting, sheet dismisses. List scrolls to next pending (combined with #01) OR user sees the pill fade and knows there's more.<br/>
+  <strong>Trade-off:</strong> Low impact, informational only. Best paired with auto-scroll (#01) or sticky button (#02).
+</div>
+<div class="grid"><div class="phone-wrap"><div class="phone"><div class="scr">
+  <div class="notch"></div>
+  <div style="position:absolute;inset:0;opacity:0.15;padding-top:40px;"><div style="padding:10px 14px;"><div class="hand-tile resolved">H1</div></div></div>
+  <div style="position:absolute;left:0;right:0;bottom:0;top:80px;background:linear-gradient(180deg,var(--felt-600),var(--felt-900));border-top:2px solid var(--gold-600);border-radius:22px 22px 0 0;padding:16px 14px;">
+    <div style="width:36px;height:4px;border-radius:2px;background:rgba(243,236,214,0.35);margin:0 auto 12px;"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <div class="serif" style="font-size:18px;">Hand 3</div>
+      <span style="padding:3px 8px;background:rgba(212,179,104,0.15);border:1px solid rgba(212,179,104,0.4);border-radius:6px;font-size:10px;color:var(--gold-500);font-weight:600;">2 more pending</span>
+    </div>
+    <span style="font-size:10px;color:var(--cream-400);background:rgba(212,179,104,0.1);padding:2px 6px;border-radius:3px;">FLOP</span>
+    <div style="display:flex;gap:8px;margin-top:14px;align-items:center;">
+      <div><div class="ey" style="margin-bottom:3px;">Your cards</div><div style="display:flex;"><div class="cf red"><span>A</span><span>♥</span></div><div class="cf blk"><span>K</span><span>♠</span></div></div></div>
+      <div><div class="ey" style="margin-bottom:3px;">Board</div><div style="display:flex;"><div class="cf red"><span>Q</span><span>♦</span></div><div class="cf blk"><span>K</span><span>♣</span></div><div class="cf red"><span>2</span><span>♥</span></div></div></div>
+    </div>
+    <div style="padding:8px 10px;background:rgba(212,179,104,0.08);border:1px solid rgba(212,179,104,0.3);border-radius:8px;margin:14px 0 10px;font-size:12px;display:flex;justify-content:space-between;">
+      <span>Facing <span class="gold serif" style="font-size:16px;">40</span></span>
+      <span style="font-size:10px;color:var(--cream-300);">1,380 after</span>
+    </div>
+    <div style="display:flex;gap:6px;">
+      <button style="flex:1;padding:10px;background:rgba(196,77,66,0.08);border:1px solid rgba(196,77,66,0.4);border-radius:8px;color:var(--claret);font-size:12px;">Fold</button>
+      <button style="flex:1;padding:10px;background:rgba(212,179,104,0.15);border:1px solid var(--gold-500);border-radius:8px;color:var(--gold-500);font-size:12px;font-weight:600;">Call 40</button>
+      <button style="flex:1;padding:10px;background:rgba(0,0,0,0.2);border:1px solid rgba(201,169,97,0.25);border-radius:8px;color:var(--cream-100);font-size:12px;">Raise</button>
+    </div>
+  </div>
+  <div class="arrow-note" style="top:100px;right:20px;">informational</div>
+  <div class="hind"></div>
+</div></div><div class="label"><span class="num">04</span>Pending Badge<span class="note">Shows "2 more pending" in sheet header. Info only, no behavior change.</span></div></div></div></section>
+
+<!-- Option 05: Combined — Sticky Button + Auto-scroll -->
+<section class="section"><h2>Option 05</h2><h3>Combined: Sticky Button + Auto-scroll</h3><p class="desc">The most aggressive friction reducer. Both behaviors combined.</p>
+<div class="interaction-note">
+  <strong>Interaction:</strong> After acting, sheet dismisses AND <strong>list auto-scrolls to next pending</strong>. Sticky button "Next: Hand X →" persists at bottom. User can either (a) tap sticky button to open next directly, (b) see the auto-scrolled tile and tap it, or (c) ignore and scroll to pick a different pending.<br/>
+  <strong>Trade-off:</strong> Multiple paths to next. Strongest reduction of friction while preserving strategic overview. Adds both UI + motion.
+</div>
+<div class="grid"><div class="phone-wrap"><div class="phone"><div class="scr">
+  <div class="notch"></div>
+  <div style="height:32px;"></div>
+  <div class="hdr-bar"><span>‹</span><span>2 of 10 hands left</span><span class="gold">1,380 to bet</span></div>
+  <div style="padding:10px 12px;overflow-y:auto;flex:1;position:relative;">
+    <div class="arrow-note" style="top:50px;right:20px;">↑ Scrolled to pending</div>
+    <div class="ey gold" style="margin-bottom:4px;">ACTION REQUIRED · 2</div>
+    <div class="hand-tile pending" style="border-color:var(--gold-500);box-shadow:0 0 16px rgba(212,179,104,0.15);">
+      <div style="display:flex;justify-content:space-between;align-items:center;"><span>H7 · Preflop</span><span style="font-size:11px;color:var(--cream-300);">Check to you</span></div>
+    </div>
+    <div class="hand-tile pending">
+      <div style="display:flex;justify-content:space-between;align-items:center;"><span>H9 · Turn</span><span class="gold" style="font-size:11px;">Facing 120</span></div>
+    </div>
+    <div class="ey" style="margin-top:12px;">RESOLVED · 4</div>
+  </div>
+  <div style="padding:12px 16px;border-top:1px solid rgba(201,169,97,0.2);background:rgba(8,42,33,0.95);position:relative;">
+    <div class="arrow-note" style="top:-30px;right:20px;">sticky button</div>
+    <button style="width:100%;padding:12px;background:linear-gradient(180deg,var(--gold-500),var(--gold-700));color:var(--felt-800);border:none;border-radius:10px;font-weight:700;font-size:13px;box-shadow:0 3px 0 rgba(0,0,0,0.25);">Next: Hand 7 (Check) →</button>
+  </div>
+  <div class="hind"></div>
+</div></div><div class="label"><span class="num">05</span>Combined<span class="note">Sticky button + auto-scroll. Multiple paths to next pending.</span></div></div></div></section>
+
+<!-- Option 06: Combined — Swipe + Badge -->
+<section class="section"><h2>Option 06</h2><h3>Combined: Swipe + Badge + "Back to List"</h3><p class="desc">Power-user focused. Clear in-sheet navigation with explicit list return.</p>
+<div class="interaction-note">
+  <strong>Interaction:</strong> Sheet has pagination dots at top, pending count badge, and a clear <strong>"All Hands ↑"</strong> button at top-left to return to list. Swipe left/right between pending hands. Swipe down or tap All Hands to overview.<br/>
+  <strong>Trade-off:</strong> Most explicit controls. No magic. User always knows how to navigate. Slightly more UI chrome.
+</div>
+<div class="grid"><div class="phone-wrap"><div class="phone"><div class="scr">
+  <div class="notch"></div>
+  <div style="position:absolute;inset:0;opacity:0.15;padding-top:40px;"><div style="padding:10px 14px;"><div class="hand-tile resolved">H1</div></div></div>
+  <div style="position:absolute;left:0;right:0;bottom:0;top:80px;background:linear-gradient(180deg,var(--felt-600),var(--felt-900));border-top:2px solid var(--gold-600);border-radius:22px 22px 0 0;padding:14px 14px;">
+    <div style="width:36px;height:4px;border-radius:2px;background:rgba(243,236,214,0.35);margin:0 auto 10px;"></div>
+    <!-- Top row: back, dots, close -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <button style="padding:4px 8px;background:rgba(201,169,97,0.1);border:1px solid rgba(201,169,97,0.3);border-radius:6px;color:var(--gold-500);font-size:10px;font-weight:600;">↑ All Hands</button>
+      <div style="display:flex;gap:6px;">
+        <div style="width:6px;height:6px;border-radius:50%;background:rgba(201,169,97,0.3);"></div>
+        <div style="width:6px;height:6px;border-radius:50%;background:var(--gold-500);"></div>
+        <div style="width:6px;height:6px;border-radius:50%;background:rgba(201,169,97,0.3);"></div>
+      </div>
+      <span style="padding:2px 7px;background:rgba(212,179,104,0.15);border-radius:5px;font-size:9px;color:var(--gold-500);font-weight:600;">2/3</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <span style="color:var(--cream-400);font-size:18px;cursor:pointer;">‹</span>
+      <div class="serif" style="font-size:18px;">Hand 7 · Preflop</div>
+      <span style="color:var(--gold-500);font-size:18px;cursor:pointer;">›</span>
+    </div>
+    <div style="display:flex;gap:4px;justify-content:center;margin-bottom:12px;">
+      <div class="cf blk"><span>9</span><span>♠</span></div><div class="cf red"><span>9</span><span>♥</span></div>
+    </div>
+    <div style="padding:8px 10px;background:rgba(212,179,104,0.08);border:1px solid rgba(212,179,104,0.3);border-radius:8px;text-align:center;font-size:12px;margin-bottom:12px;">No bet facing · Pot 20</div>
+    <div style="display:flex;gap:6px;">
+      <button style="flex:1;padding:10px;background:rgba(212,179,104,0.15);border:1px solid var(--gold-500);border-radius:8px;color:var(--gold-500);font-size:12px;font-weight:600;">Check</button>
+      <button style="flex:1;padding:10px;background:rgba(0,0,0,0.2);border:1px solid rgba(201,169,97,0.25);border-radius:8px;color:var(--cream-100);font-size:12px;">Bet</button>
+    </div>
+    <div style="text-align:center;margin-top:14px;font-size:10px;color:var(--cream-400);">Swipe ← → to switch · ↑ All Hands to overview</div>
+  </div>
+  <div class="hind"></div>
+</div></div><div class="label"><span class="num">06</span>Swipe + Badge + Back<span class="note">Power-user flow. Explicit controls. Clear list escape.</span></div></div></div></section>
+
+<section class="section"><h2>Summary</h2>
+<p style="color:var(--muted);font-size:13px;line-height:1.7;max-width:700px;">Recommended combination: <strong style="color:var(--gold-500);">Option 05</strong> (sticky button + auto-scroll) for the primary friction fix — low disruption to strategic overview, explicit fast path for "just advance." Consider <strong style="color:var(--gold-500);">Option 03</strong> (swipe gestures) as a power-user enhancement on top.</p>
+</section>
+
+</body>
+</html>

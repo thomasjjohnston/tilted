@@ -37,8 +37,6 @@ targets:
         ENABLE_PREVIEWS: true
       configs:
         Debug:
-          CODE_SIGN_IDENTITY: "Apple Development"
           CODE_SIGN_STYLE: Automatic
         Release:
-          CODE_SIGN_IDENTITY: "Apple Distribution"
           CODE_SIGN_STYLE: Automatic

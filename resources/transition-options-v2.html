@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tilted — Transitions v2 (5 Two-Button Options)</title>
+<style>
+  :root {
+    --felt-900: #051c15; --felt-800: #082a21; --felt-700: #0e3b2e;
+    --felt-600: #164a3a; --felt-500: #1a5a43;
+    --gold-500: #d4b368; --gold-600: #c9a961; --gold-700: #a88334; --gold-800: #7a5f2b;
+    --cream-50: #f6f1e1; --cream-100: #f3ecd6; --cream-200: #d9cfb2; --cream-300: #9eb7a4; --cream-400: #6a8a7a;
+    --claret: #c44d42; --card-red: #c92b2b; --card-black: #111;
+    --page-bg: #15161a; --page-fg: #e8e6df; --muted: #8a8a8a; --rule: #2a2a30;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--page-bg); color: var(--page-fg); font-family: -apple-system, "SF Pro Text", sans-serif; -webkit-font-smoothing: antialiased; }
+  .page-hdr { padding: 48px 48px 20px; max-width: 1400px; margin: 0 auto; }
+  .page-hdr .ey { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: var(--gold-500); margin-bottom: 10px; }
+  .page-hdr h1 { font-family: Georgia, serif; font-weight: 400; font-size: 36px; margin: 0 0 8px; }
+  .page-hdr p { color: var(--muted); font-size: 13px; line-height: 1.7; max-width: 680px; }
+  .section { padding: 36px 48px; max-width: 1400px; margin: 0 auto; border-top: 1px solid var(--rule); }
+  .section h2 { font-size: 12px; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); font-weight: 500; margin: 0 0 4px; }
+  .section h3 { font-family: Georgia, serif; font-weight: 400; font-size: 24px; margin: 0 0 4px; }
+  .section .desc { color: var(--muted); font-size: 13px; max-width: 700px; line-height: 1.6; margin: 0 0 12px; }
+  .interaction-note { background: rgba(212,179,104,0.06); border: 1px solid rgba(212,179,104,0.2); border-radius: 8px; padding: 10px 12px; margin: 0 0 20px; font-size: 12px; color: var(--cream-200); line-height: 1.5; max-width: 700px; }
+  .interaction-note strong { color: var(--gold-500); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 340px)); gap: 40px 28px; justify-content: start; }
+
+  .phone-wrap { display: flex; flex-direction: column; align-items: center; }
+  .phone { width: 320px; height: 700px; border-radius: 44px; padding: 10px; background: #0a0a0b; box-shadow: 0 20px 60px rgba(0,0,0,0.55), inset 0 0 0 1.5px #2a2a2e; position: relative; overflow: hidden; }
+  .scr { width: 100%; height: 100%; border-radius: 34px; overflow: hidden; position: relative; background: radial-gradient(ellipse at 50% 0%, var(--felt-500) 0%, var(--felt-700) 55%, var(--felt-800) 100%); color: var(--cream-100); display: flex; flex-direction: column; }
+  .notch { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); width: 90px; height: 24px; background: #0a0a0b; border-radius: 14px; z-index: 10; }
+  .hind { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); width: 110px; height: 4px; border-radius: 2px; background: rgba(243,236,214,0.4); z-index: 10; }
+
+  .label { margin-top: 12px; font-size: 11px; color: var(--page-fg); text-align: center; font-family: "SF Mono", Menlo, monospace; max-width: 320px; }
+  .label .num { color: var(--gold-500); margin-right: 6px; }
+  .label .note { display: block; color: var(--muted); font-size: 10px; margin-top: 3px; line-height: 1.5; }
+
+  .ey { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--cream-300); }
+  .serif { font-family: Georgia, serif; }
+  .gold { color: var(--gold-500); }
+  .cf { width: 28px; height: 40px; border-radius: 4px; background: var(--cream-50); display: inline-flex; flex-direction: column; align-items: center; justify-content: center; font-family: Georgia, serif; font-weight: 700; font-size: 12px; line-height: 1; margin-right: 2px; box-shadow: 0 1px 2px rgba(0,0,0,0.3); flex-shrink: 0; }
+  .cf.red { color: var(--card-red); } .cf.blk { color: var(--card-black); }
+  .cf.sm { width: 22px; height: 32px; font-size: 10px; }
+
+  /* Two-button styles */
+  .btn-pair { display: flex; gap: 8px; }
+  .btn-back { flex: 1; padding: 12px 10px; text-align: center; border-radius: 10px; background: rgba(0,0,0,0.3); border: 1px solid rgba(201,169,97,0.3); color: var(--cream-200); font-size: 12px; font-weight: 600; }
+  .btn-next { flex: 1.2; padding: 12px 10px; text-align: center; border-radius: 10px; background: linear-gradient(180deg, var(--gold-500), var(--gold-700)); color: var(--felt-800); font-size: 12px; font-weight: 700; box-shadow: 0 3px 0 rgba(0,0,0,0.25); }
+
+  @media (max-width: 720px) { .page-hdr, .section { padding-left: 20px; padding-right: 20px; } }
+</style>
+</head>
+<body>
+
+<div class="page-hdr">
+  <div class="ey">Tilted · Transitions v2 · Two-Button Pattern</div>
+  <h1>Next Hand + Back to All Hands</h1>
+  <p>Five options showing <strong>two button choice</strong> after acting. Both buttons visible so the user picks: auto-advance to next pending hand, or return to overview for strategic reassessment. Each option differs in where/how the buttons appear.</p>
+</div>
+
+<!-- 01: Dual Footer in Detail Sheet -->
+<section class="section"><h2>Option 01</h2><h3>Dual Footer (Permanent)</h3>
+<p class="desc">Both buttons always visible at the bottom of the detail sheet. After acting, action buttons hide and dual footer becomes the only interaction.</p>
+<div class="interaction-note"><strong>Interaction:</strong> Tap pending hand → sheet opens with action buttons (Fold/Call/etc) AND a dual footer (All Hands / Next). Take action → action buttons disappear, resolution shown above, dual footer remains. Tap <strong>All Hands</strong> to return to list, or <strong>Next Hand</strong> to open the next pending hand's sheet directly.</div>
+<div class="grid"><div class="phone-wrap"><div class="phone"><div class="scr">
+  <div class="notch"></div>
+  <!-- Dimmed list behind -->
+  <div style="position:absolute;inset:0;opacity:0.15;padding-top:40px;"><div style="padding:10px 14px;"><div style="padding:10px;border:1px solid rgba(201,169,97,0.3);border-radius:12px;margin-bottom:6px;font-size:11px;">Hand 3</div></div></div>
+  <!-- Detail sheet -->
+  <div style="position:absolute;left:0;right:0;bottom:0;top:64px;background:linear-gradient(180deg,var(--felt-600),var(--felt-900));border-top:2px solid var(--gold-600);border-radius:22px 22px 0 0;padding:14px 14px 18px;display:flex;flex-direction:column;">
+    <div style="width:36px;height:4px;border-radius:2px;background:rgba(243,236,214,0.35);margin:0 auto 8px;"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <div class="serif" style="font-size:18px;">Hand 3</div>
+      <span style="padding:3px 8px;background:rgba(212,179,104,0.15);border-radius:5px;font-size:9px;color:var(--gold-500);font-weight:600;">FLOP · WON</span>
+    </div>
+
+    <!-- Result shown (post-action state) -->
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+      <div style="display:flex;"><div class="cf red"><span>A</span><span>♥</span></div><div class="cf blk"><span>K</span><span>♠</span></div></div>
+      <span style="font-size:11px;color:var(--cream-300);">beats</span>
+      <div style="display:flex;opacity:0.6;"><div class="cf red"><span>Q</span><span>♥</span></div><div class="cf blk"><span>J</span><span>♣</span></div></div>
+    </div>
+    <div style="display:flex;gap:3px;margin-bottom:10px;">
+      <div class="cf sm red"><span>Q</span><span>♦</span></div><div class="cf sm blk"><span>K</span><span>♣</span></div><div class="cf sm red"><span>2</span><span>♥</span></div><div class="cf sm blk"><span>A</span><span>♠</span></div><div class="cf sm red"><span>7</span><span>♦</span></div>
+    </div>
+    <div style="padding:10px;background:rgba(212,179,104,0.08);border:1px solid rgba(212,179,104,0.3);border-radius:8px;text-align:center;margin-bottom:10px;">
+      <div class="serif gold" style="font-size:28px;line-height:1;">+340</div>
+      <div style="font-size:10px;color:var(--cream-300);margin-top:2px;">85 BB · two pair</div>
+    </div>
+    <!-- Bookmark -->
+    <div style="text-align:center;font-size:11px;color:var(--cream-300);margin-bottom:12px;">★ Bookmark</div>
+
+    <div style="margin-top:auto;">
+      <div style="font-size:10px;color:var(--cream-400);text-align:center;margin-bottom:6px;">2 more pending · Hand 7, Hand 9</div>
+      <!-- Dual footer -->
+      <div class="btn-pair">
+        <div class="btn-back">↑ All Hands</div>
+        <div class="btn-next">Next Hand →</div>
+      </div>
+    </div>
+  </div>
+  <div class="hind"></div>
+</div></div><div class="label"><span class="num">01</span>Dual Footer<span class="note">Both buttons pinned at bottom. User explicitly picks.</span></div></div></div></section>
+
+<!-- 02: Post-Action Modal -->
+<section class="section"><h2>Option 02</h2><h3>Post-Action Modal</h3>
+<p class="desc">After acting, a small modal slides up with two large card-style options. Explicit "what now?" choice.</p>
+<div class="interaction-note"><strong>Interaction:</strong> Take action → resolution briefly shown → a compact modal slides up with two large cards: <strong>"Back to all hands"</strong> (shows how many pending remain) and <strong>"Next hand"</strong> (preview of the next pending hand). User taps one. The modal emphasizes "you made a choice" psychology.</div>
+<div class="grid"><div class="phone-wrap"><div class="phone"><div class="scr">
+  <div class="notch"></div>
+  <!-- Dimmed detail sheet behind -->
+  <div style="position:absolute;inset:0;opacity:0.4;padding-top:40px;">
+    <div style="background:var(--felt-700);margin:0 10px;padding:14px;border-radius:18px 18px 0 0;height:100%;border-top:2px solid var(--gold-600);">
+      <div style="width:36px;height:4px;border-radius:2px;background:rgba(243,236,214,0.35);margin:0 auto 8px;"></div>
+      <div class="serif" style="font-size:16px;">Hand 3 · Won</div>
+      <div class="serif gold" style="font-size:32px;margin-top:10px;">+340</div>
+    </div>
+  </div>
+  <!-- Modal -->
+  <div style="position:absolute;left:20px;right:20px;top:50%;transform:translateY(-50%);background:linear-gradient(180deg,var(--felt-600),var(--felt-900));border:2px solid var(--gold-600);border-radius:18px;padding:20px 16px;box-shadow:0 20px 60px rgba(0,0,0,0.6);">
+    <div style="text-align:center;margin-bottom:16px;">
+      <div class="ey gold">HAND 3 COMPLETE</div>
+      <div class="serif" style="font-size:16px;margin-top:4px;">What's next?</div>
+    </div>
+    <!-- Two card options -->
+    <div style="display:grid;grid-template-columns:1fr;gap:8px;">
+      <button style="padding:12px;background:rgba(0,0,0,0.3);border:1px solid rgba(201,169,97,0.3);border-radius:10px;text-align:left;color:var(--cream-100);">
+        <div style="font-size:12px;font-weight:600;margin-bottom:2px;">↑ Back to all hands</div>
+        <div style="font-size:10px;color:var(--cream-300);">Review your 10 hands before next action</div>
+      </button>
+      <button style="padding:12px;background:linear-gradient(180deg,rgba(212,179,104,0.15),rgba(212,179,104,0.05));border:2px solid var(--gold-500);border-radius:10px;text-align:left;color:var(--gold-500);">
+        <div style="font-size:12px;font-weight:700;margin-bottom:4px;">Next hand →</div>
+        <div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;">
+          <div style="display:flex;"><div class="cf sm blk"><span>9</span><span>♠</span></div><div class="cf sm red"><span>9</span><span>♥</span></div></div>
+          <span style="font-size:10px;color:var(--cream-300);">Hand 7 · Preflop · Check to you</span>
+        </div>
+      </button>
+    </div>
+  </div>
+  <div class="hind"></div>
+</div></div><div class="label"><span class="num">02</span>Post-Action Modal<span class="note">Explicit "what now?" modal. Previews next hand.</span></div></div></div></section>
+
+<!-- 03: Inline Post-Action Prompt -->
+<section class="section"><h2>Option 03</h2><h3>Inline Result + Dual CTA</h3>
+<p class="desc">After acting, the detail sheet content transforms into a result screen with dual buttons. Feels seamless — no modal.</p>
+<div class="interaction-note"><strong>Interaction:</strong> Take action → the detail sheet smoothly transitions: action buttons gone, result pushed up (cards + pot + winner), and two full-width buttons at bottom: <strong>↑ All Hands</strong> (secondary) and <strong>Next Hand</strong> (primary, with preview of which hand). Tap one to navigate.</div>
+<div class="grid"><div class="phone-wrap"><div class="phone"><div class="scr">
+  <div class="notch"></div>
+  <div style="position:absolute;inset:0;opacity:0.12;padding-top:40px;"><div style="padding:10px 14px;font-size:11px;">List behind...</div></div>
+  <div style="position:absolute;left:0;right:0;bottom:0;top:56px;background:linear-gradient(180deg,var(--felt-600),var(--felt-900));border-top:2px solid var(--gold-600);border-radius:22px 22px 0 0;padding:14px;display:flex;flex-direction:column;">
+    <div style="width:36px;height:4px;border-radius:2px;background:rgba(243,236,214,0.35);margin:0 auto 10px;"></div>
+
+    <!-- Result content -->
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 10px;">
+      <div class="ey gold" style="margin-bottom:10px;">HAND 3 · WON</div>
+      <div style="display:flex;gap:14px;align-items:center;margin-bottom:14px;">
+        <div><div class="ey" style="margin-bottom:3px;">You</div><div style="display:flex;"><div class="cf red"><span>A</span><span>♥</span></div><div class="cf blk"><span>K</span><span>♠</span></div></div></div>
+        <span style="font-size:12px;color:var(--cream-300);">beats</span>
+        <div style="opacity:0.7;"><div class="ey" style="margin-bottom:3px;">Stephen</div><div style="display:flex;"><div class="cf red"><span>Q</span><span>♥</span></div><div class="cf blk"><span>J</span><span>♣</span></div></div></div>
+      </div>
+      <div style="display:flex;gap:3px;margin-bottom:14px;"><div class="cf sm red"><span>Q</span><span>♦</span></div><div class="cf sm blk"><span>K</span><span>♣</span></div><div class="cf sm red"><span>2</span><span>♥</span></div><div class="cf sm blk"><span>A</span><span>♠</span></div><div class="cf sm red"><span>7</span><span>♦</span></div></div>
+      <div class="serif gold" style="font-size:38px;line-height:1;">+340</div>
+      <div style="font-size:11px;color:var(--cream-300);margin-top:3px;">85 BB · Two Pair</div>
+    </div>
+
+    <!-- Dual CTA -->
+    <div style="margin-top:14px;">
+      <div class="btn-pair">
+        <div class="btn-back">↑ All Hands (2 pending)</div>
+        <div class="btn-next">Next Hand: H7 →</div>
+      </div>
+    </div>
+  </div>
+  <div class="hind"></div>
+</div></div><div class="label"><span class="num">03</span>Inline Result<span class="note">Sheet transforms into result screen. Seamless.</span></div></div></div></section>
+
+<!-- 04: Full-Screen Result Page (Two CTAs) -->
+<section class="section"><h2>Option 04</h2><h3>Full-Screen Result + Dual CTA</h3>
+<p class="desc">Result takes over full screen (like all-in reveal). Both buttons at the bottom with clear hierarchy.</p>
+<div class="interaction-note"><strong>Interaction:</strong> Take action → full-screen takeover with the cinematic result (cards, pot amount, hand ranks). Two buttons fill the bottom: <strong>↑ All Hands</strong> secondary ghost button, <strong>Next Hand →</strong> primary gold button with preview text. Matches the existing hand-ending cinematic style.</div>
+<div class="grid"><div class="phone-wrap"><div class="phone"><div class="scr">
+  <div class="notch"></div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 20px;text-align:center;">
+    <div class="ey gold" style="margin-bottom:14px;">HAND 3 · SHOWDOWN</div>
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
+      <div><div class="ey" style="margin-bottom:4px;">YOU</div><div style="display:flex;box-shadow:0 0 28px rgba(212,179,104,0.25);"><div class="cf" style="width:44px;height:62px;font-size:18px;background:var(--cream-50);color:var(--card-red);border-radius:6px;"><span>A</span><span>♥</span></div><div class="cf" style="width:44px;height:62px;font-size:18px;background:var(--cream-50);color:var(--card-black);border-radius:6px;"><span>K</span><span>♠</span></div></div><div style="font-size:11px;color:var(--gold-500);margin-top:6px;">Two Pair</div></div>
+      <div style="font-size:11px;color:var(--cream-300);">vs</div>
+      <div style="opacity:0.5;"><div class="ey" style="margin-bottom:4px;">STEPHEN</div><div style="display:flex;"><div class="cf" style="width:44px;height:62px;font-size:18px;background:var(--cream-50);color:var(--card-red);border-radius:6px;"><span>Q</span><span>♥</span></div><div class="cf" style="width:44px;height:62px;font-size:18px;background:var(--cream-50);color:var(--card-black);border-radius:6px;"><span>J</span><span>♣</span></div></div><div style="font-size:11px;color:var(--cream-300);margin-top:6px;">Pair of Qs</div></div>
+    </div>
+    <div style="display:flex;gap:4px;margin-bottom:16px;"><div class="cf sm red"><span>Q</span><span>♦</span></div><div class="cf sm blk"><span>K</span><span>♣</span></div><div class="cf sm red"><span>2</span><span>♥</span></div><div class="cf sm blk"><span>A</span><span>♠</span></div><div class="cf sm red"><span>7</span><span>♦</span></div></div>
+    <div style="height:1px;background:linear-gradient(to right,transparent,var(--gold-600),transparent);opacity:0.5;width:60%;margin-bottom:14px;"></div>
+    <div style="font-size:12px;color:var(--cream-300);">You win</div>
+    <div class="serif gold" style="font-size:44px;line-height:1;">+340</div>
+    <div style="font-size:11px;color:var(--cream-400);margin-top:4px;">85 BB</div>
+    <div style="margin-top:14px;font-size:11px;color:var(--cream-300);">★ Bookmark</div>
+  </div>
+  <div style="padding:14px 16px 26px;border-top:1px solid rgba(201,169,97,0.1);">
+    <div style="font-size:10px;color:var(--cream-400);text-align:center;margin-bottom:8px;">2 more pending</div>
+    <div class="btn-pair">
+      <div class="btn-back">↑ All Hands</div>
+      <div class="btn-next">Next Hand: H7 →</div>
+    </div>
+  </div>
+  <div class="hind"></div>
+</div></div><div class="label"><span class="num">04</span>Full-Screen Result<span class="note">Cinematic takeover. Dual CTA at bottom. Matches all-in reveal style.</span></div></div></div></section>
+
+<!-- 05: Stacked CTA Column -->
+<section class="section"><h2>Option 05</h2><h3>Stacked CTA Column</h3>
+<p class="desc">Both buttons full-width, stacked vertically. "Next hand" is the primary with preview, "All hands" is a quieter secondary below.</p>
+<div class="interaction-note"><strong>Interaction:</strong> Same as Option 04 (full-screen result) but buttons stacked vertically instead of side-by-side. Primary button <strong>Next Hand</strong> is larger and richer (shows which hand, what's facing you). Secondary "Back to all hands" is a ghost-style button below. Emphasizes "Next" as the expected path while keeping "All hands" clearly available.</div>
+<div class="grid"><div class="phone-wrap"><div class="phone"><div class="scr">
+  <div class="notch"></div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 20px;text-align:center;">
+    <div class="ey gold" style="margin-bottom:14px;">HAND 3 · SHOWDOWN</div>
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
+      <div><div class="ey" style="margin-bottom:4px;">YOU</div><div style="display:flex;box-shadow:0 0 28px rgba(212,179,104,0.25);"><div class="cf" style="width:44px;height:62px;font-size:18px;background:var(--cream-50);color:var(--card-red);border-radius:6px;"><span>A</span><span>♥</span></div><div class="cf" style="width:44px;height:62px;font-size:18px;background:var(--cream-50);color:var(--card-black);border-radius:6px;"><span>K</span><span>♠</span></div></div><div style="font-size:11px;color:var(--gold-500);margin-top:6px;">Two Pair</div></div>
+      <div style="font-size:11px;color:var(--cream-300);">vs</div>
+      <div style="opacity:0.5;"><div class="ey" style="margin-bottom:4px;">STEPHEN</div><div style="display:flex;"><div class="cf" style="width:44px;height:62px;font-size:18px;background:var(--cream-50);color:var(--card-red);border-radius:6px;"><span>Q</span><span>♥</span></div><div class="cf" style="width:44px;height:62px;font-size:18px;background:var(--cream-50);color:var(--card-black);border-radius:6px;"><span>J</span><span>♣</span></div></div><div style="font-size:11px;color:var(--cream-300);margin-top:6px;">Pair of Qs</div></div>
+    </div>
+    <div style="display:flex;gap:4px;margin-bottom:16px;"><div class="cf sm red"><span>Q</span><span>♦</span></div><div class="cf sm blk"><span>K</span><span>♣</span></div><div class="cf sm red"><span>2</span><span>♥</span></div><div class="cf sm blk"><span>A</span><span>♠</span></div><div class="cf sm red"><span>7</span><span>♦</span></div></div>
+    <div style="height:1px;background:linear-gradient(to right,transparent,var(--gold-600),transparent);opacity:0.5;width:60%;margin-bottom:14px;"></div>
+    <div style="font-size:12px;color:var(--cream-300);">You win</div>
+    <div class="serif gold" style="font-size:44px;line-height:1;">+340</div>
+    <div style="font-size:11px;color:var(--cream-400);margin-top:4px;">85 BB · Two pair beats pair</div>
+    <div style="margin-top:12px;font-size:11px;color:var(--cream-300);">★ Bookmark</div>
+  </div>
+  <div style="padding:14px 16px 26px;">
+    <!-- Primary: Next hand (full-width, rich) -->
+    <button style="width:100%;padding:14px;background:linear-gradient(180deg,var(--gold-500),var(--gold-700));color:var(--felt-800);border:none;border-radius:12px;box-shadow:0 4px 0 rgba(0,0,0,0.25);margin-bottom:8px;text-align:left;">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:13px;font-weight:700;">Next Hand →</div>
+          <div style="font-size:10px;opacity:0.8;margin-top:2px;">Hand 7 · Check to you · Pot 20</div>
+        </div>
+        <div style="display:flex;"><div class="cf sm blk"><span>9</span><span>♠</span></div><div class="cf sm red"><span>9</span><span>♥</span></div></div>
+      </div>
+    </button>
+    <!-- Secondary: All hands -->
+    <button style="width:100%;padding:11px;background:transparent;border:1px solid rgba(201,169,97,0.3);border-radius:12px;color:var(--cream-300);font-size:12px;">↑ Back to all hands (2 pending)</button>
+  </div>
+  <div class="hind"></div>
+</div></div><div class="label"><span class="num">05</span>Stacked Column<span class="note">"Next Hand" primary and rich. "All hands" quieter below.</span></div></div></div></section>
+
+</body>
+</html>

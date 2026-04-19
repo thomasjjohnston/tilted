@@ -3,11 +3,7 @@ import Foundation
 actor APIClient {
     static let shared = APIClient()
 
-    #if DEBUG
-    private var baseURL = URL(string: "http://10.0.0.30:3000")!
-    #else
     private var baseURL = URL(string: "https://tilted-server.fly.dev")!
-    #endif
 
     private var token: String?
 

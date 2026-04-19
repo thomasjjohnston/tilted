@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tilted — Hand Ending CX (15 Options)</title>
+<style>
+  :root {
+    --felt-900: #051c15; --felt-800: #082a21; --felt-700: #0e3b2e;
+    --felt-600: #164a3a; --felt-500: #1a5a43;
+    --gold-500: #d4b368; --gold-600: #c9a961; --gold-700: #a88334; --gold-800: #7a5f2b;
+    --cream-50: #f6f1e1; --cream-100: #f3ecd6; --cream-200: #d9cfb2; --cream-300: #9eb7a4; --cream-400: #6a8a7a;
+    --claret: #c44d42; --card-red: #c92b2b; --card-black: #111;
+    --page-bg: #15161a; --page-fg: #e8e6df; --muted: #8a8a8a; --rule: #2a2a30;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--page-bg); color: var(--page-fg); font-family: -apple-system, "SF Pro Text", sans-serif; -webkit-font-smoothing: antialiased; }
+  .page-hdr { padding: 48px 48px 20px; max-width: 1400px; margin: 0 auto; }
+  .page-hdr .ey { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: var(--gold-500); margin-bottom: 10px; }
+  .page-hdr h1 { font-family: Georgia, serif; font-weight: 400; font-size: 36px; margin: 0 0 8px; }
+  .page-hdr p { color: var(--muted); font-size: 13px; line-height: 1.7; max-width: 680px; }
+  .section { padding: 36px 48px; max-width: 1400px; margin: 0 auto; border-top: 1px solid var(--rule); }
+  .section h2 { font-size: 12px; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); font-weight: 500; margin: 0 0 4px; }
+  .section h3 { font-family: Georgia, serif; font-weight: 400; font-size: 24px; margin: 0 0 4px; }
+  .section .desc { color: var(--muted); font-size: 13px; max-width: 700px; line-height: 1.6; margin: 0 0 24px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 340px)); gap: 40px 28px; justify-content: start; }
+
+  .phone-wrap { display: flex; flex-direction: column; align-items: center; }
+  .phone { width: 320px; height: 700px; border-radius: 44px; padding: 10px; background: #0a0a0b; box-shadow: 0 20px 60px rgba(0,0,0,0.55), inset 0 0 0 1.5px #2a2a2e; position: relative; overflow: hidden; }
+  .scr { width: 100%; height: 100%; border-radius: 34px; overflow: hidden; position: relative; background: radial-gradient(ellipse at 50% 0%, var(--felt-500) 0%, var(--felt-700) 55%, var(--felt-800) 100%); color: var(--cream-100); display: flex; flex-direction: column; }
+  .notch { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); width: 90px; height: 24px; background: #0a0a0b; border-radius: 14px; z-index: 10; }
+  .hind { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); width: 110px; height: 4px; border-radius: 2px; background: rgba(243,236,214,0.4); z-index: 10; }
+
+  .label { margin-top: 12px; font-size: 11px; color: var(--page-fg); text-align: center; font-family: "SF Mono", Menlo, monospace; max-width: 320px; }
+  .label .num { color: var(--gold-500); margin-right: 6px; }
+  .label .note { display: block; color: var(--muted); font-size: 10px; margin-top: 3px; line-height: 1.5; }
+
+  .ey { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--cream-300); }
+  .serif { font-family: Georgia, serif; }
+  .gold { color: var(--gold-500); }
+  .thin-rule { height: 1px; background: linear-gradient(to right, transparent, var(--gold-600), transparent); opacity: 0.5; margin: 12px 0; }
+
+  .cf { width: 36px; height: 52px; border-radius: 5px; background: var(--cream-50); display: inline-flex; flex-direction: column; align-items: center; justify-content: center; font-family: Georgia, serif; font-weight: 700; font-size: 16px; line-height: 1; margin-right: 3px; box-shadow: 0 2px 6px rgba(0,0,0,0.35); flex-shrink: 0; }
+  .cf.red { color: var(--card-red); } .cf.blk { color: var(--card-black); }
+  .cf.xl { width: 48px; height: 68px; font-size: 22px; border-radius: 7px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
+  .cf.sm { width: 26px; height: 36px; font-size: 11px; margin-right: 2px; }
+  .cf.back { background: repeating-linear-gradient(45deg, var(--felt-600) 0 3px, var(--felt-700) 3px 6px); border: 2px solid var(--gold-600); }
+  .cf.muck { background: rgba(201,169,97,0.15); border: 1px dashed rgba(201,169,97,0.3); box-shadow: none; color: var(--cream-400); font-size: 10px; }
+
+  .cta { display: block; width: 100%; padding: 14px; text-align: center; border-radius: 12px; font-size: 14px; font-weight: 600; }
+  .cta.gold { background: linear-gradient(180deg, var(--gold-500), var(--gold-700)); color: var(--felt-800); box-shadow: 0 4px 0 rgba(0,0,0,0.25); }
+
+  .glow { box-shadow: 0 0 30px rgba(212,179,104,0.25), 0 0 60px rgba(212,179,104,0.1); }
+  .loss-glow { box-shadow: 0 0 30px rgba(196,77,66,0.2), 0 0 60px rgba(196,77,66,0.08); }
+
+  @media (max-width: 720px) { .page-hdr, .section { padding-left: 20px; padding-right: 20px; } }
+</style>
+</head>
+<body>
+
+<div class="page-hdr">
+  <div class="ey">Tilted · Hand Ending CX · 15 Options</div>
+  <h1>Resolution Screens for Every Hand</h1>
+  <p>Every hand that resolves gets closure — not just all-ins. Fifteen treatments covering preflop folds, postflop folds, showdowns (win/loss), split pots, and your own folds. All use card flip + clear winner + tap to continue. Mucking rules preserved: folded cards never shown.</p>
+</div>
+
+<!-- 01 Center Stage Win (Showdown) -->
+<section class="section"><h2>Option 01</h2><h3>Center Stage — Showdown Win</h3><p class="desc">Both cards shown, opponent flips in. Gold glow on your side.</p>
+<div class="grid"><div class="phone-wrap"><div class="phone"><div class="scr">
+  <div class="notch"></div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 20px;text-align:center;">
+    <div class="ey gold" style="margin-bottom:14px;">HAND 3 · SHOWDOWN</div>
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px;">
+      <div>
+        <div class="ey" style="margin-bottom:4px;">YOU</div>
+        <div style="display:flex;" class="glow"><div class="cf xl red"><span>A</span><span>♥</span></div><div class="cf xl blk"><span>K</span><span>♠</span></div></div>
+        <div style="font-size:11px;color:var(--gold-500);margin-top:6px;">Two Pair</div>
+      </div>
+      <div style="width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,0.4);border:1px solid rgba(201,169,97,0.3);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--cream-300);">vs</div>
+      <div style="opacity:0.5;">
+        <div class="ey" style="margin-bottom:4px;">STEPHEN</div>
+        <div style="display:flex;"><div class="cf xl red"><span>Q</span><span>♥</span></div><div class="cf xl blk"><span>J</span><span>♣</span></div></div>
+        <div style="font-size:11px;color:var(--cream-300);margin-top:6px;">Pair of Queens</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:4px;margin-bottom:16px;">
+      <div class="cf sm red"><span>Q</span><span>♦</span></div><div class="cf sm blk"><span>K</span><span>♣</span></div><div class="cf sm red"><span>2</span><span>♥</span></div><div class="cf sm blk"><span>A</span><span>♠</span></div><div class="cf sm red"><span>7</span><span>♦</span></div>
+    </div>
+    <div class="thin-rule" style="width:50%;"></div>
+    <div style="font-size:13px;color:var(--cream-300);">You win</div>
+    <div class="serif gold" style="font-size:48px;line-height:1;">+340</div>
+    <div style="font-size:11px;color:var(--cream-400);margin-top:4px;">85 BB pot</div>
+  </div>
+  <div style="padding:16px 20px 24px;"><div class="cta gold">Next Hand →</div></div>
+  <div class="hind"></div>
+</div></div><div class="label"><span class="num">01</span>Showdown Win<span class="note">Full showdown drama. Card flip. Clear winner. Claret for losses.</span></div></div></div></section>
+
+<!-- 02 Center Stage Loss -->
+<section class="section"><h2>Option 02</h2><h3>Center Stage — Showdown Loss</h3><p class="desc">Claret variant. Your cards dim, opponent's glow claret.</p>
+<div class="grid"><div class="phone-wrap"><div class="phone"><div class="scr">
+  <div class="notch"></div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 20px;text-align:center;">
+    <div class="ey" style="color:var(--claret);margin-bottom:14px;">HAND 5 · SHOWDOWN</div>
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px;">
+      <div style="opacity:0.5;">
+        <div class="ey" style="margin-bottom:4px;">YOU</div>
+        <div style="display:flex;"><div class="cf xl blk"><span>9</span><span>♠</span></div><div class="cf xl red"><span>8</span><span>♥</span></div></div>
+        <div style="font-size:11px;color:var(--cream-300);margin-top:6px;">Pair of Nines</div>
+      </div>
+      <div style="width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,0.4);border:1px solid rgba(201,169,97,0.3);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--cream-300);">vs</div>
+      <div>
+        <div class="ey" style="margin-bottom:4px;">STEPHEN</div>
+        <div style="display:flex;" class="loss-glow"><div class="cf xl blk"><span>A</span><span>♣</span></div><div class="cf xl blk"><span>A</span><span>♠</span></div></div>
+        <div style="font-size:11px;color:var(--gold-500);margin-top:6px;">Three Aces</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:4px;margin-bottom:16px;">
+      <div class="cf sm blk"><span>A</span><span>♣</span></div><div class="cf sm red"><span>9</span><span>♦</span></div><div class="cf sm blk"><span>3</span><span>♠</span></div><div class="cf sm red"><span>T</span><span>♥</span></div><div class="cf sm blk"><span>6</span><span>♣</span></div>
+    </div>
+    <div class="thin-rule" style="width:50%;"></div>
+    <div style="font-size:13px;color:var(--cream-300);">You lose</div>
+    <div class="serif" style="font-size:48px;line-height:1;color:var(--claret);">–240</div>
+    <div style="font-size:11px;color:var(--cream-400);margin-top:4px;">60 BB pot</div>
+  </div>
+  <div style="padding:16px 20px 24px;"><div class="cta gold">Next Hand →</div></div>
+  <div class="hind"></div>
+</div></div><div class="label"><span class="num">02</span>Showdown Loss<span class="note">Claret tones. Your cards dimmed, opponent glows.</span></div></div></div></section>
+
+<!-- 03 Preflop Fold (opponent folded) -->
+<section class="section"><h2>Option 03</h2><h3>Preflop Fold by Opponent</h3><p class="desc">Opponent folded preflop — their cards mucked (never shown). Still gets a clear moment.</p>
+<div class="grid"><div class="phone-wrap"><div class="phone"><div class="scr">
+  <div class="notch"></div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 20px;text-align:center;">
+    <div class="ey gold" style="margin-bottom:14px;">HAND 7 · PREFLOP</div>
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px;">
+      <div>
+        <div class="ey" style="margin-bottom:4px;">YOU</div>
+        <div style="display:flex;" class="glow"><div class="cf xl red"><span>K</span><span>♥</span></div><div class="cf xl blk"><span>K</span><span>♣</span></div></div>
+      </div>
+      <div style="font-size:30px;color:var(--cream-400);">→</div>
+      <div>
+        <div class="ey" style="margin-bottom:4px;color:var(--cream-400);">STEPHEN</div>
+        <div style="display:flex;gap:3px;"><div class="cf xl muck"><span>?</span></div><div class="cf xl muck"><span>?</span></div></div>
+        <div style="font-size:11px;color:var(--cream-400);margin-top:6px;">mucked</div>
+      </div>
+    </div>
+    <div style="font-size:14px;color:var(--cream-200);">Stephen folded to your raise</div>
+    <div class="thin-rule" style="width:50%;margin:12px auto;"></div>
+    <div class="serif gold" style="font-size:48px;line-height:1;">+30</div>
+    <div style="font-size:11px;color:var(--cream-400);margin-top:4px;">7.5 BB pot · blinds + raise</div>
+  </div>
+  <div style="padding:16px 20px 24px;"><div class="cta gold">Next Hand →</div></div>
+  <div class="hind"></div>
+</div></div><div class="label"><span class="num">03</span>Preflop Fold<span class="note">Opponent's cards muck (never shown). Your cards glow. Still feels like a moment.</span></div></div></div></section>
+
+<!-- 04 Postflop Fold (you bet, they folded) -->
+<section class="section"><h2>Option 04</h2><h3>Postflop Fold</h3><p class="desc">You bet on the flop, opponent folded. Board shown, they muck.</p>
+<div class="grid"><div class="phone-wrap"><div class="phone"><div class="scr">
+  <div class="notch"></div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 20px;text-align:center;">
+    <div class="ey gold" style="margin-bottom:10px;">HAND 4 · FLOP</div>
+    <div style="font-size:13px;color:var(--cream-200);margin-bottom:14px;">Stephen folded to your bet</div>
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;">
+      <div>
+        <div class="ey" style="margin-bottom:4px;">YOU</div>
+        <div style="display:flex;" class="glow"><div class="cf red"><span>A</span><span>♥</span></div><div class="cf red"><span>Q</span><span>♥</span></div></div>
+      </div>
+      <div style="font-size:24px;color:var(--cream-400);">→</div>
+      <div>
+        <div class="ey" style="margin-bottom:4px;color:var(--cream-400);">MUCK</div>
+        <div style="display:flex;gap:3px;"><div class="cf muck"><span>?</span></div><div class="cf muck"><span>?</span></div></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:4px;margin-bottom:16px;">
+      <div class="cf sm red"><span>J</span><span>♥</span></div><div class="cf sm red"><span>7</span><span>♥</span></div><div class="cf sm blk"><span>2</span><span>♣</span></div>
+    </div>
+    <div class="thin-rule" style="width:50%;"></div>
+    <div class="serif gold" style="font-size:48px;line-height:1;">+70</div>
+    <div style="font-size:11px;color:var(--cream-400);margin-top:4px;">17 BB pot</div>
+  </div>
+  <div style="padding:16px 20px 24px;"><div class="cta gold">Next Hand →</div></div>
+  <div class="hind"></div>
+</div></div><div class="label"><span class="num">04</span>Postflop Fold<span class="note">Shows flop and your cards. Opponent mucks. Still a moment.</span></div></div></div></section>
+
+<!-- 05 Your Fold -->
+<section class="section"><h2>Option 05</h2><h3>You Folded</h3><p class="desc">You folded — quieter moment. Shows what you gave up.</p>
+<div class="grid"><div class="phone-wrap"><div class="phone"><div class="scr">
+  <div class="notch"></div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 20px;text-align:center;">
+    <div class="ey" style="color:var(--cream-400);margin-bottom:14px;">HAND 2 · TURN</div>
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;opacity:0.4;">
+      <div><div class="ey" style="margin-bottom:4px;">YOU</div><div style="display:flex;"><div class="cf blk"><span>7</span><span>♠</span></div><div class="cf red"><span>5</span><span>♥</span></div></div></div>
+    </div>
+    <div style="font-size:14px;color:var(--cream-200);margin-bottom:4px;">You folded to Stephen's bet</div>
+    <div style="font-size:12px;color:var(--cream-400);">cards mucked</div>
+    <div class="thin-rule" style="width:50%;margin:14px auto;"></div>
+    <div style="font-size:13px;color:var(--cream-300);">Lost blinds</div>
+    <div class="serif" style="font-size:38px;line-height:1;color:var(--claret);">–10</div>
+    <div style="font-size:11px;color:var(--cream-400);margin-top:4px;">2.5 BB</div>
+  </div>
+  <div style="padding:16px 20px 24px;"><div class="cta gold">Next Hand →</div></div>
+  <div class="hind"></div>
+</div></div><div class="label"><span class="num">05</span>Your Fold<span class="note">Smaller moment but still closure. Shows your mucked cards briefly.</span></div></div></div></section>
+
+<!-- 06 Split Pot -->
+<section class="section"><h2>Option 06</h2><h3>Split Pot (Chop)</h3><p class="desc">Both players have the same hand. Neutral SPLIT badge.</p>
+<div class="grid"><div class="phone-wrap"><div class="phone"><div class="scr">
+  <div class="notch"></div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 20px;text-align:center;">
+    <div class="ey" style="color:var(--cream-300);margin-bottom:14px;">HAND 8 · SPLIT POT</div>
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
+      <div>
+        <div class="ey" style="margin-bottom:4px;">YOU</div>
+        <div style="display:flex;"><div class="cf xl blk"><span>A</span><span>♣</span></div><div class="cf xl red"><span>3</span><span>♥</span></div></div>
+      </div>
+      <div style="padding:4px 10px;background:rgba(212,179,104,0.1);border:1px solid rgba(212,179,104,0.3);border-radius:6px;font-size:10px;color:var(--gold-500);font-weight:700;">SPLIT</div>
+      <div>
+        <div class="ey" style="margin-bottom:4px;">STEPHEN</div>
+        <div style="display:flex;"><div class="cf xl blk"><span>A</span><span>♠</span></div><div class="cf xl red"><span>4</span><span>♦</span></div></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:4px;margin-bottom:10px;">
+      <div class="cf sm blk"><span>K</span><span>♠</span></div><div class="cf sm red"><span>K</span><span>♥</span></div><div class="cf sm blk"><span>Q</span><span>♣</span></div><div class="cf sm red"><span>J</span><span>♦</span></div><div class="cf sm blk"><span>T</span><span>♠</span></div>
+    </div>
+    <div style="font-size:12px;color:var(--cream-300);">Both play the Broadway straight</div>
+    <div class="thin-rule" style="width:50%;margin:12px auto;"></div>
+    <div style="display:flex;gap:28px;">
+      <div><div class="ey">You</div><div class="serif" style="font-size:26px;">+50</div></div>
+      <div><div class="ey">Stephen</div><div class="serif" style="font-size:26px;">+50</div></div>
+    </div>
+  </div>
+  <div style="padding:16px 20px 24px;"><div class="cta gold">Next Hand →</div></div>
+  <div class="hind"></div>
+</div></div><div class="label"><span class="num">06</span>Split Pot<span class="note">Neutral. SPLIT badge. Both returns shown side by side.</span></div></div></div></section>
+
+<!-- 07 Bottom Sheet (less intrusive) -->
+<section class="section"><h2>Option 07</h2><h3>Bottom Sheet Modal</h3><p class="desc">Non-full-screen. Slides up from bottom. List visible behind.</p>
+<div class="grid"><div class="phone-wrap"><div class="phone"><div class="scr">
+  <div class="notch"></div>
+  <div style="flex:1;padding:50px 14px 0;opacity:0.2;">
+    <div style="padding:10px;border-radius:12px;border:1px solid rgba(201,169,97,0.2);margin-bottom:8px;font-size:11px;">Hand 2 · pending</div>
+    <div style="padding:10px;border-radius:12px;border:1px solid rgba(201,169,97,0.2);margin-bottom:8px;font-size:11px;">Hand 5 · pending</div>
+    <div style="padding:10px;border-radius:12px;border:1px solid rgba(201,169,97,0.2);font-size:11px;">Hand 9 · pending</div>
+  </div>
+  <div style="position:absolute;left:0;right:0;bottom:0;background:linear-gradient(180deg,var(--felt-600),var(--felt-900));border-top:2px solid var(--gold-600);border-radius:22px 22px 0 0;padding:20px 18px 32px;box-shadow:0 -12px 40px rgba(0,0,0,0.5);">
+    <div style="width:36px;height:4px;border-radius:2px;background:rgba(243,236,214,0.35);margin:0 auto 12px;"></div>
+    <div style="text-align:center;margin-bottom:14px;"><div class="ey gold">HAND 3 COMPLETE</div></div>
+    <div style="display:flex;justify-content:center;gap:10px;align-items:center;margin-bottom:10px;">
+      <div style="display:flex;"><div class="cf red"><span>A</span><span>♥</span></div><div class="cf blk"><span>K</span><span>♠</span></div></div>
+      <span style="font-size:12px;color:var(--cream-300);">beats</span>
+      <div style="display:flex;opacity:0.6;"><div class="cf red"><span>Q</span><span>♥</span></div><div class="cf blk"><span>J</span><span>♣</span></div></div>
+    </div>
+    <div style="display:flex;gap:4px;justify-content:center;margin-bottom:10px;">
+      <div class="cf sm red"><span>Q</span><span>♦</span></div><div class="cf sm blk"><span>K</span><span>♣</span></div><div class="cf sm red"><span>2</span><span>♥</span></div><div class="cf sm blk"><span>A</span><span>♠</span></div><div class="cf sm red"><span>7</span><span>♦</span></div>
+    </div>
+    <div style="text-align:center;"><div class="serif gold" style="font-size:32px;">+340</div><div style="font-size:11px;color:var(--cream-300);">85 BB pot · two pair</div></div>
+    <div style="margin-top:14px;" class="cta gold">Next Hand →</div>
+  </div>
+  <div class="hind"></div>
+</div></div><div class="label"><span class="num">07</span>Bottom Sheet<span class="note">Modal, not full-screen. List visible behind. Less jarring.</span></div></div></div></section>
+
+<!-- 08 Inline Card Expansion -->
+<section class="section"><h2>Option 08</h2><h3>Inline Card Expansion</h3><p class="desc">The hand card itself expands into a resolution view. No overlay.</p>
+<div class="grid"><div class="phone-wrap"><div class="phone"><div class="scr">
+  <div class="notch"></div>
+  <div style="padding:50px 14px 0;flex:1;">
+    <div style="padding:10px;border-radius:12px;border:1px solid rgba(201,169,97,0.2);margin-bottom:8px;font-size:11px;opacity:0.3;">Hand 2 · Flop</div>
+    <div style="padding:14px;border-radius:14px;background:linear-gradient(180deg,rgba(212,179,104,0.1),rgba(0,0,0,0.2));border:1px solid rgba(212,179,104,0.6);margin-bottom:8px;box-shadow:0 6px 30px rgba(212,179,104,0.08);">
+      <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:10px;">
+        <div class="ey gold">HAND 3 · WON</div>
+        <div class="serif gold" style="font-size:24px;line-height:1;">+340</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+        <div style="display:flex;"><div class="cf red"><span>A</span><span>♥</span></div><div class="cf blk"><span>K</span><span>♠</span></div></div>
+        <span style="font-size:11px;color:var(--cream-300);">beats</span>
+        <div style="display:flex;opacity:0.6;"><div class="cf red"><span>Q</span><span>♥</span></div><div class="cf blk"><span>J</span><span>♣</span></div></div>
+      </div>
+      <div style="display:flex;gap:3px;margin-bottom:10px;">
+        <div class="cf sm red"><span>Q</span><span>♦</span></div><div class="cf sm blk"><span>K</span><span>♣</span></div><div class="cf sm red"><span>2</span><span>♥</span></div><div class="cf sm blk"><span>A</span><span>♠</span></div><div class="cf sm red"><span>7</span><span>♦</span></div>
+      </div>
+      <div style="font-size:11px;color:var(--cream-300);margin-bottom:10px;">Two pair · 85 BB pot</div>
+      <div style="display:flex;gap:6px;"><button style="flex:1;padding:8px;font-size:11px;color:var(--cream-300);background:transparent;border:1px solid rgba(201,169,97,0.2);border-radius:6px;">★ Save</button><button style="flex:1;padding:8px;font-size:11px;color:var(--gold-500);background:rgba(212,179,104,0.15);border:1px solid rgba(212,179,104,0.5);border-radius:6px;font-weight:600;">Next →</button></div>
+    </div>
+    <div style="padding:10px;border-radius:12px;border:1px solid rgba(201,169,97,0.2);font-size:11px;opacity:0.3;">Hand 5 · Pending</div>
+  </div>
+  <div class="hind"></div>
+</div></div><div class="label"><span class="num">08</span>Inline Expansion<span class="note">Card itself grows into resolution. No modal. Pending hands still visible.</span></div></div></div></section>
+
+<!-- 09 Minimal Toast -->
+<section class="section"><h2>Option 09</h2><h3>Minimal Toast</h3><p class="desc">Small banner that slides in. Quick, non-disruptive.</p>
+<div class="grid"><div class="phone-wrap"><div class="phone"><div class="scr">
+  <div class="notch"></div>
+  <div style="padding:50px 14px 0;flex:1;">
+    <div style="padding:10px;border-radius:12px;border:1px solid rgba(201,169,97,0.2);margin-bottom:8px;font-size:11px;">Hand 2 · Flop · Pending</div>
+    <div style="padding:10px;border-radius:12px;border:1px solid rgba(201,169,97,0.2);margin-bottom:8px;font-size:11px;">Hand 5 · Turn · Pending</div>
+  </div>
+  <div style="position:absolute;top:80px;left:16px;right:16px;padding:12px 14px;background:rgba(8,42,33,0.95);backdrop-filter:blur(12px);border:1px solid var(--gold-500);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,0.4);">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="display:flex;"><div class="cf sm red"><span>A</span><span>♥</span></div><div class="cf sm blk"><span>K</span><span>♠</span></div></div>
+      <div style="flex:1;">
+        <div style="font-size:12px;color:var(--cream-100);font-weight:600;">Hand 3 · Won</div>
+        <div style="font-size:10px;color:var(--cream-300);">Two pair beats pair of Qs</div>
+      </div>
+      <div class="serif gold" style="font-size:20px;">+340</div>
+    </div>
+  </div>
+  <div class="hind"></div>
+</div></div><div class="label"><span class="num">09</span>Minimal Toast<span class="note">Fast, non-blocking. Auto-dismisses. Good for quick wins.</span></div></div></div></section>
+
+<!-- 10 Story Style -->
+<section class="section"><h2>Option 10</h2><h3>Story / Narrative</h3><p class="desc">Sentence-based description. "You won with..."</p>
+<div class="grid"><div class="phone-wrap"><div class="phone"><div class="scr">
+  <div class="notch"></div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 24px;text-align:center;">
+    <div class="ey gold" style="margin-bottom:14px;">HAND 3</div>
+    <div class="serif" style="font-size:22px;line-height:1.35;margin-bottom:18px;">You won with <span class="gold">two pair</span><br/>against Stephen's <span class="gold">pair of queens</span>.</div>
+    <div style="display:flex;gap:4px;justify-content:center;margin-bottom:14px;">
+      <div class="cf red"><span>A</span><span>♥</span></div><div class="cf blk"><span>K</span><span>♠</span></div>
+      <span style="font-size:11px;color:var(--cream-300);margin:0 6px;align-self:center;">on</span>
+      <div class="cf sm red"><span>Q</span><span>♦</span></div><div class="cf sm blk"><span>K</span><span>♣</span></div><div class="cf sm red"><span>2</span><span>♥</span></div><div class="cf sm blk"><span>A</span><span>♠</span></div><div class="cf sm red"><span>7</span><span>♦</span></div>
+    </div>
+    <div class="thin-rule" style="width:50%;"></div>
+    <div class="serif gold" style="font-size:44px;line-height:1;">+340</div>
+    <div style="font-size:11px;color:var(--cream-400);margin-top:4px;">85 BB pot</div>
+  </div>
+  <div style="padding:16px 20px 24px;"><div class="cta gold">Next Hand →</div></div>
+  <div class="hind"></div>
+</div></div><div class="label"><span class="num">10</span>Story Style<span class="note">Sentence-based. "You won with..." Feels more human.</span></div></div></div></section>
+
+<!-- 11 Chip Movement -->
+<section class="section"><h2>Option 11</h2><h3>Chip Movement Animation</h3><p class="desc">Stacks of chips slide from pot to winner. Physical metaphor.</p>
+<div class="grid"><div class="phone-wrap"><div class="phone"><div class="scr">
+  <div class="notch"></div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 20px;text-align:center;">
+    <div class="ey gold" style="margin-bottom:18px;">HAND 3 COMPLETE</div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+      <div style="display:flex;"><div class="cf red"><span>A</span><span>♥</span></div><div class="cf blk"><span>K</span><span>♠</span></div></div>
+      <span style="font-size:11px;color:var(--cream-300);">beats</span>
+      <div style="display:flex;opacity:0.6;"><div class="cf red"><span>Q</span><span>♥</span></div><div class="cf blk"><span>J</span><span>♣</span></div></div>
+    </div>
+    <div style="display:flex;gap:4px;margin-bottom:20px;">
+      <div class="cf sm red"><span>Q</span><span>♦</span></div><div class="cf sm blk"><span>K</span><span>♣</span></div><div class="cf sm red"><span>2</span><span>♥</span></div><div class="cf sm blk"><span>A</span><span>♠</span></div><div class="cf sm red"><span>7</span><span>♦</span></div>
+    </div>
+    <!-- Chip stacks sliding -->
+    <div style="position:relative;height:80px;width:220px;margin-bottom:16px;">
+      <!-- pot (center) -->
+      <div style="position:absolute;left:50%;top:0;transform:translateX(-50%);opacity:0.3;">
+        <div style="width:40px;height:40px;border-radius:50%;background:radial-gradient(var(--gold-500),var(--gold-700));box-shadow:0 3px 8px rgba(0,0,0,0.4);"></div>
+        <div style="font-size:9px;color:var(--cream-400);margin-top:2px;">pot</div>
+      </div>
+      <!-- chip moving -->
+      <div style="position:absolute;left:25%;top:4px;">
+        <div style="width:32px;height:32px;border-radius:50%;background:radial-gradient(var(--gold-500),var(--gold-700));box-shadow:0 3px 8px rgba(0,0,0,0.4);"></div>
+      </div>
+      <!-- target (you) -->
+      <div style="position:absolute;left:5%;top:40px;">
+        <div style="font-size:22px;">👤</div>
+        <div style="font-size:9px;color:var(--gold-500);font-weight:600;">YOU</div>
+      </div>
+      <div style="position:absolute;left:50%;top:40px;transform:translateX(-50%);font-size:20px;color:var(--gold-500);">←</div>
+    </div>
+    <div class="serif gold" style="font-size:40px;line-height:1;">+340</div>
+  </div>
+  <div style="padding:16px 20px 24px;"><div class="cta gold">Next Hand →</div></div>
+  <div class="hind"></div>
+</div></div><div class="label"><span class="num">11</span>Chip Movement<span class="note">Chips slide from pot to winner. Physical metaphor.</span></div></div></div></section>
+
+<!-- 12 Board Highlight Showdown -->
+<section class="section"><h2>Option 12</h2><h3>Board Highlight (Showdown)</h3><p class="desc">Winning cards highlighted on the board. Shows what made the hand.</p>
+<div class="grid"><div class="phone-wrap"><div class="phone"><div class="scr">
+  <div class="notch"></div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 20px;text-align:center;">
+    <div class="ey gold" style="margin-bottom:14px;">HAND 3 · SHOWDOWN</div>
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
+      <div>
+        <div class="ey" style="margin-bottom:4px;">YOU</div>
+        <div style="display:flex;"><div class="cf" style="background:var(--gold-500);color:var(--felt-800);border:2px solid var(--gold-500);box-shadow:0 0 15px rgba(212,179,104,0.5);"><span>A</span><span>♥</span></div><div class="cf" style="background:var(--gold-500);color:var(--felt-800);border:2px solid var(--gold-500);box-shadow:0 0 15px rgba(212,179,104,0.5);"><span>K</span><span>♠</span></div></div>
+      </div>
+      <div style="font-size:11px;color:var(--cream-300);">vs</div>
+      <div style="opacity:0.5;">
+        <div class="ey" style="margin-bottom:4px;">STEPHEN</div>
+        <div style="display:flex;"><div class="cf red"><span>Q</span><span>♥</span></div><div class="cf blk"><span>J</span><span>♣</span></div></div>
+      </div>
+    </div>
+    <!-- Board with highlighted winning cards -->
+    <div style="display:flex;gap:4px;margin-bottom:12px;">
+      <div class="cf sm red"><span>Q</span><span>♦</span></div>
+      <div class="cf sm" style="background:var(--gold-500);color:var(--felt-800);box-shadow:0 0 12px rgba(212,179,104,0.5);"><span>K</span><span>♣</span></div>
+      <div class="cf sm red"><span>2</span><span>♥</span></div>
+      <div class="cf sm" style="background:var(--gold-500);color:var(--felt-800);box-shadow:0 0 12px rgba(212,179,104,0.5);"><span>A</span><span>♠</span></div>
+      <div class="cf sm red"><span>7</span><span>♦</span></div>
+    </div>
+    <div style="font-size:12px;color:var(--gold-500);margin-bottom:12px;">A♥ K♠ · K♣ A♠ — two pair</div>
+    <div class="thin-rule" style="width:50%;"></div>
+    <div class="serif gold" style="font-size:44px;line-height:1;">+340</div>
+  </div>
+  <div style="padding:16px 20px 24px;"><div class="cta gold">Next Hand →</div></div>
+  <div class="hind"></div>
+</div></div><div class="label"><span class="num">12</span>Board Highlight<span class="note">Winning cards literally glow. Shows which 5 cards made the hand.</span></div></div></div></section>
+
+<!-- 13 Side-by-Side Compare -->
+<section class="section"><h2>Option 13</h2><h3>Side-by-Side Comparison</h3><p class="desc">Full vertical split — your side vs theirs. Scorecard feel.</p>
+<div class="grid"><div class="phone-wrap"><div class="phone"><div class="scr">
+  <div class="notch"></div>
+  <div style="flex:1;display:flex;padding-top:40px;">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 12px;background:linear-gradient(180deg,rgba(212,179,104,0.08),transparent);border-right:1px solid rgba(201,169,97,0.2);">
+      <div class="ey gold" style="margin-bottom:8px;">YOU</div>
+      <div style="display:flex;margin-bottom:8px;"><div class="cf red"><span>A</span><span>♥</span></div><div class="cf blk"><span>K</span><span>♠</span></div></div>
+      <div style="font-size:10px;color:var(--gold-500);text-align:center;margin-bottom:16px;">Two Pair<br/>Aces & Kings</div>
+      <div class="serif gold" style="font-size:36px;">WIN</div>
+      <div class="serif gold" style="font-size:28px;margin-top:8px;">+340</div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 12px;opacity:0.5;">
+      <div class="ey" style="margin-bottom:8px;">STEPHEN</div>
+      <div style="display:flex;margin-bottom:8px;"><div class="cf red"><span>Q</span><span>♥</span></div><div class="cf blk"><span>J</span><span>♣</span></div></div>
+      <div style="font-size:10px;color:var(--cream-300);text-align:center;margin-bottom:16px;">Pair of<br/>Queens</div>
+      <div class="serif" style="font-size:36px;color:var(--cream-300);">LOSS</div>
+      <div style="font-size:10px;color:var(--cream-400);margin-top:20px;">Board: QKK2A7</div>
+    </div>
+  </div>
+  <div style="padding:16px 20px 24px;"><div class="cta gold">Next Hand →</div></div>
+  <div class="hind"></div>
+</div></div><div class="label"><span class="num">13</span>Side-by-Side<span class="note">Full vertical split. Visual W/L contrast.</span></div></div></div></section>
+
+<!-- 14 Layered Reveal -->
+<section class="section"><h2>Option 14</h2><h3>Layered Reveal (Progressive)</h3><p class="desc">Animation reveals in stages: cards → hand names → amount. Each stage has its own beat.</p>
+<div class="grid"><div class="phone-wrap"><div class="phone"><div class="scr">
+  <div class="notch"></div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 20px;text-align:center;">
+    <!-- Stage 1: cards + flip icon -->
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px;">
+      <div style="display:flex;"><div class="cf xl red"><span>A</span><span>♥</span></div><div class="cf xl blk"><span>K</span><span>♠</span></div></div>
+      <div style="font-size:28px;color:var(--cream-300);">vs</div>
+      <div style="display:flex;"><div class="cf xl red"><span>Q</span><span>♥</span></div><div class="cf xl blk"><span>J</span><span>♣</span></div></div>
+    </div>
+    <!-- Stage 2: hand names (appears after cards) -->
+    <div style="margin-bottom:12px;">
+      <div style="font-size:14px;color:var(--gold-500);font-weight:600;">Two Pair, Aces & Kings</div>
+      <div style="font-size:12px;color:var(--cream-300);margin-top:2px;">beats Pair of Queens</div>
+    </div>
+    <div style="display:flex;gap:4px;margin-bottom:14px;">
+      <div class="cf sm red"><span>Q</span><span>♦</span></div><div class="cf sm blk"><span>K</span><span>♣</span></div><div class="cf sm red"><span>2</span><span>♥</span></div><div class="cf sm blk"><span>A</span><span>♠</span></div><div class="cf sm red"><span>7</span><span>♦</span></div>
+    </div>
+    <div class="thin-rule" style="width:50%;"></div>
+    <!-- Stage 3: amount (appears last, pops) -->
+    <div class="serif gold" style="font-size:52px;line-height:1;">+340</div>
+    <div style="font-size:11px;color:var(--cream-400);margin-top:4px;">85 BB pot</div>
+  </div>
+  <div style="padding:16px 20px 24px;"><div class="cta gold">Next Hand →</div></div>
+  <div class="hind"></div>
+</div></div><div class="label"><span class="num">14</span>Layered Reveal<span class="note">Progressive reveal. Cards → names → amount. Each stage has rhythm.</span></div></div></div></section>
+
+<!-- 15 Hand Tile Flash -->
+<section class="section"><h2>Option 15</h2><h3>Hand Tile Flash</h3><p class="desc">The resolved hand's tile in the list flashes gold for wins, claret for losses, then settles. Fastest, most in-context.</p>
+<div class="grid"><div class="phone-wrap"><div class="phone"><div class="scr">
+  <div class="notch"></div>
+  <div style="padding:50px 14px 0;flex:1;">
+    <!-- flashing hand -->
+    <div style="padding:12px;border-radius:14px;background:linear-gradient(180deg,rgba(212,179,104,0.2),rgba(212,179,104,0.05));border:2px solid var(--gold-500);box-shadow:0 0 24px rgba(212,179,104,0.3);margin-bottom:8px;animation:flash 1.2s;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:12px;color:var(--cream-100);">Hand 3</span>
+          <span style="font-size:9px;color:var(--gold-500);font-weight:700;background:rgba(212,179,104,0.2);padding:2px 5px;border-radius:3px;">WON</span>
+        </div>
+        <div class="serif gold" style="font-size:20px;">+340</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <div style="display:flex;"><div class="cf sm red"><span>A</span><span>♥</span></div><div class="cf sm blk"><span>K</span><span>♠</span></div></div>
+        <span style="font-size:10px;color:var(--cream-300);">beat QJ, two pair</span>
+      </div>
+    </div>
+    <div style="padding:10px;border-radius:12px;border:1px solid rgba(201,169,97,0.2);margin-bottom:8px;font-size:11px;opacity:0.4;">Hand 5 · Pending</div>
+    <div style="padding:10px;border-radius:12px;border:1px solid rgba(201,169,97,0.2);margin-bottom:8px;font-size:11px;opacity:0.4;">Hand 9 · Pending</div>
+    <div style="padding:10px;border-radius:12px;border:1px solid rgba(201,169,97,0.2);font-size:11px;opacity:0.4;">Hand 10 · Waiting</div>
+  </div>
+  <div class="hind"></div>
+</div></div><div class="label"><span class="num">15</span>Tile Flash<span class="note">Hand tile flashes gold/claret then settles into Resolved. Fastest, in-context.</span></div></div></div></section>
+
+</body>
+</html>
