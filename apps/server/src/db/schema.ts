@@ -133,6 +133,20 @@ export const turnHandoffs = pgTable('turn_handoffs', {
   firedAt: timestamp('fired_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+// ── Pending reminders (6h stale-turn re-push) ────────────────────────────────
+
+export const pendingReminders = pgTable('pending_reminders', {
+  reminderId: uuid('reminder_id').primaryKey().defaultRandom(),
+  kind: text('kind').notNull().$type<'turn_handoff' | 'match_started' | 'round_complete'>(),
+  userId: uuid('user_id').notNull().references(() => users.userId),
+  matchId: uuid('match_id').notNull().references(() => matches.matchId),
+  roundId: uuid('round_id').references(() => rounds.roundId),
+  dueAt: timestamp('due_at', { withTimezone: true }).notNull(),
+  firedAt: timestamp('fired_at', { withTimezone: true }),
+  context: jsonb('context').notNull().default({}).$type<Record<string, unknown>>(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 // ── App events (minimal observability) ───────────────────────────────────────
 
 export const appEvents = pgTable('app_events', {

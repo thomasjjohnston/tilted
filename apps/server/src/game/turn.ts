@@ -8,7 +8,8 @@ import { getAvailableChips, assertLedgerInvariant } from './ledger.js';
 import type { ActionType, Card, Street, Action } from '../engine/types.js';
 import { getMatchState } from './match.js';
 import { logEvent } from '../events/logger.js';
-import { dispatchPush } from '../notif/apns.js';
+import { dispatch } from '../notif/dispatchers.js';
+import { enqueueReminder } from '../notif/reminder-cron.js';
 
 export interface ApplyActionInput {
   handId: string;
@@ -19,12 +20,17 @@ export interface ApplyActionInput {
   clientSentAt?: Date;
 }
 
+interface PendingNotifState {
+  handoffs: { handoffId: string; toUserId: string; roundId: string; handsPending: number; fromUserId: string; matchId: string }[];
+  roundComplete: { matchId: string; roundId: string; roundIndex: number; allInCount: number; userAId: string; userBId: string } | null;
+}
+
 /**
  * Apply an action to a hand. This is the core game mutation.
  * Runs inside a transaction with SELECT FOR UPDATE on the match.
  */
 export async function applyAction(db: Database, input: ApplyActionInput) {
-  const pendingHandoffs: { handoffId: string; toUserId: string; roundId: string }[] = [];
+  const notif: PendingNotifState = { handoffs: [], roundComplete: null };
 
   const result = await db.transaction(async (tx) => {
     // 1. Load hand and verify state
@@ -296,10 +302,13 @@ export async function applyAction(db: Database, input: ApplyActionInput) {
         toUserId: opponentId,
       }).returning();
 
-      pendingHandoffs.push({
+      notif.handoffs.push({
         handoffId: handoff.handoffId,
         toUserId: opponentId,
         roundId: hand.roundId,
+        handsPending: oppPending,
+        fromUserId: input.userId,
+        matchId: match.matchId,
       });
 
       await logEvent(tx, input.userId, 'turn_submitted', {
@@ -310,19 +319,31 @@ export async function applyAction(db: Database, input: ApplyActionInput) {
 
     // If both pending are 0, round is ready for reveal/advance
     if (myPending === 0 && oppPending === 0) {
-      // Check if any hands are awaiting_runout
-      const updatedHands = await tx.query.hands.findMany({
-        where: eq(hands.roundId, hand.roundId),
-      });
-      const hasAwaitingRunout = updatedHands.some(h =>
-        h.handId === hand.handId
-          ? handUpdate.status === 'awaiting_runout'
-          : h.status === 'awaiting_runout'
-      );
+      const wasAlreadyRevealing = round.status === 'revealing';
 
       // Always go to 'revealing' — the client shows the round summary
       // and the user taps "Next round" to advance (spec §10).
       await tx.update(rounds).set({ status: 'revealing' }).where(eq(rounds.roundId, hand.roundId));
+
+      if (!wasAlreadyRevealing) {
+        const updatedHands = await tx.query.hands.findMany({
+          where: eq(hands.roundId, hand.roundId),
+        });
+        const allInCount = updatedHands.filter(h =>
+          h.handId === hand.handId
+            ? handUpdate.status === 'awaiting_runout'
+            : h.status === 'awaiting_runout'
+        ).length;
+
+        notif.roundComplete = {
+          matchId: match.matchId,
+          roundId: hand.roundId,
+          roundIndex: round.roundIndex,
+          allInCount,
+          userAId: match.userAId,
+          userBId: match.userBId,
+        };
+      }
     }
 
     await assertLedgerInvariant(tx, match.matchId);
@@ -330,17 +351,50 @@ export async function applyAction(db: Database, input: ApplyActionInput) {
     return getMatchState(tx, match.matchId, input.userId);
   });
 
-  // Post-commit: dispatch APNS for any turn handoffs
-  for (const handoff of pendingHandoffs) {
-    try {
-      await dispatchPush(handoff.toUserId, handoff.handoffId, handoff.roundId);
-    } catch (err) {
-      // Don't fail the request if push fails
-      console.error('Failed to dispatch push:', err);
-    }
-  }
+  // Post-commit: fire all notifications. Don't let push failures bubble up.
+  await fireNotifications(db, notif, input.userId);
 
   return result;
+}
+
+async function fireNotifications(db: Database, notif: PendingNotifState, actingUserId: string) {
+  for (const h of notif.handoffs) {
+    await dispatch(db, {
+      kind: 'turn_handoff',
+      toUserId: h.toUserId,
+      fromUserId: h.fromUserId,
+      matchId: h.matchId,
+      roundId: h.roundId,
+      handsPending: h.handsPending,
+      dedupeKey: `handoff:${h.handoffId}`,
+    });
+    await enqueueReminder(db, 'turn_handoff', h.toUserId, h.matchId, h.roundId, {
+      fromUserId: h.fromUserId,
+      handsPending: h.handsPending,
+    });
+  }
+  if (notif.roundComplete) {
+    const rc = notif.roundComplete;
+    for (const toUserId of [rc.userAId, rc.userBId]) {
+      const fromUserId = toUserId === rc.userAId ? rc.userBId : rc.userAId;
+      await dispatch(db, {
+        kind: 'round_complete',
+        toUserId,
+        fromUserId,
+        matchId: rc.matchId,
+        roundId: rc.roundId,
+        roundIndex: rc.roundIndex,
+        allInCount: rc.allInCount,
+        dedupeKey: `round-complete:${rc.roundId}:${toUserId}`,
+      });
+      await enqueueReminder(db, 'round_complete', toUserId, rc.matchId, rc.roundId, {
+        fromUserId,
+        roundIndex: rc.roundIndex,
+        allInCount: rc.allInCount,
+      });
+    }
+  }
+  void actingUserId;
 }
 
 /**
@@ -421,7 +475,7 @@ export async function applyBatchActions(
 ) {
   if (batchActions.length === 0) return null;
 
-  const pendingHandoffs: { handoffId: string; toUserId: string; roundId: string }[] = [];
+  const notif: PendingNotifState = { handoffs: [], roundComplete: null };
 
   const result = await db.transaction(async (tx) => {
     // Load the first hand to find the match, then lock it once
@@ -533,15 +587,34 @@ export async function applyBatchActions(
         toUserId: opponentId,
       }).returning();
 
-      pendingHandoffs.push({
+      notif.handoffs.push({
         handoffId: handoff.handoffId,
         toUserId: opponentId,
         roundId: firstHand.roundId,
+        handsPending: oppPending,
+        fromUserId: userId,
+        matchId: match.matchId,
       });
     }
 
     if (myPending === 0 && oppPending === 0) {
+      const wasAlreadyRevealing = round.status === 'revealing';
       await tx.update(rounds).set({ status: 'revealing' }).where(eq(rounds.roundId, firstHand.roundId));
+
+      if (!wasAlreadyRevealing) {
+        const updatedHands = await tx.query.hands.findMany({
+          where: eq(hands.roundId, firstHand.roundId),
+        });
+        const allInCount = updatedHands.filter(h => h.status === 'awaiting_runout').length;
+        notif.roundComplete = {
+          matchId: match.matchId,
+          roundId: firstHand.roundId,
+          roundIndex: round.roundIndex,
+          allInCount,
+          userAId: match.userAId,
+          userBId: match.userBId,
+        };
+      }
     }
 
     await assertLedgerInvariant(tx, match.matchId);
@@ -549,14 +622,7 @@ export async function applyBatchActions(
     return getMatchState(tx, match.matchId, userId);
   });
 
-  // Post-commit: dispatch APNS
-  for (const handoff of pendingHandoffs) {
-    try {
-      await dispatchPush(handoff.toUserId, handoff.handoffId, handoff.roundId);
-    } catch (err) {
-      console.error('Failed to dispatch push:', err);
-    }
-  }
+  await fireNotifications(db, notif, userId);
 
   return result;
 }

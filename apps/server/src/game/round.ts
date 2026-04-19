@@ -9,6 +9,7 @@ import { resolveShowdown } from '../engine/showdown.js';
 import { boardForStreet, dealFromSeed as deal } from '../engine/deck.js';
 import type { Card } from '../engine/types.js';
 import { logEvent } from '../events/logger.js';
+import { dispatch } from '../notif/dispatchers.js';
 
 /**
  * Open a new round: deal 10 hands, post blinds, set action_on to SB.
@@ -95,7 +96,9 @@ export async function advanceRound(
   roundId: string,
   userId: string,
 ) {
-  return db.transaction(async (tx) => {
+  let matchEndedInfo: { matchId: string; winnerUserId: string; loserUserId: string } | null = null;
+
+  const result = await db.transaction(async (tx) => {
     // Lock the match
     const round = await tx.query.rounds.findFirst({
       where: eq(rounds.roundId, roundId),
@@ -192,11 +195,13 @@ export async function advanceRound(
     if (updatedMatch.userATotal < MIN_CHIPS_FOR_ROUND || updatedMatch.userBTotal < MIN_CHIPS_FOR_ROUND) {
       const winner = updatedMatch.userATotal >= updatedMatch.userBTotal
         ? updatedMatch.userAId : updatedMatch.userBId;
+      const loser = winner === updatedMatch.userAId ? updatedMatch.userBId : updatedMatch.userAId;
       await endMatch(tx, updatedMatch.matchId, winner);
       await logEvent(tx, userId, 'match_ended', {
         match_id: updatedMatch.matchId,
         winner_user_id: winner,
       });
+      matchEndedInfo = { matchId: updatedMatch.matchId, winnerUserId: winner, loserUserId: loser };
       return getMatchState(tx, updatedMatch.matchId, userId);
     }
 
@@ -206,4 +211,22 @@ export async function advanceRound(
 
     return getMatchState(tx, round.matchId, userId);
   });
+
+  // Post-commit: on match end, tell both players.
+  if (matchEndedInfo !== null) {
+    const info = matchEndedInfo as { matchId: string; winnerUserId: string; loserUserId: string };
+    for (const toUserId of [info.winnerUserId, info.loserUserId]) {
+      const fromUserId = toUserId === info.winnerUserId ? info.loserUserId : info.winnerUserId;
+      await dispatch(db, {
+        kind: 'match_ended',
+        toUserId,
+        fromUserId,
+        matchId: info.matchId,
+        winnerUserId: info.winnerUserId,
+        dedupeKey: `match-ended:${info.matchId}:${toUserId}`,
+      });
+    }
+  }
+
+  return result;
 }

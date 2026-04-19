@@ -8,6 +8,7 @@ import { handRoutes } from './api/routes/hand.js';
 import { roundRoutes } from './api/routes/round.js';
 import { meRoutes } from './api/routes/me.js';
 import { historyRoutes } from './api/routes/history.js';
+import { matchupRoutes } from './api/routes/matchup.js';
 
 function getGitSha(): string {
   try {
@@ -50,6 +51,7 @@ export async function buildApp() {
     await authenticated.register(handRoutes);
     await authenticated.register(roundRoutes);
     await authenticated.register(historyRoutes);
+    await authenticated.register(matchupRoutes);
   }, { prefix: '/v1' });
 
   return app;

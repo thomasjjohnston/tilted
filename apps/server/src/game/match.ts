@@ -5,13 +5,15 @@ import { USER_TJ_ID, USER_SL_ID } from '../db/seed.js';
 import { STARTING_STACK, BLIND_SMALL, BLIND_BIG, HANDS_PER_ROUND, MIN_CHIPS_FOR_ROUND } from './constants.js';
 import { openRound } from './round.js';
 import { generateActionSketch } from './action-sketch.js';
+import { dispatch } from '../notif/dispatchers.js';
+import { enqueueReminder } from '../notif/reminder-cron.js';
 
 /**
  * Create a new match between the two hardcoded users.
  * Coin flip determines who is SB in round 1.
  */
 export async function createMatch(db: Database, requestingUserId: string) {
-  return db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
     // Check no active match exists
     const activeMatch = await tx.query.matches.findFirst({
       where: eq(matches.status, 'active'),
@@ -36,10 +38,26 @@ export async function createMatch(db: Database, requestingUserId: string) {
     }).returning();
 
     // Open round 1
-    await openRound(tx, match.matchId, 1);
+    const roundId = await openRound(tx, match.matchId, 1);
 
-    return match;
+    return { match, roundId };
   });
+
+  // Post-commit: tell the opponent a new match is live.
+  const opponentId = requestingUserId === USER_TJ_ID ? USER_SL_ID : USER_TJ_ID;
+  await dispatch(db, {
+    kind: 'match_started',
+    toUserId: opponentId,
+    fromUserId: requestingUserId,
+    matchId: result.match.matchId,
+    roundId: result.roundId,
+    dedupeKey: `match-started:${result.match.matchId}`,
+  });
+  await enqueueReminder(db, 'match_started', opponentId, result.match.matchId, result.roundId, {
+    fromUserId: requestingUserId,
+  });
+
+  return result.match;
 }
 
 /**

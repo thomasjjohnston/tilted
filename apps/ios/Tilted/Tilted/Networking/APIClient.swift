@@ -97,6 +97,12 @@ actor APIClient {
         return try await post("/v1/round/\(roundId)/advance", body: [:] as [String: String])
     }
 
+    // MARK: - Match-up
+
+    func getMatchUp() async throws -> MatchUpResponse {
+        return try await get("/v1/matchup")
+    }
+
     // MARK: - History
 
     func getHistory(matchId: String? = nil, favorites: Bool = false, result: String = "all") async throws -> HistoryResponse {
