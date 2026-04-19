@@ -17,6 +17,9 @@ struct MatchUpView: View {
                 } else if let data {
                     ScrollView {
                         VStack(spacing: 0) {
+                            if data.scoreboard.handsPlayed < 10 {
+                                earlyStateBanner(data.scoreboard.handsPlayed)
+                            }
                             scoreboardHero(data)
                             momentsSection(data.moments)
                             headToHeadSection(data.headToHead)
@@ -43,6 +46,9 @@ struct MatchUpView: View {
                     .environment(store)
             }
             .task { await load() }
+            .onAppear {
+                if data != nil { Task { await load() } }
+            }
         }
     }
 
@@ -57,6 +63,29 @@ struct MatchUpView: View {
             errorMessage = error.localizedDescription
         }
         isLoading = false
+    }
+
+    // MARK: - Early-state banner
+
+    private func earlyStateBanner(_ handsPlayed: Int) -> some View {
+        HStack(spacing: 8) {
+            Text("\u{1F331}")
+            Text(handsPlayed == 0
+                ? "Play a match to start building history."
+                : "Play a few more hands — stats fill in as you go.")
+                .font(.system(size: 11))
+                .foregroundColor(.cream200)
+            Spacer()
+        }
+        .padding(10)
+        .background(Color.gold500.opacity(0.08))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(Color.gold500.opacity(0.25), lineWidth: 1)
+        )
+        .cornerRadius(10)
+        .padding(.horizontal, 12)
+        .padding(.bottom, 12)
     }
 
     // MARK: - Empty state
