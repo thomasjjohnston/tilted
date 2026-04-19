@@ -2,7 +2,6 @@ import SwiftUI
 
 struct SettingsView: View {
     @Environment(AppStore.self) private var store
-    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         NavigationStack {
@@ -44,7 +43,6 @@ struct SettingsView: View {
                         Section {
                             Button("Sign Out") {
                                 store.logout()
-                                dismiss()
                             }
                             .foregroundColor(.claret)
                         } header: {
@@ -83,12 +81,6 @@ struct SettingsView: View {
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button { dismiss() } label: {
-                        Image(systemName: "chevron.left")
-                            .foregroundColor(.cream200)
-                    }
-                }
                 ToolbarItem(placement: .principal) {
                     Text("Settings")
                         .font(.displaySmall)

@@ -16,6 +16,7 @@ final class AppStore {
 
     // MARK: - Navigation
     var activeScreen: ActiveScreen = .home
+    var selectedTab: Tab = .home
 
     enum ActiveScreen: Equatable {
         case home
@@ -24,6 +25,10 @@ final class AppStore {
         case history
         case settings
         case handDetail(String)
+    }
+
+    enum Tab: Hashable {
+        case home, matchUp, history, settings
     }
 
     // MARK: - Auth

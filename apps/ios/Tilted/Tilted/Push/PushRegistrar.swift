@@ -7,10 +7,15 @@ final class PushRegistrar: NSObject, UNUserNotificationCenterDelegate {
     static let shared = PushRegistrar()
 
     var permissionGranted = false
+    private weak var store: AppStore?
 
     override init() {
         super.init()
         UNUserNotificationCenter.current().delegate = self
+    }
+
+    func attachStore(_ store: AppStore) {
+        self.store = store
     }
 
     func requestPermission() async {

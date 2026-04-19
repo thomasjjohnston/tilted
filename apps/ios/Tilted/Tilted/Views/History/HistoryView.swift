@@ -2,7 +2,6 @@ import SwiftUI
 
 struct HistoryView: View {
     @Environment(AppStore.self) private var store
-    @Environment(\.dismiss) private var dismiss
     @State private var filter: HistoryFilter = .all
     @State private var resultFilter: ResultFilter = .all
     @State private var hands: [HistoryHand] = []
@@ -72,14 +71,6 @@ struct HistoryView: View {
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "chevron.left")
-                            .foregroundColor(.cream200)
-                    }
-                }
                 ToolbarItem(placement: .principal) {
                     Text("History")
                         .font(.displaySmall)

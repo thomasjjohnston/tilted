@@ -51,17 +51,6 @@ struct HomeView: View {
                         .tracking(1.5)
                         .foregroundColor(.cream300)
                 }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        store.activeScreen = .settings
-                    } label: {
-                        Image(systemName: "gearshape")
-                            .foregroundColor(.gold500)
-                    }
-                }
-            }
-            .sheet(isPresented: showSettings) {
-                SettingsView()
             }
             .fullScreenCover(isPresented: showTurn) {
                 if let match = store.matchState, let round = match.currentRound {
@@ -78,10 +67,6 @@ struct HomeView: View {
                         .environment(store)
                 }
             }
-            .fullScreenCover(isPresented: showHistory) {
-                HistoryView()
-                    .environment(store)
-            }
             .fullScreenCover(isPresented: $showCoinFlip) {
                 if let match = store.matchState {
                     CoinFlipView(match: match) {
@@ -97,19 +82,11 @@ struct HomeView: View {
 
     // MARK: - State Bindings
 
-    private var showSettings: Binding<Bool> {
-        Binding(get: { store.activeScreen == .settings }, set: { if !$0 { store.activeScreen = .home } })
-    }
-
     private var showTurn: Binding<Bool> {
         Binding(get: { store.activeScreen == .turn }, set: { if !$0 { store.activeScreen = .home } })
     }
 
     // showReveal is now driven by revealMatch/revealRound state
-
-    private var showHistory: Binding<Bool> {
-        Binding(get: { store.activeScreen == .history }, set: { if !$0 { store.activeScreen = .home } })
-    }
 
     // MARK: - Active Match View
 
@@ -253,12 +230,6 @@ struct HomeView: View {
                 )
             }
 
-            Spacer().frame(height: Spacing.sm)
-
-            Button("History \u{00B7} Favorites") {
-                store.activeScreen = .history
-            }
-            .buttonStyle(.ghost)
         }
     }
 
@@ -302,13 +273,6 @@ struct HomeView: View {
             }
             .buttonStyle(.primary)
             .disabled(isCreatingMatch)
-
-            Spacer().frame(height: Spacing.sm)
-
-            Button("View history") {
-                store.activeScreen = .history
-            }
-            .buttonStyle(.ghost)
         }
     }
 
@@ -342,11 +306,6 @@ struct HomeView: View {
             }
             .buttonStyle(.primary)
             .disabled(isCreatingMatch)
-
-            Button("View history") {
-                store.activeScreen = .history
-            }
-            .buttonStyle(.ghost)
         }
     }
 
