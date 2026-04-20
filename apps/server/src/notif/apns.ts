@@ -94,10 +94,16 @@ async function generateApnsJwt(): Promise<string> {
 
   const signingInput = `${header}.${claims}`;
 
+  // JWTs require the raw R||S (IEEE P1363) encoding for ES256.
+  // Node's default sign output is DER — Apple rejects DER-encoded
+  // signatures as InvalidProviderToken.
   const { createSign } = await import('node:crypto');
   const sign = createSign('SHA256');
   sign.update(signingInput);
-  const signature = sign.sign(env.APNS_KEY, 'base64url');
+  const signature = sign.sign({
+    key: env.APNS_KEY,
+    dsaEncoding: 'ieee-p1363',
+  }).toString('base64url');
 
   return `${signingInput}.${signature}`;
 }
