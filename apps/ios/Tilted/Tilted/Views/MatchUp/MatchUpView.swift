@@ -6,6 +6,8 @@ struct MatchUpView: View {
     @State private var isLoading = true
     @State private var errorMessage: String?
     @State private var selectedHandId: IdentifiableString?
+    @State private var roster: [UserRosterEntry] = []
+    @AppStorage("matchup.selectedOpponentId") private var selectedOpponentId: String = ""
 
     var body: some View {
         NavigationStack {
@@ -14,22 +16,29 @@ struct MatchUpView: View {
 
                 if isLoading && data == nil {
                     ProgressView().tint(.gold500)
-                } else if let data {
+                } else if roster.isEmpty && data == nil {
+                    emptyState
+                } else {
                     ScrollView {
                         VStack(spacing: 0) {
-                            if data.scoreboard.handsPlayed < 10 {
-                                earlyStateBanner(data.scoreboard.handsPlayed)
+                            if roster.count > 1 {
+                                opponentSelector
                             }
-                            scoreboardHero(data)
-                            momentsSection(data.moments)
-                            headToHeadSection(data.headToHead)
-                            pinnedHandsSection(data.pinnedHands)
+                            if let data {
+                                if data.scoreboard.handsPlayed < 10 {
+                                    earlyStateBanner(data.scoreboard.handsPlayed)
+                                }
+                                scoreboardHero(data)
+                                momentsSection(data.moments)
+                                headToHeadSection(data.headToHead)
+                                pinnedHandsSection(data.pinnedHands)
+                            } else {
+                                noHistoryForOpponent
+                            }
                         }
                         .padding(.vertical, 16)
                     }
-                    .refreshable { await load() }
-                } else {
-                    emptyState
+                    .refreshable { await reloadAll() }
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
@@ -45,24 +54,106 @@ struct MatchUpView: View {
                 HandDetailView(handId: item.value)
                     .environment(store)
             }
-            .task { await load() }
+            .task { await reloadAll() }
             .onAppear {
-                if data != nil { Task { await load() } }
+                if data != nil || !roster.isEmpty {
+                    Task { await reloadAll() }
+                }
+            }
+            .onChange(of: selectedOpponentId) { _, _ in
+                Task { await loadMatchup() }
             }
         }
     }
 
     // MARK: - Load
 
-    private func load() async {
+    private func reloadAll() async {
         isLoading = true
         errorMessage = nil
+        async let loadRoster: () = loadRoster()
+        async let loadMatchupInitial: () = loadMatchup()
+        _ = await (loadRoster, loadMatchupInitial)
+        isLoading = false
+    }
+
+    private func loadRoster() async {
         do {
-            data = try await APIClient.shared.getMatchUp()
+            roster = try await APIClient.shared.listUsers()
+            // Default selection: if we have no persisted choice, pick the
+            // first roster entry. If our persisted choice no longer exists
+            // (opponent deleted their account), fall back to the first.
+            if selectedOpponentId.isEmpty || !roster.contains(where: { $0.userId == selectedOpponentId }) {
+                selectedOpponentId = roster.first?.userId ?? ""
+            }
+        } catch {
+            // Non-fatal — fall back to no opponent filter and let the server
+            // pick most-recently-played
+        }
+    }
+
+    private func loadMatchup() async {
+        errorMessage = nil
+        do {
+            let opponentId = selectedOpponentId.isEmpty ? nil : selectedOpponentId
+            data = try await APIClient.shared.getMatchUp(opponentId: opponentId)
+        } catch APIError.notFound {
+            data = nil
         } catch {
             errorMessage = error.localizedDescription
         }
-        isLoading = false
+    }
+
+    // MARK: - Opponent selector
+
+    private var opponentSelector: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(roster) { u in
+                    let selected = u.userId == selectedOpponentId
+                    Button { selectedOpponentId = u.userId } label: {
+                        HStack(spacing: 6) {
+                            AvatarView(initials: u.initials, size: .small)
+                            Text(u.displayName.components(separatedBy: " ").first ?? u.displayName)
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(selected ? .felt800 : .cream200)
+                        }
+                        .padding(.vertical, 6)
+                        .padding(.horizontal, 10)
+                        .background(selected ? Color.gold500 : Color.black.opacity(0.2))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(Color.gold500.opacity(selected ? 0 : 0.3), lineWidth: 1)
+                        )
+                        .cornerRadius(16)
+                    }
+                }
+            }
+            .padding(.horizontal, 14)
+        }
+        .padding(.bottom, 10)
+    }
+
+    private var noHistoryForOpponent: some View {
+        VStack(spacing: 8) {
+            Text("\u{1F3B2}")
+                .font(.system(size: 36))
+            Text("No history yet against\n\(selectedOpponentName).")
+                .font(.displaySmall)
+                .fontDesign(.serif)
+                .foregroundColor(.cream100)
+                .multilineTextAlignment(.center)
+            Text("Challenge them from Home to get started.")
+                .font(.bodySecondary)
+                .foregroundColor(.cream300)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 32)
+        }
+        .padding(.vertical, 40)
+    }
+
+    private var selectedOpponentName: String {
+        roster.first(where: { $0.userId == selectedOpponentId })?.displayName ?? "your opponent"
     }
 
     // MARK: - Early-state banner

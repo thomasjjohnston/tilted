@@ -125,8 +125,9 @@ actor APIClient {
 
     // MARK: - Match-up
 
-    func getMatchUp() async throws -> MatchUpResponse {
-        return try await get("/v1/matchup")
+    func getMatchUp(opponentId: String? = nil) async throws -> MatchUpResponse {
+        let path = opponentId.map { "/v1/matchup?opponent_user_id=\($0)" } ?? "/v1/matchup"
+        return try await get(path)
     }
 
     // MARK: - History
