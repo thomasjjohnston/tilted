@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { and, or, eq, desc } from 'drizzle-orm';
+import { or, eq, desc } from 'drizzle-orm';
 import { getDb } from '../context.js';
 import { getMatchUp } from '../../game/matchup.js';
 import { matches } from '../../db/schema.js';
