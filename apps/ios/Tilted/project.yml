@@ -27,6 +27,8 @@ targets:
       path: Tilted/Tilted.entitlements
       properties:
         aps-environment: production
+        com.apple.developer.applesignin:
+          - Default
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.thomasjjohnston.tilted
