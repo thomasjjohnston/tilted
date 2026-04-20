@@ -21,6 +21,13 @@ actor APIClient {
         return try await post("/v1/auth/debug/select", body: ["user_id": userId], authenticated: false)
     }
 
+    func signInApple(identityToken: String, fullName: String?, email: String?) async throws -> AuthResponse {
+        var body: [String: Any] = ["identity_token": identityToken]
+        if let fullName { body["full_name"] = fullName }
+        if let email { body["email"] = email }
+        return try await post("/v1/auth/apple", body: body, authenticated: false)
+    }
+
     // MARK: - Me
 
     func getMe() async throws -> UserResponse {

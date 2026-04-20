@@ -49,6 +49,19 @@ final class AppStore {
 
     func login(userId: String) async throws {
         let response = try await APIClient.shared.debugSelect(userId: userId)
+        await applyAuth(response: response)
+    }
+
+    func signInWithApple(identityToken: String, fullName: String?, email: String?) async throws {
+        let response = try await APIClient.shared.signInApple(
+            identityToken: identityToken,
+            fullName: fullName,
+            email: email
+        )
+        await applyAuth(response: response)
+    }
+
+    private func applyAuth(response: AuthResponse) async {
         await APIClient.shared.setToken(response.token)
 
         KeychainHelper.save(key: "auth_token", value: response.token)
