@@ -4,7 +4,7 @@ This file tells Claude Code (and any coding agent) how to do high-quality work i
 
 ## 1. What Tilted is (in 3 sentences)
 
-Tilted is a heads-up Texas Hold'em iPhone game for two friends where ten hands run in parallel off one shared chip stack. It's explicitly experimental — rules are expected to change as the two users play. The MVP is scoped to exactly two hardcoded accounts and a single match at a time.
+Tilted is a heads-up Texas Hold'em iPhone game for a small group of friends where ten hands run in parallel off one shared chip stack per match. It's explicitly experimental — rules are expected to change as the users play. As of the SIWA / multi-user expansion, any Apple-signed user can challenge any other signed-up user; per-pair matches run concurrently.
 
 ## 2. Required reading before writing code
 
@@ -77,6 +77,14 @@ Deck seeds, opponent hole cards, and any `action_on_user_id` information are fil
 ### 4.7 Rules change; code is cheap
 
 The product is explicitly experimental. Design every feature so a rule change (blind sizes, hand count per round, chip starting stack) is a one-file edit. Hardcode nothing across multiple files. If you need a constant in three places, put it in one module and import.
+
+### 4.8 User identity is Sign in with Apple (production); debug picker stays for local dev
+
+Release builds authenticate via Sign in with Apple — the server verifies identity tokens against Apple's JWKS and issues a bearer. DEBUG builds still show the 2-user PIN picker (`DebugPickerView`) so engineers can iterate without an Apple modal on every launch. `USER_TJ_ID` / `USER_SL_ID` survive only as DEBUG conveniences in `db/seed.ts` and `APIModels.swift` — server code never references them.
+
+### 4.9 Matches are per-pair
+
+Any authenticated user can challenge any other. The `matches_one_active_idx` invariant is gone: multiple pairs can have active matches concurrently. The application-level check is "at most one active match per (userA, userB) pair, in either ordering" — enforced in `createMatch`.
 
 ## 5. Workflow: one sprint, one story at a time
 

@@ -47,7 +47,7 @@ async function main() {
 
     case 'new-match': {
       const { createMatch } = await import('../game/match.js');
-      const match = await createMatch(db, USER_TJ_ID);
+      const match = await createMatch(db, USER_TJ_ID, USER_SL_ID);
       console.log(`Created match: ${match.matchId}`);
       break;
     }

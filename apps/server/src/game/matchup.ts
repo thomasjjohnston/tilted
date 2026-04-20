@@ -1,7 +1,6 @@
-import { eq, sql, asc } from 'drizzle-orm';
+import { eq, and, or, sql, asc } from 'drizzle-orm';
 import type { Database } from '../db/connection.js';
 import { matches, users } from '../db/schema.js';
-import { USER_TJ_ID, USER_SL_ID } from '../db/seed.js';
 import type { Card } from '../engine/types.js';
 import { HandCategory } from '../engine/types.js';
 import { evaluate } from '../engine/evaluator.js';
@@ -86,9 +85,16 @@ function firstName(name: string): string {
   return name.split(/\s+/)[0] ?? name;
 }
 
-export async function getMatchUp(db: Database, userId: string): Promise<MatchUpView> {
-  const opponentId = userId === USER_TJ_ID ? USER_SL_ID : USER_TJ_ID;
-
+/**
+ * Build the rivalry page for the requesting user against one specific opponent.
+ * All underlying queries scope to matches where (user_a, user_b) == (you, opp)
+ * in either order.
+ */
+export async function getMatchUp(
+  db: Database,
+  userId: string,
+  opponentId: string,
+): Promise<MatchUpView> {
   const [youUser, oppUser] = await Promise.all([
     db.query.users.findFirst({ where: eq(users.userId, userId) }),
     db.query.users.findFirst({ where: eq(users.userId, opponentId) }),
@@ -98,8 +104,8 @@ export async function getMatchUp(db: Database, userId: string): Promise<MatchUpV
   const [scoreboard, headToHead, moments, pinnedHands] = await Promise.all([
     computeScoreboard(db, userId, opponentId),
     computeHeadToHead(db, userId, opponentId),
-    computeMoments(db, userId, oppUser.displayName),
-    computePinnedHands(db, userId),
+    computeMoments(db, userId, opponentId, oppUser.displayName),
+    computePinnedHands(db, userId, opponentId),
   ]);
 
   return {
@@ -116,7 +122,13 @@ export async function getMatchUp(db: Database, userId: string): Promise<MatchUpV
 
 async function computeScoreboard(db: Database, userId: string, opponentId: string): Promise<Scoreboard> {
   const endedMatches = await db.query.matches.findMany({
-    where: eq(matches.status, 'ended'),
+    where: and(
+      eq(matches.status, 'ended'),
+      or(
+        and(eq(matches.userAId, userId), eq(matches.userBId, opponentId)),
+        and(eq(matches.userAId, opponentId), eq(matches.userBId, userId)),
+      ),
+    ),
     orderBy: asc(matches.endedAt),
   });
 
@@ -130,7 +142,6 @@ async function computeScoreboard(db: Database, userId: string, opponentId: strin
     if (m.endedAt && (!lastDate || m.endedAt > lastDate)) lastDate = m.endedAt;
   }
 
-  // Streaks (ignoring ties — winner_user_id null — as non-terminal outcomes)
   const winners = endedMatches
     .map(m => m.winnerUserId)
     .filter((w): w is string => !!w);
@@ -173,10 +184,15 @@ async function computeScoreboard(db: Database, userId: string, opponentId: strin
     };
   }
 
-  // Hands played = distinct completed hands across all matches (ended OR active)
-  const handsPlayedRow = await db.execute<{ count: string }>(
-    sql`SELECT COUNT(*)::text AS count FROM hands WHERE status = 'complete'`,
-  );
+  const handsPlayedRow = await db.execute<{ count: string }>(sql`
+    SELECT COUNT(*)::text AS count
+    FROM hands h
+    JOIN rounds r ON r.round_id = h.round_id
+    JOIN matches m ON m.match_id = r.match_id
+    WHERE h.status = 'complete'
+      AND ((m.user_a_id = ${userId} AND m.user_b_id = ${opponentId})
+        OR (m.user_a_id = ${opponentId} AND m.user_b_id = ${userId}))
+  `);
   const handsPlayed = Number((handsPlayedRow as unknown as Array<{ count: string }>)[0]?.count ?? 0);
 
   return {
@@ -192,7 +208,6 @@ async function computeScoreboard(db: Database, userId: string, opponentId: strin
 // ── Head-to-head ─────────────────────────────────────────────────────────────
 
 async function computeHeadToHead(db: Database, userId: string, opponentId: string): Promise<HeadToHead> {
-  // Pull every action joined with hand+round+match in one query.
   const rows = await db.execute<{
     hand_id: string;
     action_type: string;
@@ -218,6 +233,8 @@ async function computeHeadToHead(db: Database, userId: string, opponentId: strin
     JOIN hands h ON h.hand_id = a.hand_id
     JOIN rounds r ON r.round_id = h.round_id
     JOIN matches m ON m.match_id = r.match_id
+    WHERE (m.user_a_id = ${userId} AND m.user_b_id = ${opponentId})
+       OR (m.user_a_id = ${opponentId} AND m.user_b_id = ${userId})
   `);
 
   interface Row {
@@ -233,21 +250,13 @@ async function computeHeadToHead(db: Database, userId: string, opponentId: strin
   }
   const allRows = rows as unknown as Row[];
 
-  // VPIP: hands where user put money in voluntarily preflop (call/raise/all_in; NOT check or fold).
-  // Denominator = hands user saw preflop.
   const sawPreflop = { [userId]: new Set<string>(), [opponentId]: new Set<string>() } as Record<string, Set<string>>;
   const didVpipHand = { [userId]: new Set<string>(), [opponentId]: new Set<string>() } as Record<string, Set<string>>;
 
-  // Aggression: (bets + raises + all_ins) / calls per user across all streets.
   const aggressiveCount = { [userId]: 0, [opponentId]: 0 } as Record<string, number>;
   const callCount = { [userId]: 0, [opponentId]: 0 } as Record<string, number>;
 
-  // Showdowns: count of hands where terminal_reason='showdown'.
-  // Showdown wins per user: subset where winner_user_id = user.
   const showdownHands = new Set<string>();
-  const showdownWins = { [userId]: 0, [opponentId]: 0 } as Record<string, number>;
-
-  // Pot averages (BB) across completed hands.
   const handPotBb = new Map<string, number>();
 
   for (const r of allRows) {
@@ -264,15 +273,12 @@ async function computeHeadToHead(db: Database, userId: string, opponentId: strin
     }
     if (r.hand_status === 'complete' && r.terminal_reason === 'showdown') {
       showdownHands.add(r.hand_id);
-      if (r.winner_user_id === userId) showdownWins[userId] = showdownWins[userId] ?? 0;
-      if (r.winner_user_id === opponentId) showdownWins[opponentId] = showdownWins[opponentId] ?? 0;
     }
     if (r.hand_status === 'complete' && r.blind_big > 0) {
       handPotBb.set(r.hand_id, r.hand_pot / r.blind_big);
     }
   }
 
-  // Actual showdown-win counting (once per hand)
   const handWinners = new Map<string, string | null>();
   for (const r of allRows) {
     if (r.hand_status === 'complete' && r.terminal_reason === 'showdown') {
@@ -325,9 +331,9 @@ interface HandSnapshot {
 async function computeMoments(
   db: Database,
   userId: string,
+  opponentId: string,
   opponentDisplayName: string,
 ): Promise<Moment[]> {
-  // Pull every completed hand we'll need to rank.
   const raw = await db.execute<{
     hand_id: string;
     hand_index: number;
@@ -352,6 +358,8 @@ async function computeMoments(
     JOIN rounds r ON r.round_id = h.round_id
     JOIN matches m ON m.match_id = r.match_id
     WHERE h.status = 'complete' AND m.blind_big > 0
+      AND ((m.user_a_id = ${userId} AND m.user_b_id = ${opponentId})
+        OR (m.user_a_id = ${opponentId} AND m.user_b_id = ${userId}))
     ORDER BY h.completed_at DESC
   `);
 
@@ -389,14 +397,12 @@ async function computeMoments(
   const usedHandIds = new Set<string>();
   const oppFirst = firstName(opponentDisplayName);
 
-  // Biggest pot: single largest pot-in-BB across all completed hands.
   const biggestPot = [...allRows].sort((a, b) => (b.pot / b.blind_big) - (a.pot / a.blind_big))[0];
   if (biggestPot) {
     moments.push(buildMoment(biggestPot, userId, oppFirst, 'biggest_pot'));
     usedHandIds.add(biggestPot.hand_id);
   }
 
-  // Bad beat: most recent showdown where loser had trips or better.
   const showdownRows = allRows.filter(r => r.terminal_reason === 'showdown' && (JSON.parse(r.board) as string[]).length === 5);
   const badBeat = showdownRows.find(r => {
     if (usedHandIds.has(r.hand_id)) return false;
@@ -408,7 +414,6 @@ async function computeMoments(
     usedHandIds.add(badBeat.hand_id);
   }
 
-  // Cooler: most recent showdown where winner ≥ loser+2 categories AND loser ≥ two pair.
   const cooler = showdownRows.find(r => {
     if (usedHandIds.has(r.hand_id)) return false;
     const { winnerCat, loserCat } = evaluateShowdown(r);
@@ -419,9 +424,6 @@ async function computeMoments(
     usedHandIds.add(cooler.hand_id);
   }
 
-  // Fall-backs (only if we have < 3 moments):
-  //   streak_start: most recent terminal match we have
-  //   milestone: hands_played thresholds (100, 500, 1000)
   if (moments.length < 3) {
     const milestoneThreshold = nearestMilestone(allRows.length);
     if (milestoneThreshold) {
@@ -509,7 +511,7 @@ function nearestMilestone(count: number): number | null {
 
 // ── Pinned hands ─────────────────────────────────────────────────────────────
 
-async function computePinnedHands(db: Database, userId: string): Promise<PinnedHand[]> {
+async function computePinnedHands(db: Database, userId: string, opponentId: string): Promise<PinnedHand[]> {
   const rows = await db.execute<{
     hand_id: string;
     hand_index: number;
@@ -538,6 +540,8 @@ async function computePinnedHands(db: Database, userId: string): Promise<PinnedH
     JOIN rounds r ON r.round_id = h.round_id
     JOIN matches m ON m.match_id = r.match_id
     WHERE f.user_id = ${userId}
+      AND ((m.user_a_id = ${userId} AND m.user_b_id = ${opponentId})
+        OR (m.user_a_id = ${opponentId} AND m.user_b_id = ${userId}))
     ORDER BY f.created_at DESC
     LIMIT 20
   `);
@@ -602,17 +606,14 @@ function classifyPinnedTag(
   const loserCategory = Math.min(myRank.category, oppRank.category);
   const winnerCategory = Math.max(myRank.category, oppRank.category);
 
-  // Bad beat = loser had trips or better.
   if (loserCategory >= HandCategory.ThreeOfAKind) {
     return { tag: 'bad_beat', tagCopy: `${potBb} BB bad beat` };
   }
 
-  // Cooler = both two-pair-or-better and winner ≥ loser+2 categories.
   if (loserCategory >= HandCategory.TwoPair && winnerCategory >= loserCategory + 2) {
     return { tag: 'cooler', tagCopy: `${potBb} BB cooler` };
   }
 
-  // Category-specific tags based on the winning hand
   switch (winnerCategory) {
     case HandCategory.RoyalFlush:
     case HandCategory.StraightFlush:

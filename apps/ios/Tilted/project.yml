@@ -11,8 +11,8 @@ settings:
   base:
     SWIFT_VERSION: "5.9"
     GENERATE_INFOPLIST_FILE: true
-    CURRENT_PROJECT_VERSION: 4
-    MARKETING_VERSION: "0.1.4"
+    CURRENT_PROJECT_VERSION: 5
+    MARKETING_VERSION: "0.1.5"
 
 targets:
   Tilted:
@@ -27,6 +27,8 @@ targets:
       path: Tilted/Tilted.entitlements
       properties:
         aps-environment: production
+        com.apple.developer.applesignin:
+          - Default
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.thomasjjohnston.tilted

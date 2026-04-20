@@ -113,7 +113,12 @@ create table matches (
   user_a_total    int  not null,
   user_b_total    int  not null
 );
-create unique index on matches (status) where status = 'active'; -- MVP: only one active match
+-- NOTE: The original MVP had `create unique index on matches (status) where
+-- status = 'active'` to enforce "exactly one active match globally." That
+-- index was dropped in migration 0003 when the app expanded to N users;
+-- now multiple pairs can have active matches concurrently. The
+-- application-level rule is "at most one active match per (userA, userB)
+-- pair, in either ordering" — enforced in `createMatch`.
 
 create table rounds (
   round_id       uuid primary key,

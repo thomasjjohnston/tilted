@@ -44,8 +44,15 @@ cd apps/server && pnpm test
 
 ---
 
-## 2. Hardcoded users (MVP auth model)
+## 2. Auth model
 
+**Release builds: Sign in with Apple.**
+- `POST /v1/auth/apple` takes an `identity_token` (+ optional `full_name` / `email` on first sign-in).
+- Server verifies the JWT against Apple's JWKS, upserts by `apple_sub`, returns a bearer token (same `debug_tokens` table as before).
+- iOS `SignInView` uses `SignInWithAppleButton` and requests `.fullName + .email` scopes.
+- Sign in with Apple capability must be enabled on the App ID in Apple Developer portal — enabled as of 2026-04-20.
+
+**DEBUG builds: legacy PIN picker kept for local dev.**
 ```
 Thomas Johnston (TJ)
   user_id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
@@ -55,8 +62,9 @@ Stephen Layton (SL)
   user_id: b2c3d4e5-f6a7-8901-bcde-f12345678901
   PIN:     1234
 ```
+Only accessible when `#if DEBUG` in `RootView` (Xcode Run, not Archive/TestFlight). These user rows in prod DB will be orphaned once everyone logs in via SIWA — harmless, can be cleaned up later.
 
-PINs are hardcoded in iOS (`APIModels.swift` → `HardcodedUsers.users`). Not secure — intentionally. The server does not know PINs; debug auth just takes a `user_id` and issues a bearer token.
+**Account deletion.** `DELETE /v1/me` + a Settings → Delete Account button are in place (App Store guideline 5.1.1(v)). Server-to-server revocation webhook at `POST /v1/auth/apple/notifications` — functional but requires a Service ID configured in Apple Developer before Apple actually POSTs to it.
 
 **Sarah Flint was renamed to Stephen Layton** mid-session. Don't bring her back.
 
@@ -108,37 +116,32 @@ These are NOT up for debate without explicit user revisit:
 
 ### ✅ Shipped (in `main` via merged PRs)
 - All 6 sprints of original MVP spec
-- Poker engine (deck, evaluator, streets, showdown) — 84 tests passing
+- Poker engine (deck, evaluator, streets, showdown) — 90 tests passing
 - Full game layer (match, round, turn, ledger, favorites, history)
 - REST API with bearer auth, zod validation
-- iOS: Home, Turn (redesigned), BetSheet, Reveal (all-in cinematic), History, Settings, DebugPicker, CoinFlip, TurnSummary, ShowdownResult
-- PIN login
-- Available-first chip display
-- Optimistic UI + batch actions endpoint for auto-folds
-- APNS stub in place
-- Fly + Neon deployment
-- TestFlight build
+- Bottom tab bar (Home / Match-up / History / Settings) + `MatchUpView` (scoreboard, H2H, moments, pinned hands)
+- Center-stage `ShowdownResultView` for every hand completion (showdown, fold, split)
+- Dual-footer on result screen (↑ All Hands / Next Hand →) with handoff plumbing
+- APNS pushes (HTTP/2 via `node:http2`, IEEE-P1363 JWT, UUID apns-id dedupe) — 4 triggers wired
+- 6h reminder scanner (in-process `setInterval`, fires while machine is running)
+- Sign in with Apple (JWKS verifier, `POST /v1/auth/apple`, iOS `SignInView`, debug picker DEBUG-only)
+- Multi-user / multi-match support (matches are per-pair; `matches_one_active_idx` dropped)
+- Account deletion (`DELETE /v1/me` + Settings button, required by App Store guidelines)
+- Apple revocation webhook endpoint (functional; Apple Dev Service ID config pending)
+- Fly + Neon deployment, TestFlight 0.1.4+
 
-### 📋 Specified but NOT implemented (next session)
-See `docs/BETA-FEEDBACK-IMPLEMENTATION-SPEC.md`. Ten-step build order:
-1. Tab bar + stub `MatchUpView`
-2. Server `/v1/matchup` endpoint + scoreboard/H2H/pinned (no moments yet)
-3. Hook iOS to real data
-4. Moments detection (bad beat, cooler, biggest pot)
-5. Extend `ShowdownResultView` to folds (opponent-folded + you-folded)
-6. Dual-footer on result screen
-7. Next-hand handoff wiring
-8. APNS real keys + 4 triggers + dispatchers module
-9. 6h reminder table + in-process interval
-10. Deep-link from notification tap
+### 📋 Specified but NOT implemented
+- iOS filter pill for "history vs. specific opponent" — server supports it
+  (`/v1/history?opponent_user_id=...`), the UI segmented control doesn't
+  yet add the pill. One-hour job when desired.
 
-### 🕳 Known gaps / deferred to post-MVP
-- No Sign in with Apple (debug picker + PIN only)
-- No real APNS keys wired up in Fly (`APNS_KEY` secret is empty → pushes are no-ops)
-- No offline UI (we gracefully degrade but don't show a banner)
-- No accessibility pass (default iOS only)
-- No analytics dashboard — `app_events` table is populated but never queried in UI
-- CI on iOS side fails (xcodeproj not committed, xcodegen runs in CI but needs tweaking)
+### 🕳 Known gaps / deferred
+- No offline UI (we gracefully degrade but don't show a banner).
+- No accessibility pass (default iOS only).
+- No analytics dashboard — `app_events` table is populated but never queried in UI.
+- CI on iOS side fails (`.xcodeproj` gitignored, `xcodegen` in CI needs tweaking).
+- Apple revocation webhook: code is live but Apple won't POST until a Service ID is created in the Developer portal and configured to call our endpoint.
+- Legacy TJ/SL user rows exist in prod DB without `apple_sub`. They'll be orphaned once both users sign in via SIWA. Safe to leave or clean up later.
 
 ---
 
@@ -226,12 +229,13 @@ apps/ios/Tilted/Tilted/
   Persistence/ — KeychainHelper
 
 docs/
-  HLD.md                           — architecture
-  SPRINT-PLAN.md                   — original plan
-  PROJECT-STATE.md                 — THIS FILE
-  BETA-FEEDBACK-IMPLEMENTATION-SPEC.md — next batch of work
-  TURN-VIEW-REDESIGN.md            — v1 redesign (historical)
-  HAND-COMPLETION-SPEC.md          — v1 hand completion (historical)
+  HLD.md                                — architecture
+  SPRINT-PLAN.md                        — original plan
+  PROJECT-STATE.md                      — THIS FILE
+  BETA-FEEDBACK-IMPLEMENTATION-SPEC.md  — beta feedback work (shipped)
+  SIWA-MULTIUSER-SPEC.md                — SIWA + multi-user work (shipped)
+  TURN-VIEW-REDESIGN.md                 — v1 redesign (historical)
+  HAND-COMPLETION-SPEC.md               — v1 hand completion (historical)
 
 resources/
   product-definition-mvp.md        — product truth
@@ -252,7 +256,7 @@ Every PR should pass these:
 cd apps/server
 pnpm lint
 pnpm typecheck
-pnpm test              # 84 tests — if you add features, add tests, don't subtract
+pnpm test              # 90 tests — if you add features, add tests, don't subtract
 ```
 
 The invariant fuzzer (`test/engine/fuzzer.test.ts`) asserts chip conservation. If a chip math change breaks it, you broke the ledger. Don't weaken the test.

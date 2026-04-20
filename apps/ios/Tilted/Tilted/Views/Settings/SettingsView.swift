@@ -2,6 +2,8 @@ import SwiftUI
 
 struct SettingsView: View {
     @Environment(AppStore.self) private var store
+    @State private var showDeleteConfirm = false
+    @State private var deleteError: String?
 
     var body: some View {
         NavigationStack {
@@ -43,6 +45,10 @@ struct SettingsView: View {
                         Section {
                             Button("Sign Out") {
                                 store.logout()
+                            }
+                            .foregroundColor(.claret)
+                            Button("Delete Account") {
+                                showDeleteConfirm = true
                             }
                             .foregroundColor(.claret)
                         } header: {
@@ -87,6 +93,28 @@ struct SettingsView: View {
                         .fontDesign(.serif)
                         .foregroundColor(.cream100)
                 }
+            }
+            .alert("Delete your account?", isPresented: $showDeleteConfirm) {
+                Button("Cancel", role: .cancel) {}
+                Button("Delete", role: .destructive) {
+                    Task {
+                        do {
+                            try await store.deleteAccount()
+                        } catch {
+                            deleteError = error.localizedDescription
+                        }
+                    }
+                }
+            } message: {
+                Text("This removes your match history, pinned hands, and Apple sign-in binding. You can sign back in later, but nothing will be restored.")
+            }
+            .alert("Delete failed", isPresented: Binding(
+                get: { deleteError != nil },
+                set: { if !$0 { deleteError = nil } }
+            )) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(deleteError ?? "")
             }
         }
     }

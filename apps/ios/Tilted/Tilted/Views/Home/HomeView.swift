@@ -3,9 +3,14 @@ import SwiftUI
 struct HomeView: View {
     @Environment(AppStore.self) private var store
     @State private var showCoinFlip = false
-    @State private var isCreatingMatch = false
+    @State private var showOpponentPicker = false
     @State private var revealMatch: MatchState?
     @State private var revealRound: RoundView?
+
+    /// Active matches the current user is in — drives the list view.
+    private var activeMatches: [MatchState] {
+        store.matches.filter { $0.status == "active" }
+    }
 
     var body: some View {
         NavigationStack {
@@ -15,31 +20,27 @@ struct HomeView: View {
                 if !store.hasInitiallyLoaded {
                     VStack {
                         Spacer()
-                        ProgressView()
-                            .tint(.gold500)
+                        ProgressView().tint(.gold500)
                         Spacer()
                     }
+                } else if activeMatches.isEmpty {
+                    noMatchesView
                 } else {
                     ScrollView {
-                        VStack(spacing: 0) {
-                            if let match = store.matchState {
-                                if match.status == "ended" {
-                                    matchEndedView(match: match)
-                                } else if let round = match.currentRound {
-                                    activeMatchView(match: match, round: round)
-                                } else {
-                                    noRoundView(match: match)
+                        VStack(spacing: Spacing.md) {
+                            ForEach(activeMatches, id: \.matchId) { match in
+                                MatchRowCard(match: match) {
+                                    openMatch(match)
                                 }
-                            } else {
-                                noMatchView
                             }
+                            startMatchButton
+                                .padding(.top, Spacing.md)
                         }
                         .padding(.horizontal, 18)
                         .padding(.top, 16)
+                        .padding(.bottom, 32)
                     }
-                    .refreshable {
-                        await store.refresh()
-                    }
+                    .refreshable { await store.refresh() }
                 }
             }
             .ignoresSafeArea(edges: .bottom)
@@ -51,6 +52,14 @@ struct HomeView: View {
                         .tracking(1.5)
                         .foregroundColor(.cream300)
                 }
+            }
+            .sheet(isPresented: $showOpponentPicker) {
+                OpponentPickerSheet { match in
+                    store.matchState = match
+                    showOpponentPicker = false
+                    showCoinFlip = true
+                }
+                .environment(store)
             }
             .fullScreenCover(isPresented: showTurn) {
                 if let match = store.matchState, let round = match.currentRound {
@@ -80,162 +89,31 @@ struct HomeView: View {
         }
     }
 
-    // MARK: - State Bindings
+    // MARK: - Bindings
 
     private var showTurn: Binding<Bool> {
         Binding(get: { store.activeScreen == .turn }, set: { if !$0 { store.activeScreen = .home } })
     }
 
-    // showReveal is now driven by revealMatch/revealRound state
+    // MARK: - Actions
 
-    // MARK: - Active Match View
+    private func openMatch(_ match: MatchState) {
+        store.matchState = match
+        if match.status == "ended" { return }
 
-    private func activeMatchView(match: MatchState, round: RoundView) -> some View {
-        VStack(spacing: 0) {
-            // Opponent header
-            HStack(spacing: 10) {
-                AvatarView(initials: String(match.opponent.displayName.prefix(2)).uppercased())
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("MATCH VS.")
-                        .font(.eyebrow)
-                        .tracking(1.5)
-                        .foregroundColor(.cream300)
-                    Text(match.opponent.displayName)
-                        .font(.displaySmall)
-                        .fontDesign(.serif)
-                        .foregroundColor(.cream100)
-                }
-                Spacer()
-            }
-
-            dividerLine
-
-            // Chip badges
-            HStack(spacing: 8) {
-                ChipBadgeView(
-                    label: "You",
-                    total: match.myTotal,
-                    available: match.myAvailable,
-                    reserved: match.myReserved,
-                    isMe: true
-                )
-                ChipBadgeView(
-                    label: match.opponent.displayName.components(separatedBy: " ").first ?? "Opp",
-                    total: match.opponentTotal,
-                    available: match.opponentAvailable,
-                    reserved: match.opponentReserved
-                )
-            }
-
-            Spacer().frame(height: Spacing.lg)
-
-            // Round info
-            Text("ROUND \(String(format: "%02d", round.roundIndex)) \u{00B7} YOU ARE \(round.myRole.uppercased())")
-                .font(.eyebrow)
-                .tracking(1.5)
-                .foregroundColor(.cream300)
-
-            Spacer().frame(height: Spacing.xs)
-
-            // Chip bar
-            let resolved = 10 - round.handsPendingMe - round.handsPendingOpponent
-            ChipBarView(
-                resolved: max(0, resolved),
-                pendingMe: round.handsPendingMe,
-                pendingOpponent: round.handsPendingOpponent,
-                total: 10
-            )
-
-            Spacer().frame(height: Spacing.lg)
-
-            // Main CTA area
-            let allResolved = round.handsPendingMe == 0 && round.handsPendingOpponent == 0
-            if round.status == "revealing" || allResolved {
-                // Round reveal ready
-                let allInCount = round.hands.filter { $0.status == "awaiting_runout" }.count
-
-                Text("ROUND \(round.roundIndex) COMPLETE")
-                    .font(.eyebrow)
-                    .tracking(1.5)
-                    .foregroundColor(.gold500)
-
-                Spacer().frame(height: Spacing.sm)
-
-                if allInCount > 0 {
-                    Text("\(allInCount) all-in hand\(allInCount == 1 ? "" : "s") to reveal")
-                        .font(.custom("Georgia", size: 20))
-                        .foregroundColor(.cream100)
-                        .multilineTextAlignment(.center)
-
-                    Text("Cards will be dealt to determine the winner\(allInCount == 1 ? "" : "s").")
-                        .font(.system(size: 12))
-                        .foregroundColor(.cream300)
-                        .multilineTextAlignment(.center)
-                        .padding(.top, 2)
-                } else {
-                    Text("All hands resolved")
-                        .font(.custom("Georgia", size: 20))
-                        .foregroundColor(.cream100)
-                }
-
-                Spacer().frame(height: Spacing.md)
-
-                Button(allInCount > 0 ? "Watch the reveal \u{2192}" : "See round summary \u{2192}") {
-                    // Capture the current match/round BEFORE advancing
-                    // so RevealView has stable data that won't change mid-animation
-                    revealMatch = store.matchState
-                    revealRound = store.matchState?.currentRound
-                }
-                .buttonStyle(.primary)
-            } else if round.handsPendingMe > 0 {
-                // Your turn
-                let count = round.handsPendingMe
-                Text("\(numberWord(count)) hand\(count == 1 ? "" : "s")")
-                    .font(.displayMedium)
-                    .fontDesign(.serif)
-                    .foregroundColor(.cream100)
-                +
-                Text("\nawait your action.")
-                    .font(.displayMedium)
-                    .fontDesign(.serif)
-                    .foregroundColor(.gold500)
-
-                Spacer().frame(height: Spacing.lg)
-
-                Button("Take your turn") {
-                    store.activeScreen = .turn
-                }
-                .buttonStyle(.primary)
-            } else {
-                // Waiting on opponent
-                VStack(spacing: Spacing.sm) {
-                    Text("\u{23F3}")
-                        .font(.system(size: 36))
-                        .foregroundColor(.cream300)
-
-                    Text("Turn sent.")
-                        .font(.displaySmall)
-                        .fontDesign(.serif)
-                        .foregroundColor(.cream100)
-
-                    Text("\(match.opponent.displayName.components(separatedBy: " ").first ?? "Opponent") has \(round.handsPendingOpponent) hand\(round.handsPendingOpponent == 1 ? "" : "s") to answer.")
-                        .font(.caption)
-                        .foregroundColor(.cream300)
-                }
-                .padding(18)
-                .frame(maxWidth: .infinity)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.gold500.opacity(0.2), lineWidth: 1)
-                )
-            }
-
+        let roundDone = match.currentRound?.handsPendingMe == 0
+            && match.currentRound?.handsPendingOpponent == 0
+        if match.currentRound?.status == "revealing" || roundDone {
+            revealMatch = match
+            revealRound = match.currentRound
+        } else {
+            store.activeScreen = .turn
         }
     }
 
-    // MARK: - No Match View
+    // MARK: - Subviews
 
-    private var noMatchView: some View {
+    private var noMatchesView: some View {
         VStack(spacing: 0) {
             Spacer().frame(height: Spacing.xxl)
 
@@ -247,85 +125,32 @@ struct HomeView: View {
 
             Spacer().frame(height: Spacing.md)
 
-            Text("Start a new match to deal ten fresh hands.")
+            Text("Challenge a friend to deal ten fresh hands.")
                 .font(.bodySecondary)
                 .foregroundColor(.cream300)
                 .multilineTextAlignment(.center)
-                .padding(.horizontal, 10)
+                .padding(.horizontal, 18)
 
             Spacer().frame(height: Spacing.xl)
 
-            dividerLine
+            dividerLine.padding(.horizontal, 18)
 
             Spacer().frame(height: Spacing.xl)
 
-            Button {
-                Task { await createMatch() }
-            } label: {
-                if isCreatingMatch {
-                    HStack(spacing: 8) {
-                        ProgressView().tint(.felt800)
-                        Text("Dealing...")
-                    }
-                } else {
-                    Text("Start new match")
-                }
-            }
-            .buttonStyle(.primary)
-            .disabled(isCreatingMatch)
+            startMatchButton.padding(.horizontal, 18)
+
+            Spacer()
         }
     }
 
-    // MARK: - Match Ended
-
-    private func matchEndedView(match: MatchState) -> some View {
-        VStack(spacing: Spacing.lg) {
-            Spacer().frame(height: Spacing.xxl)
-
-            let iWon = match.winnerUserId == store.currentUserId
-            Text(iWon ? "You won!" : "You lost.")
-                .font(.displayLarge)
-                .fontDesign(.serif)
-                .foregroundColor(iWon ? .gold500 : .claret)
-
-            Text("Final chips: You \(match.myAvailable) \u{2014} \(match.opponent.displayName.components(separatedBy: " ").first ?? "Opp") \(match.opponentAvailable)")
-                .font(.bodySecondary)
-                .foregroundColor(.cream300)
-
-            Button {
-                Task { await createMatch() }
-            } label: {
-                if isCreatingMatch {
-                    HStack(spacing: 8) {
-                        ProgressView().tint(.felt800)
-                        Text("Dealing...")
-                    }
-                } else {
-                    Text("Start new match")
-                }
-            }
-            .buttonStyle(.primary)
-            .disabled(isCreatingMatch)
+    private var startMatchButton: some View {
+        Button {
+            showOpponentPicker = true
+        } label: {
+            Text("Start a match")
         }
+        .buttonStyle(.primary)
     }
-
-    private func noRoundView(match: MatchState) -> some View {
-        VStack {
-            Text("Match active, waiting for round...")
-                .foregroundColor(.cream300)
-        }
-    }
-
-    // MARK: - Actions
-
-    private func createMatch() async {
-        isCreatingMatch = true
-        await store.startNewMatch()
-        isCreatingMatch = false
-        if store.matchState != nil { showCoinFlip = true }
-    }
-
-    // MARK: - Helpers
 
     private var dividerLine: some View {
         Rectangle()
@@ -340,10 +165,89 @@ struct HomeView: View {
             .opacity(0.7)
             .padding(.vertical, 14)
     }
+}
 
-    private func numberWord(_ n: Int) -> String {
-        let words = ["Zero", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten"]
-        return n < words.count ? words[n] : "\(n)"
+// MARK: - Match row card
+
+struct MatchRowCard: View {
+    let match: MatchState
+    let onTap: () -> Void
+
+    private var opponentInitials: String {
+        String(match.opponent.displayName.prefix(2)).uppercased()
+    }
+
+    private var opponentFirst: String {
+        match.opponent.displayName.components(separatedBy: " ").first ?? "Opp"
+    }
+
+    private var statusCopy: String {
+        guard let round = match.currentRound else {
+            return "Round loading…"
+        }
+        if round.status == "revealing" {
+            return "Round \(round.roundIndex) ready to reveal"
+        }
+        if round.handsPendingMe > 0 {
+            return "\(round.handsPendingMe) hand\(round.handsPendingMe == 1 ? "" : "s") await you"
+        }
+        if round.handsPendingOpponent > 0 {
+            return "Waiting on \(opponentFirst) \u{00B7} \(round.handsPendingOpponent) left"
+        }
+        return "Round \(round.roundIndex) complete"
+    }
+
+    private var statusColor: Color {
+        guard let round = match.currentRound else { return .cream300 }
+        if round.handsPendingMe > 0 || round.status == "revealing" { return .gold500 }
+        return .cream300
+    }
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 12) {
+                AvatarView(initials: opponentInitials, size: .large)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(match.opponent.displayName)
+                        .font(.displaySmall)
+                        .fontDesign(.serif)
+                        .foregroundColor(.cream100)
+                    Text(statusCopy)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(statusColor)
+                }
+
+                Spacer()
+
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("\(match.myAvailable)")
+                        .font(.custom("Georgia", size: 20))
+                        .foregroundColor(.gold500)
+                    Text("chips")
+                        .font(.system(size: 9, weight: .medium))
+                        .tracking(0.5)
+                        .foregroundColor(.cream400)
+                }
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13))
+                    .foregroundColor(.cream300)
+            }
+            .padding(14)
+            .background(
+                LinearGradient(
+                    colors: [Color.gold500.opacity(0.05), Color.black.opacity(0.2)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(Color.gold500.opacity(0.25), lineWidth: 1)
+            )
+            .cornerRadius(14)
+        }
     }
 }
 

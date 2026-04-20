@@ -4,6 +4,7 @@ import { hands, rounds, matches, favorites, actions } from '../db/schema.js';
 
 export interface HistoryOptions {
   matchId?: string;
+  opponentUserId?: string;
   favoritesOnly: boolean;
   result: 'won' | 'lost' | 'all';
   roundIndex?: number;
@@ -39,6 +40,17 @@ export async function getHistory(
 
   if (options.matchId) {
     conditions.push(sql`r.match_id = ${options.matchId}`);
+  }
+
+  if (options.opponentUserId) {
+    conditions.push(sql`(
+      (m.user_a_id = ${userId} AND m.user_b_id = ${options.opponentUserId})
+      OR (m.user_a_id = ${options.opponentUserId} AND m.user_b_id = ${userId})
+    )`);
+  } else {
+    // When no opponent is specified, scope to matches this user is in so
+    // users can't see each other's history by default.
+    conditions.push(sql`(m.user_a_id = ${userId} OR m.user_b_id = ${userId})`);
   }
 
   if (options.roundIndex !== undefined) {

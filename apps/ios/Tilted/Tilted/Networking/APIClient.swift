@@ -21,6 +21,13 @@ actor APIClient {
         return try await post("/v1/auth/debug/select", body: ["user_id": userId], authenticated: false)
     }
 
+    func signInApple(identityToken: String, fullName: String?, email: String?) async throws -> AuthResponse {
+        var body: [String: Any] = ["identity_token": identityToken]
+        if let fullName { body["full_name"] = fullName }
+        if let email { body["email"] = email }
+        return try await post("/v1/auth/apple", body: body, authenticated: false)
+    }
+
     // MARK: - Me
 
     func getMe() async throws -> UserResponse {
@@ -30,6 +37,15 @@ actor APIClient {
     func updateApnsToken(_ token: String) async throws {
         let _: EmptyResponse = try await post("/v1/me/apns-token", body: ["apns_token": token])
         // 204 no content
+    }
+
+    func deleteAccount() async throws {
+        var request = URLRequest(url: baseURL.appendingPathComponent("/v1/me"))
+        request.httpMethod = "DELETE"
+        if let token = token {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        let _: DeleteResponse = try await execute(request)
     }
 
     // MARK: - Match
@@ -42,8 +58,18 @@ actor APIClient {
         }
     }
 
-    func createMatch() async throws -> MatchState {
-        return try await post("/v1/match", body: [:] as [String: String])
+    func listMatches() async throws -> [MatchState] {
+        return try await get("/v1/matches")
+    }
+
+    func createMatch(opponentId: String) async throws -> MatchState {
+        return try await post("/v1/match", body: ["opponent_user_id": opponentId])
+    }
+
+    // MARK: - Users roster
+
+    func listUsers() async throws -> [UserRosterEntry] {
+        return try await get("/v1/users")
     }
 
     // MARK: - Hand
@@ -99,8 +125,9 @@ actor APIClient {
 
     // MARK: - Match-up
 
-    func getMatchUp() async throws -> MatchUpResponse {
-        return try await get("/v1/matchup")
+    func getMatchUp(opponentId: String? = nil) async throws -> MatchUpResponse {
+        let path = opponentId.map { "/v1/matchup?opponent_user_id=\($0)" } ?? "/v1/matchup"
+        return try await get(path)
     }
 
     // MARK: - History
@@ -184,6 +211,9 @@ actor APIClient {
 }
 
 struct EmptyResponse: Decodable {}
+struct DeleteResponse: Decodable {
+    let ok: Bool
+}
 
 enum APIError: Error, LocalizedError {
     case invalidResponse

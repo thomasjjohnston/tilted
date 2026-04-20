@@ -292,6 +292,22 @@ struct HistoryHand: Codable, Identifiable {
     }
 }
 
+// MARK: - Users roster (opponent picker)
+
+struct UserRosterEntry: Codable, Identifiable {
+    let userId: String
+    let displayName: String
+    let initials: String
+
+    var id: String { userId }
+
+    enum CodingKeys: String, CodingKey {
+        case userId = "user_id"
+        case displayName = "display_name"
+        case initials
+    }
+}
+
 // MARK: - Hardcoded Users
 
 enum HardcodedUsers {
