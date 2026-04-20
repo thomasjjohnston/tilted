@@ -1,7 +1,20 @@
 import { connect, constants as http2Constants } from 'node:http2';
+import { createHash } from 'node:crypto';
 import { env } from '../env.js';
 
 const APNS_HOST = 'https://api.push.apple.com';
+
+/**
+ * APNS requires the `apns-id` header to be a canonical UUID
+ * (8-4-4-4-12 hex). Our internal dedupe keys are slugs like
+ * `handoff:<uuid>` — not UUIDs. Hash to a stable UUID so retries of
+ * the same dedupeKey still get Apple-side deduplication.
+ */
+function dedupeKeyToApnsId(key: string): string {
+  const hash = createHash('sha1').update(key).digest();
+  const hex = hash.subarray(0, 16).toString('hex');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
+}
 
 /**
  * Send a raw APNS push payload.
@@ -43,7 +56,7 @@ export async function sendApnsPush(
       authorization: `bearer ${jwt}`,
       'apns-topic': env.APNS_BUNDLE_ID,
       'apns-push-type': 'alert',
-      'apns-id': pushId,
+      'apns-id': dedupeKeyToApnsId(pushId),
       'apns-priority': '10',
     });
 
