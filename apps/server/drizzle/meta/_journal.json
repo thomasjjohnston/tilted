@@ -15,6 +15,13 @@
       "when": 1776632447325,
       "tag": "0001_charming_payback",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1776711567261,
+      "tag": "0002_good_pixie",
+      "breakpoints": true
     }
   ]
 }
