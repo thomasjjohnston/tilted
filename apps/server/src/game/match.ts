@@ -1,33 +1,52 @@
-import { eq, and, sql, ne, inArray } from 'drizzle-orm';
+import { eq, and, or, desc, ne, inArray } from 'drizzle-orm';
 import type { Database, Transaction } from '../db/connection.js';
-import { matches, rounds, hands, users, actions, favorites } from '../db/schema.js';
-import { USER_TJ_ID, USER_SL_ID } from '../db/seed.js';
-import { STARTING_STACK, BLIND_SMALL, BLIND_BIG, HANDS_PER_ROUND, MIN_CHIPS_FOR_ROUND } from './constants.js';
+import { matches, rounds, hands, users, actions } from '../db/schema.js';
+import { STARTING_STACK, BLIND_SMALL, BLIND_BIG } from './constants.js';
 import { openRound } from './round.js';
 import { generateActionSketch } from './action-sketch.js';
 import { dispatch } from '../notif/dispatchers.js';
 import { enqueueReminder } from '../notif/reminder-cron.js';
 
 /**
- * Create a new match between the two hardcoded users.
- * Coin flip determines who is SB in round 1.
+ * Create a new match between `requestingUserId` and `opponentUserId`.
+ * Coin flip determines who is SB in round 1. Fires a `match_started`
+ * push to the opponent on commit.
  */
-export async function createMatch(db: Database, requestingUserId: string) {
+export async function createMatch(
+  db: Database,
+  requestingUserId: string,
+  opponentUserId: string,
+) {
+  if (requestingUserId === opponentUserId) {
+    throw new Error('Cannot challenge yourself');
+  }
+
   const result = await db.transaction(async (tx) => {
-    // Check no active match exists
-    const activeMatch = await tx.query.matches.findFirst({
-      where: eq(matches.status, 'active'),
+    // Validate opponent exists
+    const opponent = await tx.query.users.findFirst({
+      where: eq(users.userId, opponentUserId),
     });
-    if (activeMatch) {
-      throw new Error('An active match already exists');
+    if (!opponent) throw new Error('Opponent not found');
+
+    // Reject if this pair already has an active match (either direction)
+    const existingPairMatch = await tx.query.matches.findFirst({
+      where: and(
+        eq(matches.status, 'active'),
+        or(
+          and(eq(matches.userAId, requestingUserId), eq(matches.userBId, opponentUserId)),
+          and(eq(matches.userAId, opponentUserId), eq(matches.userBId, requestingUserId)),
+        ),
+      ),
+    });
+    if (existingPairMatch) {
+      throw new Error('An active match with this opponent already exists');
     }
 
-    // Coin flip for SB of round 1
-    const sbOfRound1 = Math.random() < 0.5 ? USER_TJ_ID : USER_SL_ID;
+    const sbOfRound1 = Math.random() < 0.5 ? requestingUserId : opponentUserId;
 
     const [match] = await tx.insert(matches).values({
-      userAId: USER_TJ_ID,
-      userBId: USER_SL_ID,
+      userAId: requestingUserId,
+      userBId: opponentUserId,
       startingStack: STARTING_STACK,
       blindSmall: BLIND_SMALL,
       blindBig: BLIND_BIG,
@@ -37,23 +56,20 @@ export async function createMatch(db: Database, requestingUserId: string) {
       userBTotal: STARTING_STACK,
     }).returning();
 
-    // Open round 1
     const roundId = await openRound(tx, match.matchId, 1);
-
     return { match, roundId };
   });
 
   // Post-commit: tell the opponent a new match is live.
-  const opponentId = requestingUserId === USER_TJ_ID ? USER_SL_ID : USER_TJ_ID;
   await dispatch(db, {
     kind: 'match_started',
-    toUserId: opponentId,
+    toUserId: opponentUserId,
     fromUserId: requestingUserId,
     matchId: result.match.matchId,
     roundId: result.roundId,
     dedupeKey: `match-started:${result.match.matchId}`,
   });
-  await enqueueReminder(db, 'match_started', opponentId, result.match.matchId, result.roundId, {
+  await enqueueReminder(db, 'match_started', opponentUserId, result.match.matchId, result.roundId, {
     fromUserId: requestingUserId,
   });
 
@@ -61,20 +77,43 @@ export async function createMatch(db: Database, requestingUserId: string) {
 }
 
 /**
- * Get the current active match, or null if none.
- * Returns a user-scoped view.
+ * Get the current active match for this user — legacy single-match path.
+ * Returns null if the user has zero active matches. If they have more than
+ * one, returns the most-recently-created one (backwards-compat only; new
+ * clients should use listActiveMatches).
  */
 export async function getCurrentMatch(
   db: Database,
   userId: string,
 ): Promise<MatchStateView | null> {
   const match = await db.query.matches.findFirst({
-    where: eq(matches.status, 'active'),
+    where: and(
+      eq(matches.status, 'active'),
+      or(eq(matches.userAId, userId), eq(matches.userBId, userId)),
+    ),
+    orderBy: desc(matches.startedAt),
   });
 
   if (!match) return null;
-
   return getMatchState(db, match.matchId, userId);
+}
+
+/**
+ * List every active match this user is in, most-recent first.
+ */
+export async function listActiveMatches(
+  db: Database,
+  userId: string,
+): Promise<MatchStateView[]> {
+  const matchRows = await db.query.matches.findMany({
+    where: and(
+      eq(matches.status, 'active'),
+      or(eq(matches.userAId, userId), eq(matches.userBId, userId)),
+    ),
+    orderBy: desc(matches.startedAt),
+  });
+
+  return Promise.all(matchRows.map(m => getMatchState(db, m.matchId, userId)));
 }
 
 /**
@@ -127,7 +166,6 @@ export async function getMatchState(
       h.status === 'in_progress' && h.actionOnUserId === opponentId
     ).length;
 
-    // Fetch all actions for this round's hands in one query
     const handIds = roundHands.map(h => h.handId);
     const allActions = handIds.length > 0
       ? await db.query.actions.findMany({
@@ -135,7 +173,6 @@ export async function getMatchState(
         })
       : [];
 
-    // Group actions by hand
     const actionsByHand = new Map<string, typeof allActions>();
     for (const a of allActions) {
       const list = actionsByHand.get(a.handId) ?? [];
@@ -158,14 +195,6 @@ export async function getMatchState(
       hands: handViews,
     };
   }
-
-  // Also get completed rounds count for stats
-  const completedRound = await db.query.rounds.findFirst({
-    where: and(
-      eq(rounds.matchId, matchId),
-      eq(rounds.status, 'complete'),
-    ),
-  });
 
   const myTotal = isUserA ? match.userATotal : match.userBTotal;
   const oppTotal = isUserA ? match.userBTotal : match.userATotal;
@@ -206,7 +235,6 @@ function buildHandView(
   const myReserved = isUserA ? h.userAReserved : h.userBReserved;
   const opponentReserved = isUserA ? h.userBReserved : h.userAReserved;
 
-  // Generate action summary
   const sortedActions = [...handActions].sort(
     (a, b) => a.serverRecordedAt.getTime() - b.serverRecordedAt.getTime()
   );
