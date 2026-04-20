@@ -39,6 +39,15 @@ actor APIClient {
         // 204 no content
     }
 
+    func deleteAccount() async throws {
+        var request = URLRequest(url: baseURL.appendingPathComponent("/v1/me"))
+        request.httpMethod = "DELETE"
+        if let token = token {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        let _: DeleteResponse = try await execute(request)
+    }
+
     // MARK: - Match
 
     func getCurrentMatch() async throws -> MatchState? {
@@ -191,6 +200,9 @@ actor APIClient {
 }
 
 struct EmptyResponse: Decodable {}
+struct DeleteResponse: Decodable {
+    let ok: Bool
+}
 
 enum APIError: Error, LocalizedError {
     case invalidResponse

@@ -87,6 +87,12 @@ final class AppStore {
         self.hasInitiallyLoaded = false
     }
 
+    @MainActor
+    func deleteAccount() async throws {
+        try await APIClient.shared.deleteAccount()
+        logout()
+    }
+
     // MARK: - Refresh
 
     @MainActor
