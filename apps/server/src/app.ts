@@ -5,6 +5,7 @@ import { execSync } from 'node:child_process';
 import { env } from './env.js';
 import { debugAuthRoutes, bearerAuth } from './api/auth.js';
 import { authAppleRoutes } from './api/routes/auth-apple.js';
+import { authAppleWebhookRoutes } from './api/routes/auth-apple-webhook.js';
 import { matchRoutes } from './api/routes/match.js';
 import { handRoutes } from './api/routes/hand.js';
 import { roundRoutes } from './api/routes/round.js';
@@ -50,6 +51,9 @@ export async function buildApp() {
     });
     await scope.register(authAppleRoutes);
   }, { prefix: '/v1' });
+
+  // Apple server-to-server notifications (no bearer — Apple signs the payload)
+  await app.register(authAppleWebhookRoutes, { prefix: '/v1' });
 
   // Authenticated API routes
   await app.register(async (authenticated) => {
