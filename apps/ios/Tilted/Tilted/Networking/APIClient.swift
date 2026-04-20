@@ -58,8 +58,18 @@ actor APIClient {
         }
     }
 
-    func createMatch() async throws -> MatchState {
-        return try await post("/v1/match", body: [:] as [String: String])
+    func listMatches() async throws -> [MatchState] {
+        return try await get("/v1/matches")
+    }
+
+    func createMatch(opponentId: String) async throws -> MatchState {
+        return try await post("/v1/match", body: ["opponent_user_id": opponentId])
+    }
+
+    // MARK: - Users roster
+
+    func listUsers() async throws -> [UserRosterEntry] {
+        return try await get("/v1/users")
     }
 
     // MARK: - Hand

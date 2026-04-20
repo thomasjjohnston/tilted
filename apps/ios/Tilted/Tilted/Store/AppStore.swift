@@ -9,6 +9,11 @@ final class AppStore {
     var currentUserName: String?
 
     // MARK: - Match State
+    /// All active matches the current user is in, newest-first.
+    var matches: [MatchState] = []
+    /// The currently-selected match for per-match detail screens
+    /// (Turn, Reveal, etc.). When only one match exists this equals
+    /// `matches.first`; when multiple, it's whichever the user drilled into.
     var matchState: MatchState?
     var isLoading = false
     var hasInitiallyLoaded = false
@@ -84,6 +89,7 @@ final class AppStore {
         self.currentUserId = nil
         self.currentUserName = nil
         self.matchState = nil
+        self.matches = []
         self.hasInitiallyLoaded = false
     }
 
@@ -100,7 +106,17 @@ final class AppStore {
         isLoading = true
         error = nil
         do {
-            matchState = try await APIClient.shared.getCurrentMatch()
+            let list = try await APIClient.shared.listMatches()
+            matches = list
+            // If the user had a selected match, keep pointing to its refreshed
+            // version so per-match views don't lose their state. Otherwise
+            // default to the most recently-created match.
+            if let selectedId = matchState?.matchId,
+               let found = list.first(where: { $0.matchId == selectedId }) {
+                matchState = found
+            } else {
+                matchState = list.first
+            }
         } catch {
             self.error = error.localizedDescription
         }
@@ -108,14 +124,21 @@ final class AppStore {
         hasInitiallyLoaded = true
     }
 
+    @MainActor
+    func selectMatch(_ match: MatchState) {
+        matchState = match
+    }
+
     // MARK: - Match Actions
 
     @MainActor
-    func startNewMatch() async {
+    func startNewMatch(opponentId: String) async {
         isLoading = true
         error = nil
         do {
-            matchState = try await APIClient.shared.createMatch()
+            let newMatch = try await APIClient.shared.createMatch(opponentId: opponentId)
+            matchState = newMatch
+            await refresh()
         } catch {
             self.error = error.localizedDescription
         }
