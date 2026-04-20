@@ -1,11 +1,15 @@
+import { connect, constants as http2Constants } from 'node:http2';
 import { env } from '../env.js';
+
+const APNS_HOST = 'https://api.push.apple.com';
 
 /**
  * Send a raw APNS push payload.
  *
- * Uses APNS HTTP/2 JWT auth flow. The caller supplies a deterministic
- * `pushId` (used as the `apns-id` header) so retries are idempotent
- * at Apple's edge.
+ * APNS requires HTTP/2; Node's built-in fetch is HTTP/1.1, so we
+ * use the `node:http2` module directly. A fresh connection per push
+ * is fine at MVP volume (2 users). The `pushId` header (apns-id) is
+ * deterministic so Apple deduplicates retries at the edge.
  *
  * In development or without an APNS_KEY secret, this is a no-op that logs.
  */
@@ -20,24 +24,56 @@ export async function sendApnsPush(
   }
 
   const jwt = await generateApnsJwt();
-  const host = 'https://api.push.apple.com';
+  const body = JSON.stringify(payload);
 
-  const response = await fetch(`${host}/3/device/${deviceToken}`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `bearer ${jwt}`,
+  return new Promise((resolve, reject) => {
+    const client = connect(APNS_HOST);
+
+    const cleanup = (err?: Error) => {
+      client.close();
+      if (err) reject(err);
+    };
+
+    client.on('error', cleanup);
+
+    const req = client.request({
+      [http2Constants.HTTP2_HEADER_METHOD]: 'POST',
+      [http2Constants.HTTP2_HEADER_PATH]: `/3/device/${deviceToken}`,
+      [http2Constants.HTTP2_HEADER_SCHEME]: 'https',
+      authorization: `bearer ${jwt}`,
       'apns-topic': env.APNS_BUNDLE_ID,
       'apns-push-type': 'alert',
       'apns-id': pushId,
       'apns-priority': '10',
-    },
-    body: JSON.stringify(payload),
-  });
+    });
 
-  if (!response.ok) {
-    const body = await response.text();
-    throw new Error(`APNS error ${response.status}: ${body}`);
-  }
+    let status = 0;
+    let responseBody = '';
+
+    req.on('response', (headers) => {
+      status = Number(headers[http2Constants.HTTP2_HEADER_STATUS] ?? 0);
+    });
+    req.on('data', (chunk) => {
+      responseBody += chunk.toString('utf8');
+    });
+    req.on('end', () => {
+      client.close();
+      if (status >= 200 && status < 300) {
+        resolve();
+      } else {
+        reject(new Error(`APNS error ${status}: ${responseBody}`));
+      }
+    });
+    req.on('error', cleanup);
+
+    req.setTimeout(10_000, () => {
+      req.close();
+      cleanup(new Error('APNS request timed out after 10s'));
+    });
+
+    req.write(body);
+    req.end();
+  });
 }
 
 /**
