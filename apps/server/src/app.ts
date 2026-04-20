@@ -1,5 +1,6 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import rateLimit from '@fastify/rate-limit';
 import { execSync } from 'node:child_process';
 import { env } from './env.js';
 import { debugAuthRoutes, bearerAuth } from './api/auth.js';
@@ -38,9 +39,17 @@ export async function buildApp() {
     commit: getGitSha(),
   }));
 
-  // Unauthenticated sign-in routes
+  // Unauthenticated sign-in routes. Apple auth is rate-limited per IP
+  // (5/minute) since it's DoS-adjacent — attacker hitting it costs us
+  // an Apple JWKS fetch each time.
   await app.register(debugAuthRoutes, { prefix: '/v1' });
-  await app.register(authAppleRoutes, { prefix: '/v1' });
+  await app.register(async (scope) => {
+    await scope.register(rateLimit, {
+      max: 5,
+      timeWindow: '1 minute',
+    });
+    await scope.register(authAppleRoutes);
+  }, { prefix: '/v1' });
 
   // Authenticated API routes
   await app.register(async (authenticated) => {
