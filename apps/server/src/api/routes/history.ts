@@ -8,6 +8,7 @@ const historyQuery = z.object({
   result: z.enum(['won', 'lost', 'all']).optional(),
   round: z.coerce.number().int().optional(),
   match_id: z.string().uuid().optional(),
+  opponent_user_id: z.string().uuid().optional(),
   cursor: z.string().optional(),
   limit: z.coerce.number().int().min(1).max(50).optional(),
 });
@@ -21,6 +22,7 @@ export async function historyRoutes(app: FastifyInstance) {
       result: query.result ?? 'all',
       roundIndex: query.round,
       matchId: query.match_id,
+      opponentUserId: query.opponent_user_id,
       cursor: query.cursor,
       limit: query.limit ?? 20,
     });
@@ -35,6 +37,7 @@ export async function historyRoutes(app: FastifyInstance) {
       favoritesOnly: query.favorites === 'true',
       result: query.result ?? 'all',
       roundIndex: query.round,
+      opponentUserId: query.opponent_user_id,
       cursor: query.cursor,
       limit: query.limit ?? 20,
     });
