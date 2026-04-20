@@ -73,7 +73,11 @@ struct RootView: View {
             if store.isAuthenticated {
                 MainTabView()
             } else {
+                #if DEBUG
                 DebugPickerView()
+                #else
+                SignInView()
+                #endif
             }
         }
         .preferredColorScheme(.dark)
