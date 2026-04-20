@@ -1,0 +1,1 @@
+DROP INDEX "matches_one_active_idx";

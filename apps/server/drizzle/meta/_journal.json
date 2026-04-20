@@ -22,6 +22,13 @@
       "when": 1776711567261,
       "tag": "0002_good_pixie",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1776711917663,
+      "tag": "0003_gray_raider",
+      "breakpoints": true
     }
   ]
 }

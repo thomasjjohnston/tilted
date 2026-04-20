@@ -5,7 +5,6 @@ import {
   integer,
   timestamp,
   jsonb,
-  uniqueIndex,
   unique,
   primaryKey,
   check,
@@ -49,10 +48,6 @@ export const matches = pgTable('matches', {
   userATotal: integer('user_a_total').notNull(),
   userBTotal: integer('user_b_total').notNull(),
 }, (table) => [
-  // MVP: only one active match at a time
-  uniqueIndex('matches_one_active_idx')
-    .on(table.status)
-    .where(sql`${table.status} = 'active'`),
   check('matches_status_check', sql`${table.status} in ('active', 'ended')`),
 ]);
 
