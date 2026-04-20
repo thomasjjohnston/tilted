@@ -3,6 +3,7 @@ import cors from '@fastify/cors';
 import { execSync } from 'node:child_process';
 import { env } from './env.js';
 import { debugAuthRoutes, bearerAuth } from './api/auth.js';
+import { authAppleRoutes } from './api/routes/auth-apple.js';
 import { matchRoutes } from './api/routes/match.js';
 import { handRoutes } from './api/routes/hand.js';
 import { roundRoutes } from './api/routes/round.js';
@@ -36,8 +37,9 @@ export async function buildApp() {
     commit: getGitSha(),
   }));
 
-  // Debug auth routes (no auth required)
+  // Unauthenticated sign-in routes
   await app.register(debugAuthRoutes, { prefix: '/v1' });
+  await app.register(authAppleRoutes, { prefix: '/v1' });
 
   // Authenticated API routes
   await app.register(async (authenticated) => {
