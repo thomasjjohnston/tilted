@@ -11,8 +11,8 @@ settings:
   base:
     SWIFT_VERSION: "5.9"
     GENERATE_INFOPLIST_FILE: true
-    CURRENT_PROJECT_VERSION: 1
-    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: 4
+    MARKETING_VERSION: "0.1.4"
 
 targets:
   Tilted:
@@ -21,10 +21,17 @@ targets:
     sources:
       - path: Tilted
         type: group
+        excludes:
+          - Tilted.entitlements
+    entitlements:
+      path: Tilted/Tilted.entitlements
+      properties:
+        aps-environment: production
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.thomasjjohnston.tilted
         INFOPLIST_KEY_NSAppTransportSecurity_AllowsArbitraryLoads: true
+        CODE_SIGN_ENTITLEMENTS: Tilted/Tilted.entitlements
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: true
         INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: true
         INFOPLIST_KEY_UILaunchScreen_Generation: true
