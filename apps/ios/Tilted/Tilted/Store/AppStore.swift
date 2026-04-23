@@ -117,6 +117,10 @@ final class AppStore {
             } else {
                 matchState = list.first
             }
+        } catch APIError.unauthorized {
+            // Stale bearer in Keychain (server forgot this token, or user
+            // was deleted). Clear and force sign-in.
+            logout()
         } catch {
             self.error = error.localizedDescription
         }
