@@ -187,6 +187,10 @@ actor APIClient {
                     throw APIError.notFound
                 }
 
+                if http.statusCode == 401 {
+                    throw APIError.unauthorized
+                }
+
                 guard (200...299).contains(http.statusCode) else {
                     let body = String(data: data, encoding: .utf8) ?? ""
                     throw APIError.serverError(status: http.statusCode, body: body)
@@ -218,6 +222,7 @@ struct DeleteResponse: Decodable {
 enum APIError: Error, LocalizedError {
     case invalidResponse
     case notFound
+    case unauthorized
     case serverError(status: Int, body: String)
     case unknown
 
@@ -225,6 +230,7 @@ enum APIError: Error, LocalizedError {
         switch self {
         case .invalidResponse: return "Invalid response from server"
         case .notFound: return "Resource not found"
+        case .unauthorized: return "Session expired — sign in again"
         case .serverError(let status, let body): return "Server error \(status): \(body)"
         case .unknown: return "Unknown error"
         }
