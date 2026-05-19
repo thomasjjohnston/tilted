@@ -177,11 +177,12 @@ export async function applyAction(db: Database, input: ApplyActionInput) {
     // Helper: settle chips when a hand completes.
     // For each player: new_total = old_total - reserved_in_hand + award.
     // Award is 0 for the loser, pot for the winner, or split amounts.
+    // Returns the per-user net so callers can persist resolvedNetFor{A,B}.
     async function settleHand(
       aReserved: number,
       bReserved: number,
       awards: { userId: string; amount: number }[],
-    ) {
+    ): Promise<{ aDelta: number; bDelta: number }> {
       const aAward = awards.find(a => a.userId === match!.userAId)?.amount ?? 0;
       const bAward = awards.find(a => a.userId === match!.userBId)?.amount ?? 0;
       const aDelta = aAward - aReserved;
@@ -190,6 +191,7 @@ export async function applyAction(db: Database, input: ApplyActionInput) {
         userATotal: sql`${matches.userATotal} + ${aDelta}`,
         userBTotal: sql`${matches.userBTotal} + ${bDelta}`,
       }).where(eq(matches.matchId, match!.matchId));
+      return { aDelta, bDelta };
     }
 
     if (newState.isTerminal) {
@@ -201,14 +203,20 @@ export async function applyAction(db: Database, input: ApplyActionInput) {
         handUpdate.status = 'complete';
         handUpdate.street = 'complete';
         handUpdate.terminalReason = 'fold';
+        // Capture the street the fold happened on (engine has already
+        // bumped hand.street to 'complete' implicitly via newState; use
+        // the pre-action street since that's where the fold was decided).
+        handUpdate.foldStreet = hand.street;
         handUpdate.winnerUserId = winnerId;
         handUpdate.actionOnUserId = null;
         handUpdate.completedAt = new Date();
 
         // Winner gets the entire pot
-        await settleHand(aReserved, bReserved, [
+        const foldDeltas = await settleHand(aReserved, bReserved, [
           { userId: winnerId, amount: newState.pot },
         ]);
+        handUpdate.resolvedNetForA = foldDeltas.aDelta;
+        handUpdate.resolvedNetForB = foldDeltas.bDelta;
 
         handUpdate.userAReserved = 0;
         handUpdate.userBReserved = 0;
@@ -253,7 +261,9 @@ export async function applyAction(db: Database, input: ApplyActionInput) {
 
           const aReserved = handUpdate.userAReserved as number;
           const bReserved = handUpdate.userBReserved as number;
-          await settleHand(aReserved, bReserved, showdownResult.awards);
+          const sdDeltas = await settleHand(aReserved, bReserved, showdownResult.awards);
+          handUpdate.resolvedNetForA = sdDeltas.aDelta;
+          handUpdate.resolvedNetForB = sdDeltas.bDelta;
 
           handUpdate.userAReserved = 0;
           handUpdate.userBReserved = 0;
@@ -523,9 +533,11 @@ export async function applyBatchActions(
         // Settle: winner gets loser's reserved
         const aAward = winnerId === match.userAId ? hand.pot : 0;
         const bAward = winnerId === match.userBId ? hand.pot : 0;
+        const aDelta = aAward - aReserved;
+        const bDelta = bAward - bReserved;
         await tx.update(matches).set({
-          userATotal: sql`${matches.userATotal} + ${aAward - aReserved}`,
-          userBTotal: sql`${matches.userBTotal} + ${bAward - bReserved}`,
+          userATotal: sql`${matches.userATotal} + ${aDelta}`,
+          userBTotal: sql`${matches.userBTotal} + ${bDelta}`,
         }).where(eq(matches.matchId, match.matchId));
 
         await tx.insert(actions).values({
@@ -546,11 +558,14 @@ export async function applyBatchActions(
           status: 'complete',
           street: 'complete',
           terminalReason: 'fold',
+          foldStreet: hand.street as 'preflop' | 'flop' | 'turn' | 'river',
           winnerUserId: winnerId,
           actionOnUserId: null,
           completedAt: new Date(),
           userAReserved: 0,
           userBReserved: 0,
+          resolvedNetForA: aDelta,
+          resolvedNetForB: bDelta,
           ...holeUpdate,
         }).where(eq(hands.handId, hand.handId));
 

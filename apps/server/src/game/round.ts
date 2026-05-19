@@ -154,7 +154,15 @@ export async function advanceRound(
             round.bbUserId,
           );
 
-          // Update hand
+          // Settle chips: new_total = old_total - reserved + award (0 for loser)
+          const aAward = result.awards.find(a => a.userId === m.userAId)?.amount ?? 0;
+          const bAward = result.awards.find(a => a.userId === m.userBId)?.amount ?? 0;
+          const aDelta = aAward - h.userAReserved;
+          const bDelta = bAward - h.userBReserved;
+
+          // Update hand (including resolved_net snapshots so the turn
+          // report can render per-hand +/- without re-deriving from the
+          // ledger).
           await tx.update(hands)
             .set({
               board: fullBoard,
@@ -163,15 +171,14 @@ export async function advanceRound(
               terminalReason: 'showdown',
               winnerUserId: result.winnerUserId,
               completedAt: new Date(),
+              resolvedNetForA: aDelta,
+              resolvedNetForB: bDelta,
             })
             .where(eq(hands.handId, h.handId));
 
-          // Settle chips: new_total = old_total - reserved + award (0 for loser)
-          const aAward = result.awards.find(a => a.userId === m.userAId)?.amount ?? 0;
-          const bAward = result.awards.find(a => a.userId === m.userBId)?.amount ?? 0;
           await tx.update(matches).set({
-            userATotal: sql`${matches.userATotal} + ${aAward - h.userAReserved}`,
-            userBTotal: sql`${matches.userBTotal} + ${bAward - h.userBReserved}`,
+            userATotal: sql`${matches.userATotal} + ${aDelta}`,
+            userBTotal: sql`${matches.userBTotal} + ${bDelta}`,
           }).where(eq(matches.matchId, m.matchId));
         }
       }

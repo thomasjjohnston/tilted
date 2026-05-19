@@ -67,6 +67,12 @@ struct HomeView: View {
                         .environment(store)
                 }
             }
+            .fullScreenCover(isPresented: showWaiting) {
+                if let match = store.matchState, let round = match.currentRound {
+                    WaitingDashboardView(match: match, round: round)
+                        .environment(store)
+                }
+            }
             .fullScreenCover(isPresented: Binding(
                 get: { revealMatch != nil },
                 set: { if !$0 { revealMatch = nil; revealRound = nil; store.activeScreen = .home } }
@@ -95,6 +101,10 @@ struct HomeView: View {
         Binding(get: { store.activeScreen == .turn }, set: { if !$0 { store.activeScreen = .home } })
     }
 
+    private var showWaiting: Binding<Bool> {
+        Binding(get: { store.activeScreen == .waiting }, set: { if !$0 { store.activeScreen = .home } })
+    }
+
     // MARK: - Actions
 
     private func openMatch(_ match: MatchState) {
@@ -106,6 +116,10 @@ struct HomeView: View {
         if match.currentRound?.status == "revealing" || roundDone {
             revealMatch = match
             revealRound = match.currentRound
+        } else if (match.currentRound?.handsPendingMe ?? 0) == 0
+                && (match.currentRound?.handsPendingOpponent ?? 0) > 0 {
+            // No pending actions for me, opponent is acting → waiting dashboard
+            store.activeScreen = .waiting
         } else {
             store.activeScreen = .turn
         }

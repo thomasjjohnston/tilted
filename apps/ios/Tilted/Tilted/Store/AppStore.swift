@@ -23,9 +23,15 @@ final class AppStore {
     var activeScreen: ActiveScreen = .home
     var selectedTab: Tab = .home
 
+    /// Hand IDs whose "opponent folded — you won" full-screen moment has
+    /// already been shown to the user this session. Prevents the
+    /// celebration from re-firing on every refocus / refresh.
+    var seenFoldResolutions: Set<String> = []
+
     enum ActiveScreen: Equatable {
         case home
         case turn
+        case waiting
         case reveal
         case history
         case settings
@@ -167,8 +173,11 @@ final class AppStore {
             status: action == "fold" ? "complete" : old.status,
             actionOnMe: false,
             terminalReason: action == "fold" ? "fold" : old.terminalReason,
+            foldStreet: action == "fold" ? old.street : old.foldStreet,
             winnerUserId: old.winnerUserId,
-            actionSummary: old.actionSummary
+            actionSummary: old.actionSummary,
+            myResolvedNet: old.myResolvedNet,
+            lastAction: old.lastAction
         )
         round.hands[idx] = optimistic
         matchState?.currentRound = round

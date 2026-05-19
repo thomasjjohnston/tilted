@@ -1,205 +1,423 @@
 import SwiftUI
 
+// End-of-turn report. Groups hands by outcome (big wins, folds induced,
+// blinds stolen, showdowns lost, you folded, auto-folded, split pots)
+// and lets the user tap any row to expand into the full action log.
+//
+// Per-hand math comes from server-snapshotted my_resolved_net so the
+// "0 win/loss" bug is impossible by construction — when the server
+// hasn't backfilled (e.g. a hand auto-acted on the client before the
+// snapshot landed), we fall back to a reasonable estimate.
+
 struct TurnSummaryView: View {
     let match: MatchState
     let round: RoundView
-    let deliberateActions: [(handIndex: Int, summary: String)]
+    let resolvedHands: [HandView]
     let autoActedHands: [(handIndex: Int, action: String)]
     let autoActedHandViews: [HandView]
-    let showdownResults: [HandView]
     let stackBefore: Int
+    let currentUserId: String?
     let onSendTurn: () -> Void
 
-    /// Use server-confirmed available if it's less than stackBefore (meaning
-    /// server has processed). Otherwise estimate from auto-fold blind losses.
+    @State private var expanded: Set<String> = []
+
+    // MARK: - Math
+
+    private func resolvedNet(for hand: HandView) -> Int {
+        if let n = hand.myResolvedNet { return n }
+        // Fallback for hands where the snapshot hasn't landed yet (or for
+        // legacy DB rows): infer from outcome.
+        if hand.winnerUserId == currentUserId {
+            return max(hand.pot - hand.myReserved, 0)
+        }
+        if hand.winnerUserId == nil { return 0 }
+        return -hand.myReserved
+    }
+
     private var netChange: Int {
         let serverAvailable = match.myAvailable
-        // If server has reconciled (available changed from stackBefore), use that
-        if serverAvailable != stackBefore {
-            return serverAvailable - stackBefore
-        }
-        // Fallback: estimate from auto-folded blind losses
-        var net = 0
-        for hand in autoActedHandViews {
-            // Every folded hand loses its reserved (blind)
-            if autoActedHands.contains(where: { $0.handIndex == hand.handIndex && $0.action == "fold" }) {
-                net -= hand.myReserved
-            }
-        }
-        return net
+        if serverAvailable != stackBefore { return serverAvailable - stackBefore }
+        return resolvedHands.reduce(0) { $0 + resolvedNet(for: $1) }
     }
-
     private var stackAfter: Int { stackBefore + netChange }
 
-    private var opponentName: String {
-        match.opponent.displayName.components(separatedBy: " ").first ?? "Opponent"
-    }
+    // MARK: - Grouping
 
-    var body: some View {
-        ZStack {
-            Color.felt900.opacity(0.95).ignoresSafeArea()
+    private enum GroupKind: String, CaseIterable {
+        case bigWin, foldInduced, blindSteal, showdownLost, youFolded, autoFolded, splitPot
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    // Header
-                    VStack(spacing: 4) {
-                        Text("TURN COMPLETE")
-                            .font(.system(size: 10, weight: .medium))
-                            .tracking(1.5)
-                            .foregroundColor(.gold500)
-                        Text("Here's what happened")
-                            .font(.custom("Georgia", size: 24))
-                            .foregroundColor(.cream100)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.top, 20)
-                    .padding(.bottom, 16)
-
-                    // Showdowns
-                    if !showdownResults.isEmpty {
-                        sectionEyebrow("Showdowns", color: .gold500)
-
-                        ForEach(showdownResults) { hand in
-                            showdownRow(hand: hand)
-                                .padding(.bottom, 6)
-                        }
-                        Spacer().frame(height: 8)
-                    }
-
-                    // Your actions
-                    if !deliberateActions.isEmpty {
-                        sectionEyebrow("Your Actions", color: .cream300)
-
-                        ForEach(deliberateActions, id: \.handIndex) { action in
-                            Text("H\(action.handIndex + 1): \(action.summary)")
-                                .font(.system(size: 12))
-                                .foregroundColor(.cream200)
-                                .padding(.vertical, 1)
-                        }
-                        Spacer().frame(height: 12)
-                    }
-
-                    // Auto-acted
-                    if !autoActedHands.isEmpty {
-                        sectionEyebrow("Auto-Acted (0 chips available)", color: .cream300)
-
-                        let checks = autoActedHands.filter { $0.action == "check" }
-                        let folds = autoActedHands.filter { $0.action == "fold" }
-
-                        if !checks.isEmpty {
-                            let handNums = checks.map { "H\($0.handIndex + 1)" }.joined(separator: ", ")
-                            Text("\(handNums): Auto-checked (no bet facing)")
-                                .font(.system(size: 12))
-                                .foregroundColor(.cream300)
-                                .padding(.vertical, 1)
-                        }
-                        if !folds.isEmpty {
-                            let handNums = folds.map { "H\($0.handIndex + 1)" }.joined(separator: ", ")
-                            Text("\(handNums): Auto-folded (facing bet)")
-                                .font(.system(size: 12))
-                                .foregroundColor(.cream300)
-                                .padding(.vertical, 1)
-                        }
-                        Spacer().frame(height: 12)
-                    }
-
-                    // Divider
-                    Rectangle()
-                        .fill(LinearGradient(colors: [.clear, .gold600, .clear], startPoint: .leading, endPoint: .trailing))
-                        .frame(height: 1)
-                        .opacity(0.5)
-                        .padding(.vertical, 8)
-
-                    // Net result
-                    VStack(spacing: 4) {
-                        Text("Net this turn")
-                            .font(.system(size: 12))
-                            .foregroundColor(.cream300)
-                        Text(netChange >= 0 ? "+\(netChange)" : "\(netChange)")
-                            .font(.custom("Georgia", size: 36))
-                            .foregroundColor(netChange > 0 ? .gold500 : netChange < 0 ? .claret : .cream100)
-                        Text("Available: \(stackBefore) \u{2192} \(stackAfter)")
-                            .font(.system(size: 11))
-                            .foregroundColor(.cream300)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
-
-                    Spacer().frame(height: 16)
-                }
-                .padding(.horizontal, 18)
+        var title: String {
+            switch self {
+            case .bigWin: return "Big wins"
+            case .foldInduced: return "Folds you induced"
+            case .blindSteal: return "Stole the blinds"
+            case .showdownLost: return "Showdowns lost"
+            case .youFolded: return "Folded to bets"
+            case .autoFolded: return "Auto-folded"
+            case .splitPot: return "Split pots"
             }
+        }
 
-            // CTA pinned to bottom
-            VStack {
-                Spacer()
-                Button("Send Turn \u{2192}") { onSendTurn() }
-                    .buttonStyle(.primary)
-                    .padding(.horizontal, 24)
-                    .padding(.bottom, 32)
-                    .background(
-                        LinearGradient(colors: [.clear, .felt900], startPoint: .top, endPoint: .bottom)
-                            .frame(height: 80)
-                            .offset(y: -20)
-                    )
+        var icon: String {
+            switch self {
+            case .bigWin: return "♠"
+            case .foldInduced: return "♣"
+            case .blindSteal: return "♦"
+            case .showdownLost: return "♥"
+            case .youFolded: return "⌀"
+            case .autoFolded: return "⏳"
+            case .splitPot: return "⚖"
+            }
+        }
+
+        var isPositive: Bool {
+            self == .bigWin || self == .foldInduced || self == .blindSteal
+        }
+
+        var order: Int {
+            switch self {
+            case .bigWin: return 0
+            case .foldInduced: return 1
+            case .blindSteal: return 2
+            case .splitPot: return 3
+            case .showdownLost: return 4
+            case .youFolded: return 5
+            case .autoFolded: return 6
             }
         }
     }
 
-    // MARK: - Components
-
-    private func sectionEyebrow(_ text: String, color: Color) -> some View {
-        Text(text.uppercased())
-            .font(.system(size: 10, weight: .medium))
-            .tracking(1.5)
-            .foregroundColor(color)
-            .padding(.bottom, 6)
+    private func classify(_ hand: HandView) -> GroupKind {
+        if hand.winnerUserId == nil && hand.status == "complete" { return .splitPot }
+        let won = hand.winnerUserId == currentUserId
+        if !won {
+            if hand.terminalReason == "fold" { return .youFolded }
+            return .showdownLost
+        }
+        // We won
+        if hand.terminalReason == "showdown" { return .bigWin }
+        // Won via opponent fold
+        if hand.foldStreet == "preflop" { return .blindSteal }
+        return .foldInduced
     }
 
-    private func showdownRow(hand: HandView) -> some View {
-        let won = hand.winnerUserId != nil && hand.winnerUserId != match.opponent.userId
-        let lost = hand.winnerUserId == match.opponent.userId
-        let borderColor = won ? Color.gold500.opacity(0.2) : Color.claret.opacity(0.2)
+    private var grouped: [(kind: GroupKind, hands: [(hand: HandView, isAuto: Bool)])] {
+        var bucket: [GroupKind: [(hand: HandView, isAuto: Bool)]] = [:]
+        let autoFoldIds = Set(
+            autoActedHands.filter { $0.action == "fold" }.map { $0.handIndex }
+        )
 
-        return HStack {
-            Text("H\(hand.handIndex + 1)")
-                .font(.system(size: 12, weight: .medium))
-                .foregroundColor(.cream100)
-                .frame(width: 28, alignment: .leading)
+        for hand in resolvedHands {
+            let kind: GroupKind
+            let isAuto: Bool
+            if autoFoldIds.contains(hand.handIndex) {
+                kind = .autoFolded
+                isAuto = true
+            } else {
+                kind = classify(hand)
+                isAuto = false
+            }
+            bucket[kind, default: []].append((hand, isAuto))
+        }
 
-            HStack(spacing: 2) {
-                ForEach(hand.myHole, id: \.self) { card in
-                    PlayingCardView(card: card, size: .small)
+        // Auto-acted hands that had no resolvedHand entry (rare)
+        for snap in autoActedHandViews
+            where !resolvedHands.contains(where: { $0.handId == snap.handId }) {
+            let action = autoActedHands.first { $0.handIndex == snap.handIndex }?.action
+            if action == "fold" {
+                bucket[.autoFolded, default: []].append((snap, true))
+            }
+        }
+
+        return bucket
+            .map { (kind: $0.key, hands: $0.value.sorted { $0.hand.handIndex < $1.hand.handIndex }) }
+            .sorted { $0.kind.order < $1.kind.order }
+    }
+
+    private func groupNet(_ items: [(hand: HandView, isAuto: Bool)]) -> Int {
+        items.reduce(0) { acc, item in
+            if item.isAuto { return acc - item.hand.myReserved }
+            return acc + resolvedNet(for: item.hand)
+        }
+    }
+
+    // MARK: - Body
+
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            Color.felt900.opacity(0.96).ignoresSafeArea()
+
+            ScrollView {
+                VStack(spacing: 0) {
+                    header
+                    LazyVStack(spacing: 12) {
+                        ForEach(grouped, id: \.kind) { group in
+                            groupCard(group: group)
+                        }
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.top, 12)
+                    .padding(.bottom, 110)
                 }
             }
+            .scrollIndicators(.hidden)
 
-            Text("vs")
-                .font(.system(size: 10))
+            sendTurnFooter
+        }
+    }
+
+    // MARK: - Header
+
+    private var header: some View {
+        VStack(spacing: 6) {
+            Text("TURN COMPLETE")
+                .font(.system(size: 10, weight: .medium))
+                .tracking(2)
+                .foregroundColor(.gold500)
+                .padding(.top, 24)
+
+            Text("Here's how it went")
+                .font(.custom("Georgia", size: 22))
+                .foregroundColor(.cream100)
+                .padding(.bottom, 14)
+
+            Text("NET THIS TURN")
+                .font(.system(size: 9, weight: .medium))
+                .tracking(2)
                 .foregroundColor(.cream300)
 
-            if let opp = hand.opponentHole {
-                HStack(spacing: 2) {
-                    ForEach(opp, id: \.self) { card in
-                        PlayingCardView(card: card, size: .small)
+            Text(netChange >= 0 ? "+\(netChange)" : "\(netChange)")
+                .font(.custom("Georgia", size: 40))
+                .foregroundColor(
+                    netChange > 0 ? Color(hex: 0x4ea878)
+                    : (netChange < 0 ? .claret : .cream100)
+                )
+
+            Text("Available \(stackBefore) → \(stackAfter)")
+                .font(.system(size: 11))
+                .foregroundColor(.cream300)
+                .padding(.bottom, 18)
+
+            Rectangle()
+                .fill(Color.gold500.opacity(0.18))
+                .frame(height: 1)
+                .padding(.horizontal, 60)
+        }
+    }
+
+    // MARK: - Group card
+
+    private func groupCard(group: (kind: GroupKind, hands: [(hand: HandView, isAuto: Bool)])) -> some View {
+        let net = groupNet(group.hands)
+        return VStack(spacing: 0) {
+            HStack(spacing: 10) {
+                Text(group.kind.icon)
+                    .font(.system(size: 16))
+                    .foregroundColor(group.kind.isPositive ? .gold500 : .cream300)
+                Text("\(group.kind.title) · \(group.hands.count)")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.cream100)
+                Spacer()
+                Text(net >= 0 ? "+\(net)" : "\(net)")
+                    .font(.custom("Georgia", size: 14).bold())
+                    .foregroundColor(
+                        net > 0 ? Color(hex: 0x4ea878)
+                        : (net < 0 ? .claret : .cream300)
+                    )
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background(Color.black.opacity(0.18))
+
+            VStack(spacing: 6) {
+                ForEach(group.hands, id: \.hand.handId) { item in
+                    handRow(hand: item.hand, isAuto: item.isAuto, group: group.kind)
+                }
+            }
+            .padding(.vertical, 8)
+            .padding(.horizontal, 10)
+        }
+        .background(
+            LinearGradient(
+                colors: [Color.white.opacity(0.03), Color.black.opacity(0.15)],
+                startPoint: .top, endPoint: .bottom
+            )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.gold500.opacity(0.18), lineWidth: 1)
+        )
+        .cornerRadius(12)
+    }
+
+    // MARK: - Hand row (expandable)
+
+    private func handRow(hand: HandView, isAuto: Bool, group: GroupKind) -> some View {
+        let isExpanded = expanded.contains(hand.handId)
+        let net = isAuto ? -hand.myReserved : resolvedNet(for: hand)
+
+        return VStack(spacing: 0) {
+            Button {
+                if !isAuto {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+                        if isExpanded { expanded.remove(hand.handId) }
+                        else { expanded.insert(hand.handId) }
+                    }
+                }
+            } label: {
+                HStack(spacing: 8) {
+                    Text("H\(hand.handIndex + 1)")
+                        .font(.custom("Georgia", size: 12).bold())
+                        .foregroundColor(.cream200)
+                        .frame(width: 26, alignment: .leading)
+
+                    if !hand.myHole.isEmpty {
+                        HStack(spacing: 1) {
+                            ForEach(hand.myHole, id: \.self) { c in
+                                PlayingCardView(card: c, size: .small)
+                                    .scaleEffect(0.78)
+                                    .frame(width: 19, height: 27)
+                            }
+                        }
+                    }
+
+                    Text(rowDescription(hand: hand, isAuto: isAuto, group: group))
+                        .font(.system(size: 11))
+                        .foregroundColor(.cream200)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+
+                    Spacer()
+
+                    Text(net >= 0 ? "+\(net)" : "\(net)")
+                        .font(.custom("Georgia", size: 13).bold())
+                        .foregroundColor(
+                            net > 0 ? Color(hex: 0x4ea878)
+                            : (net < 0 ? .claret : .cream300)
+                        )
+
+                    if !isAuto {
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundColor(.cream400)
+                            .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                    }
+                }
+                .padding(.vertical, 6)
+                .padding(.horizontal, 6)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            if isExpanded {
+                expandedDetail(hand: hand)
+                    .padding(.bottom, 6)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+    }
+
+    private func rowDescription(hand: HandView, isAuto: Bool, group: GroupKind) -> String {
+        if isAuto {
+            let posted = autoActedHands.first { $0.handIndex == hand.handIndex }
+            if posted?.action == "fold" {
+                return "Auto-folded — no chips available"
+            }
+            return "Auto-checked"
+        }
+        let oppName = match.opponent.displayName.components(separatedBy: " ").first ?? "Opp"
+        switch group {
+        case .bigWin:
+            return "Won showdown"
+        case .foldInduced:
+            return "\(oppName) folded \(hand.foldStreet ?? "post-flop")"
+        case .blindSteal:
+            return "\(oppName) folded preflop"
+        case .splitPot:
+            return "Chopped on the board"
+        case .showdownLost:
+            return "Lost showdown"
+        case .youFolded:
+            return "You folded \(hand.foldStreet ?? "post-flop")"
+        case .autoFolded:
+            return "Auto-folded"
+        }
+    }
+
+    // MARK: - Expanded detail
+
+    @ViewBuilder
+    private func expandedDetail(hand: HandView) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if !hand.board.isEmpty {
+                HStack(spacing: 6) {
+                    Text("BOARD")
+                        .font(.system(size: 9, weight: .medium))
+                        .tracking(1.2)
+                        .foregroundColor(.cream300)
+                        .frame(width: 50, alignment: .leading)
+                    HStack(spacing: 2) {
+                        ForEach(hand.board, id: \.self) { c in
+                            PlayingCardView(card: c, size: .small)
+                        }
                     }
                 }
             }
-
-            Spacer()
-
-            if hand.winnerUserId == nil {
-                Text("Split")
-                    .font(.custom("Georgia", size: 14))
-                    .foregroundColor(.cream100)
-            } else {
-                Text(won ? "+\(hand.pot)" : "-\(hand.myReserved)")
-                    .font(.custom("Georgia", size: 16))
-                    .foregroundColor(won ? .gold500 : .claret)
+            if let opp = hand.opponentHole, !opp.isEmpty {
+                HStack(spacing: 6) {
+                    Text("OPP")
+                        .font(.system(size: 9, weight: .medium))
+                        .tracking(1.2)
+                        .foregroundColor(.cream300)
+                        .frame(width: 50, alignment: .leading)
+                    HStack(spacing: 2) {
+                        ForEach(opp, id: \.self) { c in
+                            PlayingCardView(card: c, size: .small)
+                        }
+                    }
+                }
+            }
+            if !hand.actionSummary.isEmpty {
+                HStack(alignment: .top, spacing: 6) {
+                    Text("LOG")
+                        .font(.system(size: 9, weight: .medium))
+                        .tracking(1.2)
+                        .foregroundColor(.cream300)
+                        .frame(width: 50, alignment: .leading)
+                    Text(hand.actionSummary)
+                        .font(.system(size: 11))
+                        .foregroundColor(.cream200)
+                        .multilineTextAlignment(.leading)
+                }
             }
         }
         .padding(10)
-        .background(Color.black.opacity(0.2))
-        .overlay(RoundedRectangle(cornerRadius: 10).stroke(borderColor, lineWidth: 1))
-        .cornerRadius(10)
+        .background(Color.black.opacity(0.25))
+        .cornerRadius(8)
+        .padding(.horizontal, 6)
+    }
+
+    // MARK: - Footer
+
+    private var sendTurnFooter: some View {
+        VStack(spacing: 0) {
+            LinearGradient(colors: [.clear, .felt900], startPoint: .top, endPoint: .bottom)
+                .frame(height: 36)
+            Button(action: onSendTurn) {
+                Text("Send turn →")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(.felt800)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(
+                        LinearGradient(colors: [.gold500, .gold700], startPoint: .top, endPoint: .bottom)
+                    )
+                    .cornerRadius(12)
+                    .padding(.horizontal, 28)
+                    .padding(.bottom, 28)
+                    .shadow(color: .black.opacity(0.4), radius: 0, y: 3)
+            }
+            .background(Color.felt900)
+        }
     }
 }

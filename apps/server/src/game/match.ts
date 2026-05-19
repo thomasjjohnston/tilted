@@ -251,6 +251,25 @@ function buildHandView(
     round.bbUserId,
   );
 
+  // User-scoped resolved net (snapshotted at hand resolution — the fix
+  // for the per-hand "0 win/loss" bug in the turn summary).
+  const myResolvedNet = h.status === 'complete'
+    ? (isUserA ? h.resolvedNetForA : h.resolvedNetForB)
+    : null;
+
+  // Last action summary used by the focused turn-table to render a
+  // "Sarah raised to 80" callout. Picks the most recent opponent action
+  // on this hand for the requesting user.
+  const lastOpponentAction = [...sortedActions]
+    .reverse()
+    .find(a => a.actingUserId !== userId);
+  const lastAction = lastOpponentAction ? {
+    actor: 'opponent' as const,
+    action_type: lastOpponentAction.actionType,
+    amount: lastOpponentAction.amount,
+    street: lastOpponentAction.street,
+  } : null;
+
   return {
     hand_id: h.handId,
     hand_index: h.handIndex,
@@ -264,8 +283,11 @@ function buildHandView(
     status: h.status,
     action_on_me: h.actionOnUserId === userId,
     terminal_reason: h.terminalReason,
+    fold_street: h.foldStreet,
     winner_user_id: h.winnerUserId,
     action_summary: summary,
+    my_resolved_net: myResolvedNet,
+    last_action: lastAction,
   };
 }
 
@@ -325,6 +347,20 @@ export interface HandView {
   status: string;
   action_on_me: boolean;
   terminal_reason: string | null;
+  fold_street: string | null;
   winner_user_id: string | null;
   action_summary: string;
+  /** Net chip change for the requesting user when this hand resolved.
+   *  Positive when the user won, negative when they lost, null while
+   *  in_progress or awaiting_runout. Snapshotted to survive ledger
+   *  settlement (which zeros myReserved). */
+  my_resolved_net: number | null;
+  /** Most recent opponent action — used by the focused turn table
+   *  to render a "Sarah raised to 80" callout. */
+  last_action: {
+    actor: 'opponent';
+    action_type: string;
+    amount: number;
+    street: string;
+  } | null;
 }

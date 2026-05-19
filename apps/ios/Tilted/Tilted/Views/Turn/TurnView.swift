@@ -1,6 +1,6 @@
 import SwiftUI
 
-// MARK: - Turn View (grouped list + detail sheet)
+// MARK: - Turn View — hybrid focused table + 10-hand strip
 
 struct TurnView: View {
     @Environment(AppStore.self) private var store
@@ -8,13 +8,17 @@ struct TurnView: View {
     let match: MatchState
     let round: RoundView
 
-    @State private var selectedHand: HandView?
+    // Focused hand (the one rendered on the felt). Defaults to the
+    // lowest-index pending hand; user can tap a puck to focus another.
+    @State private var focusedHandId: String?
     @State private var betSheetHand: HandView?
     @State private var allInConfirmHand: HandView?
     @State private var showTurnComplete = false
     @State private var isAutoChecking = false
 
-    // Showdown result overlay
+    // Hand Won full-screen for opponent folds, and the showdown overlay
+    // for showdowns/splits (still rendered via ShowdownResultView).
+    @State private var handWonView: HandView?
     @State private var showdownResult: HandView?
 
     // Turn summary tracking
@@ -24,25 +28,33 @@ struct TurnView: View {
     @State private var autoActedHands: [(handIndex: Int, action: String)] = []
     @State private var autoActedHandSnapshots: [HandView] = []
     @State private var showdownsThisTurn: [HandView] = []
+    @State private var resolvedThisTurn: [HandView] = []
     @State private var handStatusesBefore: [String: String] = [:]
 
-    // MARK: - Computed groups (read from live store for up-to-date data)
+    // MARK: - Live data
 
-    private var currentHands: [HandView] {
+    private var liveHands: [HandView] {
         store.matchState?.currentRound?.hands ?? round.hands
     }
 
     private var pendingHands: [HandView] {
-        currentHands.filter { $0.isPendingAction }
+        liveHands.filter { $0.isPendingAction }
     }
 
-    private var waitingHands: [HandView] {
-        currentHands.filter { $0.status == "in_progress" && !$0.actionOnMe }
+    private var focusedHand: HandView? {
+        if let id = focusedHandId,
+           let found = liveHands.first(where: { $0.handId == id }) {
+            return found
+        }
+        return pendingHands.first ?? liveHands.first
     }
 
-    private var resolvedHands: [HandView] {
-        currentHands.filter { $0.status == "complete" || $0.status == "awaiting_runout" }
-    }
+    private var liveMatch: MatchState { store.matchState ?? match }
+    private var liveRound: RoundView { liveMatch.currentRound ?? round }
+
+    private var myRole: String { liveRound.myRole }
+    private var smallBlind: Int { 5 }   // Mirrors server constants
+    private var bigBlind: Int { 10 }
 
     // MARK: - Body
 
@@ -51,101 +63,95 @@ struct TurnView: View {
             Color.clear.feltBackground().ignoresSafeArea()
 
             VStack(spacing: 0) {
-                // Sticky header
-                HStack {
-                    Button { dismiss() } label: {
-                        Image(systemName: "chevron.left")
-                            .foregroundColor(.cream200)
-                            .font(.system(size: 20))
+                header
+
+                if let hand = focusedHand {
+                    ScrollView {
+                        VStack(spacing: 14) {
+                            FeltTableView(
+                                hand: hand,
+                                match: liveMatch,
+                                myRole: myRole,
+                                smallBlind: smallBlind,
+                                bigBlind: bigBlind
+                            )
+                            .padding(.horizontal, 14)
+                            .padding(.top, 10)
+
+                            PositionBanner(
+                                myRole: myRole,
+                                actingOrderHint: positionHint(for: hand),
+                                danger: hand.facingBet && hand.callCost >= liveMatch.myAvailable
+                            )
+                            .padding(.horizontal, 14)
+
+                            actionBar(for: hand)
+                                .padding(.horizontal, 14)
+
+                            // Show a tap-for-history affordance
+                            Button {
+                                // Tap focused hand → open detail sheet for full history
+                                // (reuse existing HandActionDetailSheet via the
+                                // dedicated state below).
+                                detailSheetHand = hand
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "list.bullet.rectangle")
+                                        .font(.system(size: 10))
+                                    Text("Action history")
+                                        .font(.system(size: 11))
+                                }
+                                .foregroundColor(.cream300)
+                                .padding(.top, 2)
+                            }
+                            .padding(.bottom, 6)
+                        }
                     }
+                    .scrollIndicators(.hidden)
+                } else {
+                    // Round complete or no current round → empty state
                     Spacer()
-                    Text("\(pendingHands.count) of 10 hands left")
+                    Text("No hand to focus")
                         .font(.system(size: 13))
-                        .foregroundColor(.cream100)
+                        .foregroundColor(.cream300)
                     Spacer()
-                    Text("\(store.matchState?.myAvailable ?? match.myAvailable) to bet")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(.gold500)
                 }
-                .padding(.horizontal, 18)
-                .padding(.vertical, 10)
-                .background(Color.felt800.opacity(0.95))
 
-                // Grouped hand list
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 0) {
-                        // Action Required
-                        if !pendingHands.isEmpty {
-                            sectionHeader(
-                                dot: .gold500,
-                                title: "Action Required",
-                                count: pendingHands.count
-                            )
-                            ForEach(pendingHands) { hand in
-                                CompactHandCard(hand: hand, myAvailable: match.myAvailable)
-                                    .onTapGesture { selectedHand = hand }
-                            }
-                        }
-
-                        // Waiting on opponent
-                        if !waitingHands.isEmpty {
-                            sectionHeader(
-                                dot: .cream300,
-                                title: "Waiting on \(match.opponent.displayName.components(separatedBy: " ").first ?? "Opponent")",
-                                count: waitingHands.count
-                            )
-                            chipPillRow(hands: waitingHands) { hand in
-                                "H\(hand.handIndex + 1) \u{00B7} \(hand.street.capitalized) \u{00B7} Pot \(hand.pot)"
-                            }
-                        }
-
-                        // Resolved
-                        if !resolvedHands.isEmpty {
-                            sectionHeader(
-                                dot: .cream400,
-                                title: "Resolved",
-                                count: resolvedHands.count
-                            )
-                            chipPillRow(hands: resolvedHands) { hand in
-                                resolvedPillText(hand)
-                            }
+                HandStrip(
+                    hands: liveHands,
+                    currentUserId: store.currentUserId,
+                    focusedHandId: focusedHand?.handId,
+                    onSelect: { hand in
+                        withAnimation(.spring(response: 0.32, dampingFraction: 0.85)) {
+                            focusedHandId = hand.handId
                         }
                     }
-                    .padding(.horizontal, 14)
-                    .padding(.bottom, 40)
-                }
+                )
             }
 
-            // Auto-acting overlay
             if isAutoChecking {
-                ZStack {
-                    Color.felt900.opacity(0.85).ignoresSafeArea()
-                    VStack(spacing: 12) {
-                        ProgressView()
-                            .tint(.gold500)
-                            .scaleEffect(1.2)
-                        Text("Auto-folding unplayable hands...")
-                            .font(.system(size: 13))
-                            .foregroundColor(.cream200)
-                        Text("0 chips available")
-                            .font(.system(size: 11))
-                            .foregroundColor(.cream300)
-                    }
-                }
-                .transition(.opacity)
+                autoActOverlay
             }
 
-            // Result overlay (showdown, fold, or split pot — fires for every
-            // deliberate completion; auto-acted batch hands never fire this)
-            if let result = showdownResult {
-                let pendingOthers = pendingHands.filter { $0.handId != result.handId }
+            if let hand = handWonView {
+                HandWonView(
+                    hand: hand,
+                    match: liveMatch,
+                    onContinue: { handWonView = nil; advanceAfterResolution() }
+                )
+                .transition(.opacity)
+                .zIndex(2)
+            }
+
+            if let hand = showdownResult {
+                let pendingOthers = pendingHands.filter { $0.handId != hand.handId }
                 ShowdownResultView(
-                    hand: result,
-                    match: store.matchState ?? match,
+                    hand: hand,
+                    match: liveMatch,
                     remainingPendingCount: pendingOthers.count,
                     hasNextPending: !pendingOthers.isEmpty,
                     onFavorite: { fav in
-                        Task { await store.toggleFavorite(handId: result.handId, favorite: fav) }
+                        Task { await store.toggleFavorite(handId: hand.handId, favorite: fav) }
                     },
                     onBackToList: {
                         showdownResult = nil
@@ -154,65 +160,55 @@ struct TurnView: View {
                     onNextHand: {
                         showdownResult = nil
                         if let next = pendingOthers.first {
-                            selectedHand = next
+                            focusedHandId = next.handId
                         } else {
                             checkTurnComplete()
                         }
                     }
                 )
                 .transition(.opacity)
+                .zIndex(2)
             }
 
-            // Turn summary
             if showTurnSummary {
                 TurnSummaryView(
-                    match: store.matchState ?? match,
-                    round: store.matchState?.currentRound ?? round,
-                    deliberateActions: deliberateActions,
+                    match: liveMatch,
+                    round: liveRound,
+                    resolvedHands: resolvedThisTurn,
                     autoActedHands: autoActedHands,
                     autoActedHandViews: autoActedHandSnapshots,
-                    showdownResults: showdownsThisTurn,
                     stackBefore: stackBefore,
+                    currentUserId: store.currentUserId,
                     onSendTurn: {
                         showTurnSummary = false
                         withAnimation { showTurnComplete = true }
                     }
                 )
                 .transition(.opacity)
+                .zIndex(3)
             }
 
-            // Turn sent overlay
-            if showTurnComplete {
-                turnCompleteOverlay
-            }
+            if showTurnComplete { turnCompleteOverlay }
         }
-        // Detail sheet
-        .sheet(item: $selectedHand) { hand in
+        .sheet(item: $detailSheetHand) { hand in
             HandActionDetailSheet(
                 hand: hand,
-                match: match,
-                round: round,
+                match: liveMatch,
+                round: liveRound,
                 onAction: { type, amount in
-                    selectedHand = nil
-                    if type == "raise" || type == "bet" {
-                        betSheetHand = hand
-                    } else if type == "all_in" {
-                        allInConfirmHand = hand
-                    } else {
-                        Task { await submitAction(hand: hand, type: type, amount: amount) }
-                    }
+                    detailSheetHand = nil
+                    handleAction(hand: hand, type: type, amount: amount)
                 },
-                onDismiss: { selectedHand = nil }
+                onDismiss: { detailSheetHand = nil }
             )
             .environment(store)
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
         }
-        // Bet sheet (opened from detail)
         .sheet(item: $betSheetHand) { hand in
             BetSheet(
                 hand: hand,
-                match: match,
+                match: liveMatch,
                 onSubmit: { amount, type in
                     betSheetHand = nil
                     Task { await submitAction(hand: hand, type: type, amount: amount) }
@@ -220,7 +216,6 @@ struct TurnView: View {
             )
             .presentationDetents([.medium])
         }
-        // All-in confirmation
         .alert("All In?", isPresented: Binding(
             get: { allInConfirmHand != nil },
             set: { if !$0 { allInConfirmHand = nil } }
@@ -233,20 +228,26 @@ struct TurnView: View {
             }
             Button("Cancel", role: .cancel) { allInConfirmHand = nil }
         } message: {
-            
             Text("This action cannot be undone.")
         }
         .onChange(of: pendingHands.count) { _, newCount in
-            if newCount == 0 && !showTurnComplete && !showTurnSummary && showdownResult == nil {
+            if newCount == 0 && !showTurnComplete && !showTurnSummary
+                && showdownResult == nil && handWonView == nil {
                 checkTurnComplete()
             }
         }
+        .onChange(of: focusedHand?.handId) { _, _ in
+            checkForUnseenFoldResolution()
+        }
         .task {
             stackBefore = match.myAvailable
-            // Snapshot hand statuses at turn start
             for hand in round.hands {
                 handStatusesBefore[hand.handId] = hand.status
             }
+            if focusedHandId == nil {
+                focusedHandId = pendingHands.first?.handId ?? round.hands.first?.handId
+            }
+            checkForUnseenFoldResolution()
             await autoActIfNeeded()
         }
         .onChange(of: store.matchState?.currentRound?.hands.map(\.status)) { _, _ in
@@ -254,68 +255,229 @@ struct TurnView: View {
         }
     }
 
-    // MARK: - Section header
+    // MARK: - Detail sheet state (separate from focused hand)
 
-    private func sectionHeader(dot: Color, title: String, count: Int) -> some View {
-        HStack(spacing: 8) {
-            Circle()
-                .fill(dot)
-                .frame(width: 6, height: 6)
-            Text(title.uppercased())
-                .font(.system(size: 10, weight: .medium))
-                .tracking(1.5)
-                .foregroundColor(dot == .gold500 ? .gold500 : .cream300)
+    @State private var detailSheetHand: HandView?
+
+    // MARK: - Header
+
+    private var header: some View {
+        HStack(spacing: 10) {
+            Button { dismiss() } label: {
+                Image(systemName: "chevron.left")
+                    .foregroundColor(.cream200)
+                    .font(.system(size: 18, weight: .medium))
+                    .frame(width: 30, height: 30)
+            }
+
+            // Progress dots — one per hand, gold = done/active, faded = pending
+            HStack(spacing: 3) {
+                ForEach(liveHands) { hand in
+                    Circle()
+                        .fill(dotColor(for: hand))
+                        .frame(width: 6, height: 6)
+                        .shadow(
+                            color: hand.handId == focusedHand?.handId ? Color.gold500 : .clear,
+                            radius: 4
+                        )
+                }
+            }
+
             Spacer()
-            Text("\(count)")
+
+            Text("\(pendingHands.count) of 10 left")
                 .font(.system(size: 11))
                 .foregroundColor(.cream300)
-        }
-        .padding(.top, 14)
-        .padding(.bottom, 6)
-    }
 
-    // MARK: - Chip pill row
-
-    private func chipPillRow(hands: [HandView], label: @escaping (HandView) -> String) -> some View {
-        FlowLayout(spacing: 6) {
-            ForEach(hands) { hand in
-                Text(label(hand))
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(pillTextColor(hand))
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .background(Color.black.opacity(0.25))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10)
-                            .stroke(Color.gold500.opacity(0.15), lineWidth: 1)
-                    )
-                    .cornerRadius(10)
+            VStack(alignment: .trailing, spacing: 0) {
+                Text("AVAILABLE")
+                    .font(.system(size: 8, weight: .semibold))
+                    .tracking(1.2)
+                    .foregroundColor(.cream300)
+                Text("\(liveMatch.myAvailable)")
+                    .font(.custom("Georgia", size: 15).bold())
+                    .foregroundColor(.gold500)
             }
         }
-        .padding(.bottom, 4)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(Color.felt800.opacity(0.95))
+        .overlay(
+            Rectangle()
+                .fill(Color.gold500.opacity(0.1))
+                .frame(height: 1),
+            alignment: .bottom
+        )
     }
 
-    private func pillTextColor(_ hand: HandView) -> Color {
-        if hand.status == "awaiting_runout" { return .claret }
-        if hand.winnerUserId == store.currentUserId { return .gold500 }
-        if hand.terminalReason == "fold" { return .cream300 }
-        return .cream200
+    private func dotColor(for hand: HandView) -> Color {
+        if hand.status == "complete" {
+            return hand.winnerUserId == store.currentUserId
+                ? Color(hex: 0x4ea878) : Color.cream400.opacity(0.4)
+        }
+        if hand.actionOnMe { return .gold500 }
+        return Color.cream300.opacity(0.25)
     }
 
-    private func resolvedPillText(_ hand: HandView) -> String {
-        if hand.status == "awaiting_runout" {
-            return "H\(hand.handIndex + 1) \u{00B7} All-In \u{00B7} Pot \(hand.pot) \u{00B7} Reveals at round end"
+    // MARK: - Action bar
+
+    @ViewBuilder
+    private func actionBar(for hand: HandView) -> some View {
+        if hand.isPendingAction {
+            VStack(spacing: 8) {
+                HStack {
+                    if hand.facingBet {
+                        Text("Facing \(hand.callCost) to call")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(.gold500)
+                    } else {
+                        HStack(spacing: 4) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 11))
+                            Text("Check available")
+                                .font(.system(size: 12, weight: .semibold))
+                        }
+                        .foregroundColor(.gold500)
+                    }
+                    Spacer()
+                    if hand.facingBet, liveMatch.myAvailable >= hand.callCost {
+                        Text("After call: \(liveMatch.myAvailable - hand.callCost)")
+                            .font(.system(size: 10))
+                            .foregroundColor(.cream300)
+                    } else {
+                        Text("Stack: \(liveMatch.myAvailable)")
+                            .font(.system(size: 10))
+                            .foregroundColor(.cream300)
+                    }
+                }
+                HStack(spacing: 6) {
+                    if hand.facingBet {
+                        actionBtn("Fold", style: .fold) { handleAction(hand: hand, type: "fold", amount: nil) }
+                        if liveMatch.myAvailable >= hand.callCost {
+                            actionBtn("Call \(hand.callCost)", style: .call) {
+                                handleAction(hand: hand, type: "call", amount: nil)
+                            }
+                            if liveMatch.myAvailable > hand.callCost {
+                                actionBtn("Raise", style: .primary) {
+                                    handleAction(hand: hand, type: "raise", amount: nil)
+                                }
+                            }
+                        }
+                        if liveMatch.myAvailable > 0 {
+                            actionBtn("All-In", style: .allIn) { handleAction(hand: hand, type: "all_in", amount: nil) }
+                        }
+                    } else {
+                        actionBtn("Check", style: .call) { handleAction(hand: hand, type: "check", amount: nil) }
+                        if liveMatch.myAvailable > 0 {
+                            actionBtn("Bet", style: .primary) { handleAction(hand: hand, type: "bet", amount: nil) }
+                            actionBtn("All-In", style: .allIn) { handleAction(hand: hand, type: "all_in", amount: nil) }
+                        }
+                    }
+                }
+            }
+            .padding(12)
+            .background(Color.black.opacity(0.3))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(Color.gold500.opacity(0.22), lineWidth: 1)
+            )
+            .cornerRadius(14)
+        } else {
+            // Resolved or waiting — no actions; show a brief status line.
+            HStack {
+                statusBanner(for: hand)
+                Spacer()
+            }
+            .padding(.vertical, 4)
         }
-        if hand.terminalReason == "fold" {
-            return "H\(hand.handIndex + 1) \u{00B7} Folded"
+    }
+
+    @ViewBuilder
+    private func statusBanner(for hand: HandView) -> some View {
+        if hand.status == "in_progress" && !hand.actionOnMe {
+            HStack(spacing: 8) {
+                Circle().fill(Color.cream300).frame(width: 6, height: 6)
+                    .shadow(color: .cream300, radius: 4)
+                Text("Waiting on \(match.opponent.displayName.components(separatedBy: " ").first ?? "opponent")")
+                    .font(.system(size: 12))
+                    .foregroundColor(.cream200)
+            }
+        } else if hand.status == "complete" {
+            HStack(spacing: 6) {
+                let won = hand.winnerUserId == store.currentUserId
+                Text(won ? "Won" : (hand.winnerUserId == nil ? "Split" : "Lost"))
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(won ? Color(hex: 0x4ea878) : .cream300)
+                if let net = hand.myResolvedNet {
+                    Text(net >= 0 ? "+\(net)" : "\(net)")
+                        .font(.custom("Georgia", size: 13).bold())
+                        .foregroundColor(net >= 0 ? Color(hex: 0x4ea878) : .claret)
+                }
+            }
         }
-        if hand.winnerUserId == store.currentUserId {
-            return "H\(hand.handIndex + 1) \u{00B7} Won \(hand.pot)"
+    }
+
+    private enum ActionStyle { case fold, call, primary, allIn }
+
+    private func actionBtn(_ title: String, style: ActionStyle, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.system(size: 12, weight: .semibold))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 11)
+                .foregroundColor(fg(style))
+                .background(bg(style))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(border(style), lineWidth: 1)
+                )
+                .cornerRadius(10)
         }
-        if hand.winnerUserId != nil {
-            return "H\(hand.handIndex + 1) \u{00B7} Lost"
+    }
+
+    private func fg(_ s: ActionStyle) -> Color {
+        switch s {
+        case .fold: return .claret
+        case .call: return .cream100
+        case .primary: return .felt800
+        case .allIn: return .cream100
         }
-        return "H\(hand.handIndex + 1) \u{00B7} Split"
+    }
+    private func bg(_ s: ActionStyle) -> AnyView {
+        switch s {
+        case .fold: return AnyView(Color.claret.opacity(0.12))
+        case .call: return AnyView(Color.gold500.opacity(0.18))
+        case .primary: return AnyView(
+            LinearGradient(colors: [.gold500, .gold700], startPoint: .top, endPoint: .bottom)
+        )
+        case .allIn: return AnyView(Color.claret.opacity(0.18))
+        }
+    }
+    private func border(_ s: ActionStyle) -> Color {
+        switch s {
+        case .fold: return Color.claret.opacity(0.4)
+        case .call: return Color.gold500.opacity(0.4)
+        case .primary: return Color.gold500.opacity(0.7)
+        case .allIn: return Color.claret.opacity(0.45)
+        }
+    }
+
+    // MARK: - Auto-act overlay
+
+    private var autoActOverlay: some View {
+        ZStack {
+            Color.felt900.opacity(0.85).ignoresSafeArea()
+            VStack(spacing: 12) {
+                ProgressView().tint(.gold500).scaleEffect(1.2)
+                Text("Auto-folding unplayable hands…")
+                    .font(.system(size: 13))
+                    .foregroundColor(.cream200)
+                Text("0 chips available")
+                    .font(.system(size: 11))
+                    .foregroundColor(.cream300)
+            }
+        }
+        .transition(.opacity)
     }
 
     // MARK: - Turn complete overlay
@@ -324,7 +486,7 @@ struct TurnView: View {
         ZStack {
             Color.felt900.opacity(0.9).ignoresSafeArea()
             VStack(spacing: Spacing.lg) {
-                Text("\u{2705}").font(.system(size: 64))
+                Text("✅").font(.system(size: 64))
                 Text("Turn sent.")
                     .font(.displayMedium).fontDesign(.serif).foregroundColor(.cream100)
                 Text("Waiting on \(match.opponent.displayName.components(separatedBy: " ").first ?? "opponent").")
@@ -336,22 +498,43 @@ struct TurnView: View {
         }
     }
 
-    // MARK: - Actions
+    // MARK: - Helpers
+
+    private func positionHint(for hand: HandView) -> String? {
+        if hand.street == "preflop" {
+            return myRole == "sb" ? "you act first preflop" : "you act second preflop"
+        }
+        return myRole == "bb" ? "you act first postflop" : "you act second postflop"
+    }
+
+    // MARK: - Fold resolution surfacing
+
+    private func checkForUnseenFoldResolution() {
+        guard let hand = focusedHand else { return }
+        guard hand.status == "complete",
+              hand.terminalReason == "fold",
+              hand.winnerUserId == store.currentUserId else { return }
+        // Only show once per hand per session
+        guard !store.seenFoldResolutions.contains(hand.handId) else { return }
+        store.seenFoldResolutions.insert(hand.handId)
+        withAnimation { handWonView = hand }
+    }
+
+    // MARK: - Action dispatch
+
+    private func handleAction(hand: HandView, type: String, amount: Int?) {
+        if type == "raise" || type == "bet" {
+            betSheetHand = hand
+        } else if type == "all_in" {
+            allInConfirmHand = hand
+        } else {
+            Task { await submitAction(hand: hand, type: type, amount: amount) }
+        }
+    }
 
     private func submitAction(hand: HandView, type: String, amount: Int? = nil) async {
-        // Deliberate actions wait for server response (not fire-and-forget)
-        // so we have accurate pot/available data after
         await store.submitAction(handId: hand.handId, type: type, amount: amount)
 
-        // Update stackBefore to reflect available AFTER this action
-        // (so the turn summary correctly shows the net from this point forward)
-        if deliberateActions.isEmpty {
-            // First action: stackBefore was set on view open.
-            // After this action, the server has updated myAvailable.
-            // We keep stackBefore as-is — it represents "before the turn started"
-        }
-
-        // Track deliberate action
         let actionLabel: String
         switch type {
         case "fold": actionLabel = "Folded"
@@ -364,64 +547,37 @@ struct TurnView: View {
         }
         deliberateActions.append((handIndex: hand.handIndex, summary: actionLabel))
 
-        // Fire the result screen for ANY hand that completed from this
-        // deliberate action (showdown, fold, or split pot). Auto-acted
-        // batch hands go through submitBatchActions and never hit this path.
         if let updatedRound = store.matchState?.currentRound,
            let updatedHand = updatedRound.hands.first(where: { $0.handId == hand.handId }),
            updatedHand.status == "complete" {
-            // The server zeroes both players' reserved fields during
-            // settlement (for folds AND showdowns) and blanks the
-            // folder's hole cards. Splice the pre-action snapshot in so
-            // the result screen shows what the user actually committed
-            // — blinds and any bets they made on this hand.
-            //
-            // Chips added this action depend on the action type. "bet"
-            // and "raise" use amount as the new total; "call" equalizes
-            // to opponent's reserved; fold/check adds nothing.
-            let chipsAddedThisAction: Int = {
-                switch type {
-                case "fold", "check": return 0
-                case "call": return hand.callCost
-                case "bet": return max(0, (amount ?? 0) - hand.myReserved)
-                case "raise": return max(0, (amount ?? 0) - hand.myReserved)
-                case "all_in": return store.matchState?.myAvailable ?? 0
-                default: return 0
-                }
-            }()
-            let myFinalReserved = hand.myReserved + chipsAddedThisAction
-            let oppFinalReserved = max(hand.opponentReserved, myFinalReserved)
-            let displayHand = HandView(
-                handId: updatedHand.handId,
-                handIndex: updatedHand.handIndex,
-                myHole: updatedHand.myHole.isEmpty ? hand.myHole : updatedHand.myHole,
-                opponentHole: updatedHand.opponentHole,
-                board: updatedHand.board,
-                pot: updatedHand.pot,
-                myReserved: myFinalReserved,
-                opponentReserved: oppFinalReserved,
-                street: updatedHand.street,
-                status: updatedHand.status,
-                actionOnMe: updatedHand.actionOnMe,
-                terminalReason: updatedHand.terminalReason,
-                winnerUserId: updatedHand.winnerUserId,
-                actionSummary: updatedHand.actionSummary
-            )
-
+            resolvedThisTurn.append(updatedHand)
             if updatedHand.terminalReason == "showdown" {
                 showdownsThisTurn.append(updatedHand)
+                withAnimation { showdownResult = updatedHand }
+                return
             }
-            withAnimation { showdownResult = displayHand }
-            return
+            // Fold-by-us: don't show a Hand Won celebration (we lost the
+            // hand). Move on to the next pending hand if any.
         }
 
+        advanceAfterResolution()
         await autoActIfNeeded()
+    }
+
+    private func advanceAfterResolution() {
+        let pending = pendingHands
+        if let next = pending.first(where: { $0.handId != focusedHandId }) {
+            withAnimation(.spring(response: 0.32, dampingFraction: 0.85)) {
+                focusedHandId = next.handId
+            }
+        }
+        checkTurnComplete()
     }
 
     private func checkTurnComplete() {
         let currentPending = store.matchState?.currentRound?.hands.filter { $0.isPendingAction } ?? []
         if currentPending.isEmpty && !showTurnSummary && !showTurnComplete {
-            if !showdownsThisTurn.isEmpty || !autoActedHands.isEmpty || deliberateActions.count > 1 {
+            if !resolvedThisTurn.isEmpty || !autoActedHands.isEmpty || deliberateActions.count > 1 {
                 withAnimation { showTurnSummary = true }
             } else {
                 withAnimation { showTurnComplete = true }
@@ -429,7 +585,6 @@ struct TurnView: View {
         }
     }
 
-    /// When available chips are 0, auto-act all remaining pending hands.
     private func autoActIfNeeded() async {
         guard !isAutoChecking else { return }
         guard let currentRound = store.matchState?.currentRound else { return }
@@ -440,99 +595,22 @@ struct TurnView: View {
         guard !pending.isEmpty else { return }
 
         isAutoChecking = true
-
         let actionsToTake = pending.map { hand in
             (hand: hand, action: hand.facingBet ? "fold" : "check")
         }
-
-        // Snapshot hands BEFORE optimistic update (for accurate chip math in summary)
         autoActedHandSnapshots = actionsToTake.map { $0.hand }
-
-        // Track auto-acted hands for the turn summary
         for (hand, action) in actionsToTake {
             autoActedHands.append((handIndex: hand.handIndex, action: action))
         }
-
-        // Single batch request — optimistic update + one server call
         await store.submitBatchActions(
             actions: actionsToTake.map { ($0.hand.handId, $0.action, nil as Int?) }
         )
-
         isAutoChecking = false
         checkTurnComplete()
     }
 }
 
-// MARK: - Compact Hand Card
-
-struct CompactHandCard: View {
-    let hand: HandView
-    let myAvailable: Int
-
-    var body: some View {
-        HStack(spacing: 10) {
-            // Hole cards
-            HStack(spacing: 2) {
-                ForEach(hand.myHole, id: \.self) { card in
-                    PlayingCardView(card: card, size: .small)
-                }
-            }
-
-            // Info
-            VStack(alignment: .leading, spacing: 3) {
-                HStack {
-                    Text("Hand \(hand.handIndex + 1)")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.cream100)
-                    Text("\u{00B7}")
-                        .foregroundColor(.cream300)
-                    Text(hand.street.capitalized)
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.gold500)
-
-                    Spacer()
-
-                    if hand.facingBet {
-                        Text("Facing \(hand.callCost)")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.gold500)
-                    } else {
-                        Text("Check to you")
-                            .font(.system(size: 12))
-                            .foregroundColor(.cream300)
-                    }
-                }
-
-                Text(hand.actionSummary.isEmpty ? "Pot \(hand.pot)" : hand.actionSummary)
-                    .font(.system(size: 11))
-                    .foregroundColor(.cream300)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-            }
-
-            // Chevron
-            Image(systemName: "chevron.right")
-                .font(.system(size: 14, weight: .medium))
-                .foregroundColor(.cream300)
-        }
-        .padding(10)
-        .background(
-            LinearGradient(
-                colors: [Color.gold500.opacity(0.04), Color.black.opacity(0.15)],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(Color.gold500.opacity(0.5), lineWidth: 1)
-        )
-        .cornerRadius(12)
-        .padding(.bottom, 8)
-    }
-}
-
-// MARK: - Hand Action Detail Sheet
+// MARK: - Hand Action Detail Sheet (preserved for action history)
 
 struct HandActionDetailSheet: View {
     let hand: HandView
@@ -551,7 +629,6 @@ struct HandActionDetailSheet: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    // Header
                     HStack {
                         Text("Hand \(hand.handIndex + 1)")
                             .font(.custom("Georgia", size: 22))
@@ -569,7 +646,6 @@ struct HandActionDetailSheet: View {
                     }
                     .padding(.top, 8)
 
-                    // Street tag
                     Text(hand.street.uppercased())
                         .font(.system(size: 10, weight: .semibold))
                         .tracking(0.5)
@@ -580,9 +656,7 @@ struct HandActionDetailSheet: View {
                         .cornerRadius(4)
                         .padding(.top, 12)
 
-                    // Cards
                     HStack(alignment: .top, spacing: 16) {
-                        // My cards
                         VStack(alignment: .leading, spacing: 4) {
                             Text("YOUR CARDS")
                                 .font(.system(size: 9, weight: .medium))
@@ -595,7 +669,6 @@ struct HandActionDetailSheet: View {
                             }
                         }
 
-                        // Board
                         if !hand.board.isEmpty || hand.street != "preflop" {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("BOARD")
@@ -615,7 +688,6 @@ struct HandActionDetailSheet: View {
                     }
                     .padding(.top, 14)
 
-                    // Action log
                     if let detail = handDetail {
                         actionLogView(detail: detail)
                     } else if isLoading {
@@ -624,30 +696,6 @@ struct HandActionDetailSheet: View {
                             .frame(maxWidth: .infinity)
                             .padding(.top, 16)
                     }
-
-                    // Facing banner
-                    facingBanner
-                        .padding(.top, 12)
-
-                    // Pot line
-                    HStack {
-                        Text("Pot:")
-                            .font(.system(size: 12))
-                            .foregroundColor(.cream300)
-                        Text("\(hand.pot)")
-                            .font(.custom("Georgia", size: 16))
-                            .foregroundColor(.cream100)
-                        Spacer()
-                        Text("\(hand.myReserved) in play \u{00B7} \(match.myAvailable) available")
-                            .font(.system(size: 10))
-                            .foregroundColor(.cream400)
-                    }
-                    .padding(.top, 8)
-
-                    // Action buttons
-                    actionButtons
-                        .padding(.top, 14)
-                        .padding(.bottom, 20)
                 }
                 .padding(.horizontal, 18)
             }
@@ -656,13 +704,11 @@ struct HandActionDetailSheet: View {
             do {
                 handDetail = try await APIClient.shared.getHandDetail(handId: hand.handId)
             } catch {
-                // Fall back to no detail
+                // Fall back silently
             }
             isLoading = false
         }
     }
-
-    // MARK: - Action log
 
     private func actionLogView(detail: HandDetail) -> some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -709,13 +755,13 @@ struct HandActionDetailSheet: View {
         case "preflop": return "PREFLOP"
         case "flop":
             let cards = board.prefix(3).joined(separator: " ")
-            return "FLOP \u{00B7} \(cards)"
+            return "FLOP · \(cards)"
         case "turn":
             let card = board.count >= 4 ? board[3] : ""
-            return "TURN \u{00B7} \(card)"
+            return "TURN · \(card)"
         case "river":
             let card = board.count >= 5 ? board[4] : ""
-            return "RIVER \u{00B7} \(card)"
+            return "RIVER · \(card)"
         default: return street.uppercased()
         }
     }
@@ -723,138 +769,15 @@ struct HandActionDetailSheet: View {
     private var opponentFirstName: String {
         match.opponent.displayName.components(separatedBy: " ").first ?? "Opp"
     }
-
-    // MARK: - Facing banner
-
-    private var facingBanner: some View {
-        HStack(spacing: 10) {
-            ZStack {
-                Circle()
-                    .fill(Color.gold500.opacity(0.12))
-                    .frame(width: 32, height: 32)
-                Text(hand.facingBet ? "\u{2192}" : "\u{2713}")
-                    .font(.system(size: 16))
-                    .foregroundColor(.gold500)
-            }
-
-            VStack(alignment: .leading, spacing: 2) {
-                if hand.facingBet {
-                    Text("Facing a bet of")
-                        .font(.system(size: 13))
-                        .foregroundColor(.cream200)
-                    Text("\(hand.callCost)")
-                        .font(.custom("Georgia", size: 22))
-                        .foregroundColor(.gold500)
-                } else {
-                    Text("No bet facing you")
-                        .font(.system(size: 13))
-                        .foregroundColor(.cream200)
-                    Text("Check or bet")
-                        .font(.system(size: 11))
-                        .foregroundColor(.cream300)
-                }
-            }
-
-            Spacer()
-
-            VStack(alignment: .trailing, spacing: 2) {
-                Text(hand.facingBet ? "After call" : "Available to bet")
-                    .font(.system(size: 10))
-                    .foregroundColor(.cream300)
-                Text("\(hand.facingBet ? match.myAvailable - hand.callCost : match.myAvailable)")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(.gold500)
-            }
-        }
-        .padding(12)
-        .background(Color.gold500.opacity(0.06))
-        .overlay(
-            RoundedRectangle(cornerRadius: 10)
-                .stroke(Color.gold500.opacity(0.25), lineWidth: 1)
-        )
-        .cornerRadius(10)
-    }
-
-    // MARK: - Action buttons
-
-    private var actionButtons: some View {
-        HStack(spacing: 8) {
-            if hand.facingBet {
-                actionButton("Fold", style: .fold) { onAction("fold", nil) }
-                let canAfford = match.myAvailable >= hand.callCost
-                if canAfford {
-                    actionButton("Call \(hand.callCost)", style: .primary) { onAction("call", nil) }
-                    if match.myAvailable > hand.callCost {
-                        actionButton("Raise", style: .neutral) { onAction("raise", nil) }
-                    }
-                }
-                if match.myAvailable > 0 {
-                    actionButton("All-In", style: .allIn) { onAction("all_in", nil) }
-                }
-            } else {
-                actionButton("Check", style: .primary) { onAction("check", nil) }
-                if match.myAvailable > 0 {
-                    actionButton("Bet", style: .neutral) { onAction("bet", nil) }
-                    actionButton("All-In", style: .allIn) { onAction("all_in", nil) }
-                }
-            }
-        }
-    }
-
-    enum ButtonStyleType { case fold, primary, neutral, allIn }
-
-    private func actionButton(_ title: String, style: ButtonStyleType, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text(title)
-                .font(.system(size: 13, weight: .semibold))
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-                .foregroundColor(buttonForeground(style))
-                .background(buttonBackground(style))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10)
-                        .stroke(buttonBorder(style), lineWidth: 1)
-                )
-                .cornerRadius(10)
-        }
-    }
-
-    private func buttonForeground(_ style: ButtonStyleType) -> Color {
-        switch style {
-        case .fold: return .claret
-        case .primary: return .gold500
-        case .neutral: return .cream100
-        case .allIn: return .cream200
-        }
-    }
-
-    private func buttonBackground(_ style: ButtonStyleType) -> Color {
-        switch style {
-        case .fold: return Color.claret.opacity(0.08)
-        case .primary: return Color.gold500.opacity(0.15)
-        case .neutral: return Color.black.opacity(0.2)
-        case .allIn: return Color.black.opacity(0.2)
-        }
-    }
-
-    private func buttonBorder(_ style: ButtonStyleType) -> Color {
-        switch style {
-        case .fold: return Color.claret.opacity(0.4)
-        case .primary: return Color.gold500.opacity(0.6)
-        case .neutral: return Color.gold500.opacity(0.25)
-        case .allIn: return Color.claret.opacity(0.3)
-        }
-    }
 }
 
-// MARK: - Flow Layout (wrapping horizontal pills)
+// MARK: - Flow Layout (wrapping horizontal pills — still used by other views)
 
 struct FlowLayout: Layout {
     var spacing: CGFloat = 6
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let result = arrange(proposal: proposal, subviews: subviews)
-        return result.size
+        arrange(proposal: proposal, subviews: subviews).size
     }
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {

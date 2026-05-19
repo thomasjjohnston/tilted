@@ -68,8 +68,11 @@ struct RevealView: View {
                             status: detail.status,
                             actionOnMe: false,
                             terminalReason: detail.terminalReason,
+                            foldStreet: hand.foldStreet,
                             winnerUserId: detail.winnerUserId,
-                            actionSummary: hand.actionSummary
+                            actionSummary: hand.actionSummary,
+                            myResolvedNet: hand.myResolvedNet,
+                            lastAction: hand.lastAction
                         )
                         resolved.append(resolvedHand)
                     } catch {
