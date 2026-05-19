@@ -107,8 +107,11 @@ struct HandView: Codable, Identifiable {
     let status: String
     let actionOnMe: Bool
     let terminalReason: String?
+    let foldStreet: String?
     let winnerUserId: String?
     let actionSummary: String
+    let myResolvedNet: Int?
+    let lastAction: HandLastAction?
 
     var id: String { handId }
 
@@ -141,8 +144,25 @@ struct HandView: Codable, Identifiable {
         case status
         case actionOnMe = "action_on_me"
         case terminalReason = "terminal_reason"
+        case foldStreet = "fold_street"
         case winnerUserId = "winner_user_id"
         case actionSummary = "action_summary"
+        case myResolvedNet = "my_resolved_net"
+        case lastAction = "last_action"
+    }
+}
+
+struct HandLastAction: Codable {
+    let actor: String
+    let actionType: String
+    let amount: Int
+    let street: String
+
+    enum CodingKeys: String, CodingKey {
+        case actor
+        case actionType = "action_type"
+        case amount
+        case street
     }
 }
 

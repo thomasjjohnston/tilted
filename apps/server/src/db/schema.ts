@@ -84,7 +84,17 @@ export const hands = pgTable('hands', {
   actionOnUserId: uuid('action_on_user_id').references(() => users.userId),
   status: text('status').notNull().$type<'in_progress' | 'awaiting_runout' | 'complete'>(),
   terminalReason: text('terminal_reason').$type<'fold' | 'showdown' | null>(),
+  // Street the hand resolved on. Populated alongside terminalReason at
+  // settlement: 'preflop' | 'flop' | 'turn' | 'river' for folds, and the
+  // last betting street for showdowns. Null while in_progress.
+  foldStreet: text('fold_street').$type<'preflop' | 'flop' | 'turn' | 'river' | null>(),
   winnerUserId: uuid('winner_user_id').references(() => users.userId),
+  // Net chip change for each user at the moment the hand resolved.
+  // Snapshotted because settleHand zeros userAReserved/userBReserved when
+  // chips move into matches.userATotal/userBTotal — without these, the
+  // turn report has no way to show per-hand +/- (the "0 win/loss" bug).
+  resolvedNetForA: integer('resolved_net_for_a'),
+  resolvedNetForB: integer('resolved_net_for_b'),
   completedAt: timestamp('completed_at', { withTimezone: true }),
 }, (table) => [
   unique('hands_round_hand_idx').on(table.roundId, table.handIndex),

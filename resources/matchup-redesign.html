@@ -1,0 +1,2275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tilted — Match-Up CX Redesign</title>
+<style>
+  :root {
+    --felt-900: #051c15;
+    --felt-800: #082a21;
+    --felt-700: #0e3b2e;
+    --felt-650: #11463a;
+    --felt-600: #164a3a;
+    --felt-550: #19533f;
+    --felt-500: #1a5a43;
+    --gold-300: #efd9a3;
+    --gold-500: #d4b368;
+    --gold-600: #c9a961;
+    --gold-700: #a88334;
+    --gold-800: #7a5f2b;
+    --cream-50: #f6f1e1;
+    --cream-100: #f3ecd6;
+    --cream-200: #d9cfb2;
+    --cream-300: #9eb7a4;
+    --cream-400: #6a8a7a;
+    --claret: #c44d42;
+    --claret-soft: rgba(196,77,66,0.18);
+    --emerald: #4ea878;
+    --card-red: #c92b2b;
+    --card-black: #111;
+    --page-bg: #15161a;
+    --page-fg: #e8e6df;
+    --muted: #8a8a8a;
+    --rule: #2a2a30;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--page-bg);
+    color: var(--page-fg);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     PAGE CHROME
+     ═══════════════════════════════════════════════════════════════ */
+  .page-header {
+    padding: 56px 48px 8px;
+    max-width: 1200px; margin: 0 auto;
+  }
+  .page-header .eyebrow {
+    font-size: 11px; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--gold-500); margin-bottom: 10px;
+  }
+  .page-header h1 {
+    font-family: Georgia, serif; font-weight: 400; font-size: 34px;
+    letter-spacing: -0.5px; margin: 0 0 10px;
+  }
+  .page-header p { color: var(--muted); font-size: 13px; line-height: 1.7; max-width: 760px; }
+  .section-header {
+    padding: 48px 48px 14px;
+    max-width: 1400px; margin: 0 auto;
+  }
+  .section-header h2 {
+    font-family: Georgia, serif; font-weight: 400; font-size: 24px;
+    letter-spacing: -0.3px; margin: 0 0 6px;
+  }
+  .section-header .meta {
+    font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--gold-500); margin-bottom: 8px;
+  }
+  .section-header p { color: var(--muted); font-size: 13px; line-height: 1.6; max-width: 760px; }
+  .section-header .note {
+    margin-top: 10px; padding: 10px 12px;
+    background: rgba(212,179,104,0.06); border: 1px solid rgba(212,179,104,0.15);
+    border-radius: 8px; font-size: 12px; color: var(--cream-200); line-height: 1.55;
+    max-width: 760px;
+  }
+
+  /* Phone grid */
+  .phone-row {
+    display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start;
+    gap: 36px; padding: 24px 48px 32px;
+    max-width: 1600px; margin: 0 auto;
+  }
+  .phone-wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .phone-caption {
+    font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--cream-200); font-weight: 600;
+  }
+  .phone-caption .sub {
+    display: block; margin-top: 4px;
+    font-size: 10px; letter-spacing: 0.5px; text-transform: none;
+    color: var(--muted); font-weight: 400; max-width: 320px;
+    line-height: 1.5; text-align: center;
+  }
+  .phone {
+    width: 375px; height: 812px; border-radius: 44px; padding: 10px;
+    background: #0a0a0b;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.6), inset 0 0 0 1.5px #2a2a2e;
+    position: relative; overflow: hidden;
+  }
+  .screen {
+    width: 100%; height: 100%; border-radius: 34px; overflow: hidden;
+    position: relative;
+    background: radial-gradient(ellipse at 50% 0%, var(--felt-500) 0%, var(--felt-700) 55%, var(--felt-800) 100%);
+    color: var(--cream-100);
+    display: flex; flex-direction: column;
+  }
+  .notch {
+    position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+    width: 120px; height: 28px; background: #0a0a0b; border-radius: 14px; z-index: 30;
+  }
+  .home-ind {
+    position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+    width: 110px; height: 4px; border-radius: 2px; background: rgba(243,236,214,0.4); z-index: 30;
+  }
+  .status-bar {
+    height: 44px; display: flex; align-items: flex-end; justify-content: space-between;
+    padding: 0 28px 4px; font-size: 13px; font-weight: 600;
+    color: var(--cream-200); position: relative; z-index: 15;
+    flex-shrink: 0;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     HEADER BAR
+     ═══════════════════════════════════════════════════════════════ */
+  .hdr {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 6px 16px 8px;
+    background: rgba(8,42,33,0.92);
+    border-bottom: 1px solid rgba(201,169,97,0.1);
+    flex-shrink: 0;
+  }
+  .hdr .back { color: var(--cream-200); font-size: 18px; }
+  .hdr .center { font-size: 12px; color: var(--cream-100); display: flex; align-items: center; gap: 8px; }
+  .hdr .center .progress-dots {
+    display: inline-flex; gap: 3px;
+  }
+  .hdr .center .dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: rgba(243,236,214,0.18);
+  }
+  .hdr .center .dot.done { background: var(--gold-500); }
+  .hdr .center .dot.active { background: var(--gold-500); box-shadow: 0 0 6px var(--gold-500); }
+  .hdr .right { font-size: 11px; color: var(--gold-500); font-weight: 600; }
+  .hdr .right .label {
+    font-size: 9px; letter-spacing: 1.2px; text-transform: uppercase;
+    color: var(--cream-300); display: block; line-height: 1; margin-bottom: 2px;
+  }
+  .hdr .right .val { font-family: Georgia, serif; font-size: 15px; color: var(--gold-500); }
+
+  /* ═══════════════════════════════════════════════════════════════
+     CARD FACES
+     ═══════════════════════════════════════════════════════════════ */
+  .cf {
+    display: inline-flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    background: var(--cream-50);
+    font-family: Georgia, serif; font-weight: 700;
+    line-height: 1; flex-shrink: 0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    width: 28px; height: 40px; border-radius: 4px;
+    font-size: 12px; margin-right: 3px;
+  }
+  .cf.red { color: var(--card-red); }
+  .cf.blk { color: var(--card-black); }
+  .cf.xs { width: 18px; height: 26px; font-size: 9px; border-radius: 3px; margin-right: 2px; }
+  .cf.sm { width: 22px; height: 32px; font-size: 10px; border-radius: 3px; margin-right: 2px; }
+  .cf.md { width: 32px; height: 46px; font-size: 14px; border-radius: 5px; }
+  .cf.lg { width: 44px; height: 62px; font-size: 18px; border-radius: 6px; }
+  .cf.xl { width: 54px; height: 76px; font-size: 22px; border-radius: 7px; }
+  .cf.ph {
+    background: transparent; border: 1.5px dashed rgba(201,169,97,0.3);
+    box-shadow: none; color: var(--cream-400); font-size: 10px;
+  }
+  .cf.ph.sm { font-size: 8px; }
+  .cf.back {
+    background: linear-gradient(135deg, #b85a4c, #8a3d34);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(255,255,255,0.08);
+    position: relative;
+  }
+  .cf.back::after {
+    content: ""; position: absolute; inset: 3px;
+    border: 1px solid rgba(255,255,255,0.18); border-radius: 2px;
+    background-image: repeating-linear-gradient(45deg, transparent 0 3px, rgba(255,255,255,0.06) 3px 4px);
+  }
+  .cf.muck {
+    background: linear-gradient(135deg, #2a2a30, #15161a);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    opacity: 0.6;
+    transform: rotate(-8deg);
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     EYEBROW / SERIF / SHARED
+     ═══════════════════════════════════════════════════════════════ */
+  .eyebrow { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--cream-300); }
+  .eyebrow.gold { color: var(--gold-500); }
+  .serif { font-family: Georgia, serif; }
+  .gold { color: var(--gold-500); }
+  .claret { color: var(--claret); }
+  .emerald { color: var(--emerald); }
+  .mono { font-variant-numeric: tabular-nums; }
+
+  /* ═══════════════════════════════════════════════════════════════
+     SECTION 1: TURN VIEW — HYBRID FOCUSED TABLE
+     ═══════════════════════════════════════════════════════════════ */
+  .turn-table {
+    flex: 1; display: flex; flex-direction: column;
+    position: relative; overflow: hidden;
+  }
+
+  /* The felt oval — heads-up table */
+  .felt {
+    position: relative;
+    margin: 18px 16px 0;
+    padding: 22px 18px 16px;
+    border-radius: 110px / 70px;
+    background:
+      radial-gradient(ellipse at 50% 45%, var(--felt-550) 0%, var(--felt-650) 60%, var(--felt-700) 100%);
+    box-shadow:
+      inset 0 0 0 2px rgba(212,179,104,0.18),
+      inset 0 0 0 4px rgba(0,0,0,0.4),
+      inset 0 0 30px rgba(0,0,0,0.4),
+      0 8px 24px rgba(0,0,0,0.4);
+  }
+
+  /* Opponent zone */
+  .opp-row {
+    display: flex; align-items: center; justify-content: center; gap: 12px;
+    margin-bottom: 8px;
+  }
+  .opp-avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: linear-gradient(135deg, #5a3a8a, #2a1f4a);
+    display: flex; align-items: center; justify-content: center;
+    font-family: Georgia, serif; font-size: 14px; font-weight: 700;
+    color: var(--cream-100);
+    box-shadow: 0 0 0 2px rgba(212,179,104,0.4);
+  }
+  .opp-info { text-align: left; }
+  .opp-info .name { font-size: 13px; font-weight: 600; color: var(--cream-100); }
+  .opp-info .stack {
+    font-family: Georgia, serif; font-size: 14px; color: var(--gold-500);
+    margin-top: 1px;
+  }
+
+  /* Opponent cards (face down) */
+  .opp-cards {
+    display: flex; justify-content: center; margin-bottom: 10px; gap: 2px;
+  }
+  /* Chip stack (next to player) */
+  .chip-stack {
+    display: inline-flex; flex-direction: column; align-items: center; gap: 2px;
+  }
+  .chip {
+    width: 22px; height: 22px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 9px; font-weight: 700; font-family: Georgia, serif;
+    color: var(--cream-50);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.4), inset 0 0 0 2px rgba(255,255,255,0.1);
+    border: 2px dashed rgba(255,255,255,0.18);
+  }
+  .chip.sb { background: linear-gradient(135deg, #4a6a3a, #2a3f24); }
+  .chip.bb { background: linear-gradient(135deg, #c44d42, #7a2920); }
+  .chip.lg { width: 28px; height: 28px; font-size: 10px; }
+  .chip-amt {
+    font-family: Georgia, serif; font-size: 11px;
+    color: var(--cream-200); margin-top: 2px;
+  }
+  .blind-marker {
+    display: inline-flex; flex-direction: column; align-items: center;
+    margin: 0 6px;
+  }
+  .blind-marker .label {
+    font-size: 8px; letter-spacing: 1px; color: var(--cream-300);
+    margin-top: 2px; text-transform: uppercase;
+  }
+
+  /* Dealer button */
+  .dealer-btn {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: linear-gradient(135deg, #f6f1e1, #d9cfb2);
+    color: var(--card-black);
+    font-family: Georgia, serif; font-weight: 700; font-size: 12px;
+    display: inline-flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.5), inset 0 0 0 2px rgba(0,0,0,0.1);
+  }
+
+  /* Board & pot center */
+  .table-center {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 6px; margin: 8px 0;
+  }
+  .pot-display {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 12px; border-radius: 18px;
+    background: rgba(0,0,0,0.35);
+    border: 1px solid rgba(212,179,104,0.25);
+  }
+  .pot-display .label {
+    font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--cream-300);
+  }
+  .pot-display .val {
+    font-family: Georgia, serif; font-size: 15px; color: var(--gold-500); font-weight: 600;
+  }
+  .board {
+    display: flex; gap: 4px; align-items: center;
+    min-height: 50px;
+  }
+
+  /* Last action callout */
+  .last-action {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 12px;
+    background: rgba(212,179,104,0.1);
+    border: 1px solid rgba(212,179,104,0.2);
+    font-size: 11px; color: var(--cream-100);
+    margin: 4px auto;
+  }
+  .last-action .who { color: var(--gold-500); font-weight: 600; }
+
+  /* Your zone */
+  .you-row {
+    display: flex; align-items: center; justify-content: center; gap: 14px;
+    margin-top: 10px;
+  }
+  .you-cards { display: flex; gap: 3px; }
+  .you-info { text-align: left; }
+  .you-info .name { font-size: 13px; font-weight: 600; color: var(--cream-100); }
+  .you-info .stack {
+    font-family: Georgia, serif; font-size: 15px; color: var(--gold-500);
+    margin-top: 1px; font-weight: 600;
+  }
+  .you-info .stack .label { font-size: 9px; color: var(--cream-300); letter-spacing: 1px; }
+
+  /* Position banner — under felt */
+  .pos-banner {
+    margin: 10px 16px 0; padding: 8px 14px;
+    background: rgba(0,0,0,0.25);
+    border: 1px solid rgba(201,169,97,0.15);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 11px;
+  }
+  .pos-banner .left { display: flex; align-items: center; gap: 8px; }
+  .pos-banner .you-bb {
+    font-family: Georgia, serif; font-size: 13px; color: var(--cream-100); font-weight: 600;
+  }
+  .pos-banner .you-bb .pos { color: var(--gold-500); }
+  .pos-banner .order { color: var(--cream-300); font-size: 10px; }
+
+  /* Action bar */
+  .action-bar {
+    margin: 10px 14px 0; padding: 10px;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(201,169,97,0.2);
+    border-radius: 14px;
+  }
+  .facing-line {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 11px; color: var(--cream-200); margin-bottom: 8px;
+  }
+  .facing-line .lhs { color: var(--gold-500); font-weight: 600; }
+  .facing-line .rhs { color: var(--cream-300); }
+  .btn-row {
+    display: flex; gap: 6px;
+  }
+  .btn {
+    flex: 1; padding: 10px 4px; border-radius: 10px;
+    font-size: 12px; font-weight: 600; text-align: center;
+    border: 1px solid transparent;
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+  }
+  .btn .amt { font-family: Georgia, serif; display: block; font-size: 13px; margin-top: 2px; }
+  .btn.fold {
+    background: rgba(196,77,66,0.12); color: var(--claret);
+    border-color: rgba(196,77,66,0.3);
+  }
+  .btn.call {
+    background: rgba(212,179,104,0.18); color: var(--gold-300);
+    border-color: rgba(212,179,104,0.4);
+  }
+  .btn.raise {
+    background: linear-gradient(180deg, var(--gold-500), var(--gold-700));
+    color: var(--felt-800); border-color: var(--gold-300);
+    font-weight: 700;
+  }
+  .btn.check {
+    background: rgba(158,183,164,0.15); color: var(--cream-100);
+    border-color: rgba(158,183,164,0.3);
+  }
+  .btn.bet {
+    background: linear-gradient(180deg, var(--gold-500), var(--gold-700));
+    color: var(--felt-800); border-color: var(--gold-300);
+    font-weight: 700;
+  }
+
+  /* Bottom strip — 10 hand pucks */
+  .hand-strip {
+    margin-top: auto; padding: 10px 8px 14px;
+    background: rgba(0,0,0,0.4);
+    border-top: 1px solid rgba(212,179,104,0.18);
+    flex-shrink: 0;
+  }
+  .hand-strip .label {
+    font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--cream-300); text-align: center; margin-bottom: 8px;
+  }
+  .hand-strip .pucks {
+    display: flex; gap: 4px; justify-content: space-between;
+    padding: 0 4px;
+  }
+  .puck {
+    flex: 1; min-width: 0;
+    padding: 6px 2px; border-radius: 8px;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(201,169,97,0.12);
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    cursor: pointer;
+    position: relative;
+  }
+  .puck.active {
+    background: rgba(212,179,104,0.18);
+    border-color: rgba(212,179,104,0.5);
+    box-shadow: 0 0 0 1px rgba(212,179,104,0.3), 0 0 12px rgba(212,179,104,0.2);
+  }
+  .puck.pending {
+    border-color: rgba(212,179,104,0.4);
+  }
+  .puck.pending::before {
+    content: ""; position: absolute; top: 3px; right: 3px;
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--gold-500);
+    box-shadow: 0 0 6px var(--gold-500);
+  }
+  .puck.waiting {
+    opacity: 0.7;
+  }
+  .puck.won {
+    background: rgba(78,168,120,0.12);
+    border-color: rgba(78,168,120,0.35);
+  }
+  .puck.lost {
+    background: rgba(100,100,100,0.12);
+    border-color: rgba(100,100,100,0.25);
+    opacity: 0.6;
+  }
+  .puck .num {
+    font-family: Georgia, serif; font-size: 11px; font-weight: 600;
+    color: var(--cream-200);
+  }
+  .puck.active .num, .puck.pending .num { color: var(--gold-500); }
+  .puck.won .num { color: var(--emerald); }
+  .puck .icon {
+    font-size: 9px;
+    color: var(--cream-300);
+  }
+  .puck .net {
+    font-family: Georgia, serif; font-size: 9px;
+    color: var(--cream-200);
+    margin-top: 1px;
+  }
+  .puck.won .net { color: var(--emerald); }
+  .puck.lost .net { color: var(--claret); }
+
+  /* ═══════════════════════════════════════════════════════════════
+     SECTION 2: HAND WON FULL-SCREEN
+     ═══════════════════════════════════════════════════════════════ */
+  .hand-won-screen {
+    flex: 1; display: flex; flex-direction: column;
+    position: relative; overflow: hidden;
+  }
+  .hand-won-bg {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse at 50% 30%, rgba(212,179,104,0.18) 0%, transparent 60%),
+      radial-gradient(ellipse at 50% 0%, var(--felt-500) 0%, var(--felt-700) 55%, var(--felt-800) 100%);
+  }
+  .hand-won-content {
+    position: relative; z-index: 5;
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; padding: 0 28px;
+    text-align: center;
+  }
+  .hand-won-eyebrow {
+    font-size: 11px; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--gold-500); margin-bottom: 10px;
+  }
+  .hand-won-headline {
+    font-family: Georgia, serif; font-size: 36px; font-weight: 400;
+    color: var(--cream-100); margin-bottom: 6px;
+    letter-spacing: -0.5px;
+  }
+  .hand-won-sub {
+    font-size: 13px; color: var(--cream-300); margin-bottom: 28px;
+  }
+  .hand-won-pot {
+    margin: 0 0 28px;
+  }
+  .hand-won-pot .label {
+    font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--cream-300); margin-bottom: 8px;
+  }
+  .hand-won-pot .amount {
+    font-family: Georgia, serif; font-size: 56px; font-weight: 400;
+    color: var(--gold-500); letter-spacing: -1px;
+    text-shadow: 0 0 30px rgba(212,179,104,0.3);
+  }
+  .hand-won-pot .amount .plus { color: var(--emerald); }
+  .hand-won-detail {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(212,179,104,0.18);
+    border-radius: 14px;
+    padding: 16px 20px;
+    width: 100%; max-width: 300px;
+    margin-bottom: 28px;
+  }
+  .hand-won-detail .row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 0; border-top: 1px solid rgba(212,179,104,0.1);
+  }
+  .hand-won-detail .row:first-child { border-top: none; padding-top: 0; }
+  .hand-won-detail .row .lbl { font-size: 11px; color: var(--cream-300); }
+  .hand-won-detail .row .val { font-size: 12px; color: var(--cream-100); }
+  .hand-won-detail .row .val.gold { color: var(--gold-500); font-family: Georgia, serif; font-size: 14px; }
+
+  .your-hand-display {
+    display: flex; gap: 6px; align-items: center; margin-bottom: 8px;
+  }
+  .muck-display {
+    display: flex; gap: 4px; align-items: center;
+    margin-bottom: 24px;
+  }
+  .muck-display .lbl {
+    font-size: 11px; color: var(--cream-300); margin-right: 8px;
+  }
+
+  .hand-won-actions {
+    width: 100%; max-width: 300px; display: flex; flex-direction: column; gap: 8px;
+    padding: 0 0 28px;
+  }
+  .hand-won-actions .btn-primary {
+    padding: 14px; border-radius: 12px;
+    background: linear-gradient(180deg, var(--gold-500), var(--gold-700));
+    color: var(--felt-800);
+    font-weight: 700; font-size: 14px;
+    border: none; text-align: center;
+  }
+  .hand-won-actions .btn-secondary {
+    padding: 12px; border-radius: 12px;
+    background: transparent; color: var(--cream-200);
+    border: 1px solid rgba(212,179,104,0.25);
+    font-size: 12px; text-align: center;
+  }
+
+  /* Chip flow animation hint */
+  .chip-flow {
+    position: absolute; inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .chip-flow .floater {
+    position: absolute; width: 26px; height: 26px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--gold-500), var(--gold-700));
+    box-shadow: 0 4px 12px rgba(212,179,104,0.5);
+    opacity: 0.6;
+  }
+  .chip-flow .floater.f1 { top: 30%; left: 30%; }
+  .chip-flow .floater.f2 { top: 45%; left: 55%; }
+  .chip-flow .floater.f3 { top: 38%; left: 70%; }
+
+  /* ═══════════════════════════════════════════════════════════════
+     SECTION 3: TURN REPORT VARIANTS
+     ═══════════════════════════════════════════════════════════════ */
+  .turn-report {
+    flex: 1; display: flex; flex-direction: column;
+    overflow-y: auto;
+  }
+  .turn-report::-webkit-scrollbar { display: none; }
+
+  /* Common report header */
+  .report-hero {
+    padding: 22px 18px 16px;
+    text-align: center;
+    border-bottom: 1px solid rgba(212,179,104,0.12);
+  }
+  .report-hero .eyebrow {
+    color: var(--gold-500); margin-bottom: 8px;
+  }
+  .report-hero h2 {
+    font-family: Georgia, serif; font-weight: 400; font-size: 22px;
+    color: var(--cream-100); margin-bottom: 14px;
+  }
+  .report-hero .net {
+    font-family: Georgia, serif; font-size: 38px; font-weight: 400;
+    margin-bottom: 4px; letter-spacing: -0.5px;
+  }
+  .report-hero .net.pos { color: var(--emerald); }
+  .report-hero .net.neg { color: var(--claret); }
+  .report-hero .avail-line {
+    font-size: 11px; color: var(--cream-300);
+  }
+  .report-hero .avail-line .mono { color: var(--cream-100); }
+
+  .report-content { padding: 12px 14px; }
+
+  /* Variant A — Compact lines */
+  .report-line {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; border-radius: 10px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.025), rgba(0,0,0,0.15));
+    border: 1px solid rgba(201,169,97,0.1);
+    margin-bottom: 6px;
+  }
+  .report-line .h {
+    font-family: Georgia, serif; font-size: 13px; font-weight: 600;
+    color: var(--cream-200); min-width: 28px;
+  }
+  .report-line .cards { display: flex; gap: 1px; flex-shrink: 0; }
+  .report-line .desc {
+    flex: 1; font-size: 11px; color: var(--cream-200); line-height: 1.4;
+  }
+  .report-line .desc .street {
+    color: var(--gold-500); font-weight: 600;
+  }
+  .report-line .net {
+    font-family: Georgia, serif; font-size: 14px; font-weight: 600;
+    min-width: 50px; text-align: right;
+  }
+  .report-line .net.pos { color: var(--emerald); }
+  .report-line .net.neg { color: var(--claret); }
+  .report-line .net.zero { color: var(--cream-400); }
+
+  /* Variant B — Expandable */
+  .report-line.expandable { cursor: pointer; }
+  .report-line.expandable .chevron {
+    color: var(--cream-400); font-size: 14px;
+    transition: transform 0.2s;
+  }
+  .report-line.expanded {
+    background: linear-gradient(180deg, rgba(212,179,104,0.06), rgba(0,0,0,0.2));
+    border-color: rgba(212,179,104,0.3);
+    border-radius: 10px 10px 0 0;
+    margin-bottom: 0;
+  }
+  .report-line.expanded .chevron { transform: rotate(90deg); }
+  .report-expand {
+    margin-bottom: 6px;
+    padding: 12px 14px;
+    background: rgba(0,0,0,0.25);
+    border: 1px solid rgba(212,179,104,0.3);
+    border-top: none;
+    border-radius: 0 0 10px 10px;
+  }
+  .expand-section {
+    margin-bottom: 10px;
+  }
+  .expand-section:last-child { margin-bottom: 0; }
+  .expand-section .lbl {
+    font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--cream-300); margin-bottom: 6px;
+  }
+  .action-log {
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .action-log .a-row {
+    display: flex; font-size: 11px;
+    padding: 2px 0;
+  }
+  .action-log .a-row .a-street {
+    font-size: 9px; letter-spacing: 1px; text-transform: uppercase;
+    color: var(--gold-500); width: 50px; flex-shrink: 0; padding-top: 1px;
+  }
+  .action-log .a-row .a-acts { color: var(--cream-100); flex: 1; line-height: 1.5; }
+  .action-log .a-row .a-acts .you-act { color: var(--gold-500); font-weight: 600; }
+  .action-log .a-row .a-acts .opp-act { color: var(--cream-200); }
+
+  .expand-board {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .expand-board .lhs {
+    font-size: 10px; color: var(--cream-300); width: 50px;
+  }
+  .expand-board .cards { display: flex; gap: 2px; }
+
+  /* Variant C — Grouped narrative */
+  .group {
+    margin-bottom: 12px;
+    border-radius: 12px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.025), rgba(0,0,0,0.15));
+    border: 1px solid rgba(201,169,97,0.12);
+    overflow: hidden;
+  }
+  .group-hdr {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 14px;
+    border-bottom: 1px solid rgba(201,169,97,0.1);
+  }
+  .group-hdr .icon {
+    font-size: 16px;
+  }
+  .group-hdr .title {
+    flex: 1; font-size: 12px; font-weight: 600; color: var(--cream-100);
+    letter-spacing: 0.3px;
+  }
+  .group-hdr .net {
+    font-family: Georgia, serif; font-size: 14px; font-weight: 600;
+  }
+  .group-hdr .net.pos { color: var(--emerald); }
+  .group-hdr .net.neg { color: var(--claret); }
+  .group-hdr .net.zero { color: var(--cream-400); }
+  .group-body { padding: 8px 14px 12px; }
+  .group-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 0;
+    font-size: 11px; color: var(--cream-200);
+  }
+  .group-item .h {
+    font-family: Georgia, serif; font-size: 12px; font-weight: 600;
+    color: var(--cream-300); min-width: 26px;
+  }
+  .group-item .cards { display: flex; gap: 1px; }
+  .group-item .desc { flex: 1; line-height: 1.4; }
+  .group-item .desc .street { color: var(--gold-500); }
+  .group-item .amt {
+    font-family: Georgia, serif; font-size: 12px; font-weight: 600;
+  }
+  .group-item .amt.pos { color: var(--emerald); }
+  .group-item .amt.neg { color: var(--claret); }
+
+  /* Variant D — Per-hand cards */
+  .feed-card {
+    margin-bottom: 12px;
+    border-radius: 14px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(0,0,0,0.18));
+    border: 1px solid rgba(201,169,97,0.18);
+    overflow: hidden;
+  }
+  .feed-card.won { border-color: rgba(78,168,120,0.3); }
+  .feed-card.lost { border-color: rgba(196,77,66,0.25); }
+  .feed-card-hdr {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px;
+    background: rgba(0,0,0,0.18);
+    border-bottom: 1px solid rgba(201,169,97,0.1);
+  }
+  .feed-card-hdr .lhs { display: flex; align-items: center; gap: 8px; }
+  .feed-card-hdr .h {
+    font-family: Georgia, serif; font-size: 14px; font-weight: 600;
+    color: var(--cream-100);
+  }
+  .feed-card-hdr .outcome {
+    font-size: 10px; letter-spacing: 1px; text-transform: uppercase;
+    padding: 3px 8px; border-radius: 4px;
+  }
+  .feed-card-hdr .outcome.won {
+    background: rgba(78,168,120,0.15); color: var(--emerald);
+  }
+  .feed-card-hdr .outcome.lost {
+    background: rgba(196,77,66,0.15); color: var(--claret);
+  }
+  .feed-card-hdr .net {
+    font-family: Georgia, serif; font-size: 16px; font-weight: 600;
+  }
+  .feed-card-hdr .net.pos { color: var(--emerald); }
+  .feed-card-hdr .net.neg { color: var(--claret); }
+  .feed-card-body { padding: 12px 14px; }
+  .feed-cards-row {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 10px;
+  }
+  .feed-cards-row .side {
+    display: flex; flex-direction: column; gap: 4px;
+    align-items: center;
+  }
+  .feed-cards-row .side .label {
+    font-size: 9px; letter-spacing: 1px; color: var(--cream-300);
+    text-transform: uppercase;
+  }
+  .feed-cards-row .side .cards { display: flex; gap: 2px; }
+  .feed-cards-row .vs {
+    font-family: Georgia, serif; color: var(--cream-400); font-size: 11px;
+  }
+  .feed-cards-row .board-side {
+    margin-left: auto; display: flex; flex-direction: column; gap: 4px; align-items: flex-end;
+  }
+  .feed-cards-row .board-side .cards { display: flex; gap: 2px; }
+  .feed-summary {
+    font-size: 11px; color: var(--cream-200); line-height: 1.5;
+    padding-top: 8px; border-top: 1px solid rgba(201,169,97,0.08);
+  }
+  .feed-summary .street { color: var(--gold-500); font-weight: 600; }
+  .feed-summary .strong { color: var(--cream-100); font-weight: 600; }
+
+  /* ═══════════════════════════════════════════════════════════════
+     SECTION 4: WAITING-FOR-OPPONENT VIEWS
+     ═══════════════════════════════════════════════════════════════ */
+  .waiting-banner {
+    margin: 12px 14px;
+    padding: 12px 14px;
+    background: rgba(158,183,164,0.08);
+    border: 1px solid rgba(158,183,164,0.2);
+    border-radius: 12px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .waiting-banner .pulse {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--cream-300);
+    box-shadow: 0 0 8px var(--cream-300);
+    flex-shrink: 0;
+  }
+  .waiting-banner .text { flex: 1; }
+  .waiting-banner .text .l1 {
+    font-size: 12px; color: var(--cream-100); font-weight: 600;
+  }
+  .waiting-banner .text .l2 {
+    font-size: 11px; color: var(--cream-300); margin-top: 2px;
+  }
+
+  /* Read-only felt (variant A) */
+  .felt.readonly {
+    opacity: 0.95;
+    box-shadow:
+      inset 0 0 0 2px rgba(158,183,164,0.18),
+      inset 0 0 0 4px rgba(0,0,0,0.4),
+      inset 0 0 30px rgba(0,0,0,0.4);
+  }
+  .readonly-banner {
+    margin: 8px 14px 0; padding: 6px 10px;
+    background: rgba(0,0,0,0.4); border: 1px solid rgba(158,183,164,0.2);
+    border-radius: 8px;
+    font-size: 10px; color: var(--cream-300);
+    text-align: center; letter-spacing: 1px; text-transform: uppercase;
+  }
+
+  /* Replay variant */
+  .replay-timeline {
+    padding: 12px 14px;
+  }
+  .replay-row {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 10px 12px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.025), rgba(0,0,0,0.15));
+    border: 1px solid rgba(201,169,97,0.1);
+    border-radius: 10px;
+    margin-bottom: 6px;
+  }
+  .replay-row .timestamp {
+    font-family: Georgia, serif; font-size: 10px;
+    color: var(--cream-400); width: 36px; flex-shrink: 0;
+    padding-top: 2px;
+  }
+  .replay-row .h {
+    font-family: Georgia, serif; font-size: 13px; font-weight: 600;
+    color: var(--cream-200); min-width: 26px;
+  }
+  .replay-row .desc {
+    flex: 1; font-size: 11px; color: var(--cream-200); line-height: 1.5;
+  }
+  .replay-row .desc .you { color: var(--gold-500); font-weight: 600; }
+
+  .live-strip {
+    margin-top: auto;
+    padding: 10px 14px 14px;
+    background: rgba(0,0,0,0.45);
+    border-top: 1px solid rgba(158,183,164,0.18);
+  }
+  .live-strip .label {
+    font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--cream-300); text-align: center; margin-bottom: 8px;
+  }
+  .live-strip .label .pulse-dot {
+    display: inline-block; width: 5px; height: 5px; border-radius: 50%;
+    background: var(--cream-300); margin-right: 4px;
+    box-shadow: 0 0 6px var(--cream-300);
+  }
+
+  /* Dashboard variant */
+  .dash-header {
+    padding: 22px 18px 14px;
+    text-align: center;
+  }
+  .dash-header h2 {
+    font-family: Georgia, serif; font-size: 20px; font-weight: 400;
+    color: var(--cream-100); margin-bottom: 4px;
+  }
+  .dash-header .sub {
+    font-size: 12px; color: var(--cream-300);
+  }
+  .dash-grid {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;
+    padding: 0 14px;
+  }
+  .dash-card {
+    padding: 12px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(0,0,0,0.15));
+    border: 1px solid rgba(201,169,97,0.15);
+    border-radius: 12px;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .dash-card.opp-acting {
+    border-color: rgba(212,179,104,0.4);
+    background: linear-gradient(180deg, rgba(212,179,104,0.05), rgba(0,0,0,0.2));
+  }
+  .dash-card.opp-acting::before {
+    content: ""; display: inline-block;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--gold-500);
+    box-shadow: 0 0 6px var(--gold-500);
+  }
+  .dash-card.resolved {
+    opacity: 0.65;
+  }
+  .dash-card .top {
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .dash-card .top .h {
+    font-family: Georgia, serif; font-size: 13px; font-weight: 600;
+    color: var(--cream-100);
+  }
+  .dash-card .top .street {
+    font-size: 9px; letter-spacing: 1px; text-transform: uppercase;
+    color: var(--cream-300);
+  }
+  .dash-card .cards-row {
+    display: flex; gap: 4px; align-items: center;
+  }
+  .dash-card .mini-board { display: flex; gap: 1px; }
+  .dash-card .meta {
+    font-size: 10px; color: var(--cream-300);
+    display: flex; justify-content: space-between;
+  }
+  .dash-card .meta .gold { color: var(--gold-500); font-weight: 600; }
+  .dash-card .status {
+    font-size: 10px; color: var(--cream-200);
+    padding-top: 4px; border-top: 1px solid rgba(201,169,97,0.08);
+  }
+  .dash-card .status.acting { color: var(--gold-500); font-weight: 600; }
+  .dash-card .status.won { color: var(--emerald); }
+  .dash-card .status.lost { color: var(--claret); }
+
+  /* Footnote */
+  .footnote {
+    max-width: 1200px; margin: 0 auto;
+    padding: 32px 48px 64px;
+    color: var(--muted); font-size: 12px; line-height: 1.7;
+  }
+  .footnote h3 {
+    font-family: Georgia, serif; font-weight: 400; font-size: 18px;
+    color: var(--cream-100); margin-bottom: 8px;
+  }
+  .footnote ul { padding-left: 22px; margin-bottom: 14px; }
+  .footnote li { margin-bottom: 6px; }
+  .footnote strong { color: var(--cream-100); }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     INTRO
+     ═══════════════════════════════════════════════════════════════ -->
+<div class="page-header">
+  <div class="eyebrow">Tilted · Match-Up CX</div>
+  <h1>Heads-Up Match Redesign</h1>
+  <p>
+    The Match-Up surface gets a poker-table metaphor: a focused, dealer-buttoned felt for the hand on action, with a 10-hand strip beneath that keeps your whole match in sight. New full-screen "Hand Won" moment makes opponent folds satisfying. Turn report is rebuilt with explicit street context, real per-hand math, and four layout variants to compare. Waiting-for-opponent gets three drill-down options.
+  </p>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SECTION 1 — TURN VIEW (HYBRID)
+     ═══════════════════════════════════════════════════════════════ -->
+<div class="section-header">
+  <div class="meta">Section 1 · Primary turn view</div>
+  <h2>Hybrid: focused table + 10-hand strip</h2>
+  <p>One full heads-up table for the hand on action. Dealer button, posted SB/BB chips, opponent muck stack, board, pot, and chip stacks all rendered using poker conventions — so your blind position is never ambiguous. The strip across the bottom is a persistent map of all 10 hands; tap any puck to focus that hand.</p>
+  <div class="note">
+    <strong>Three states shown below</strong> — preflop facing a raise (BB), postflop check-to-you (BB), and a turn-card all-in scenario. The dealer button stays on the same side across all 10 hands in a round (you're BB the whole round) — every mini-puck in the strip carries that same context.
+  </div>
+</div>
+
+<div class="phone-row">
+  <!-- STATE 1A — Preflop, you are BB, facing call -->
+  <div class="phone-wrap">
+    <div class="phone-caption">1A · Preflop · You BB · Facing call</div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="status-bar"><span>9:41</span><span>● ● ●</span></div>
+        <div class="hdr">
+          <div class="back">‹</div>
+          <div class="center">
+            <span class="progress-dots">
+              <span class="dot done"></span>
+              <span class="dot done"></span>
+              <span class="dot active"></span>
+              <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+              <span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+            </span>
+            <span style="color:var(--cream-300);font-size:11px;">3 of 10 left</span>
+          </div>
+          <div class="right">
+            <span class="label">Available</span>
+            <span class="val">1,235</span>
+          </div>
+        </div>
+
+        <!-- Felt table -->
+        <div class="felt">
+          <!-- Opponent -->
+          <div class="opp-row">
+            <div class="opp-avatar">S</div>
+            <div class="opp-info">
+              <div class="name">Sarah</div>
+              <div class="stack">3,820</div>
+            </div>
+          </div>
+          <div class="opp-cards">
+            <span class="cf back"></span><span class="cf back"></span>
+          </div>
+
+          <!-- Center: board + pot + blinds row -->
+          <div class="table-center">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span class="blind-marker">
+                <span class="chip sb">SB</span>
+                <span class="label">20</span>
+              </span>
+              <span class="dealer-btn">D</span>
+            </div>
+            <div class="board" style="margin-top:4px;">
+              <span class="cf ph sm">—</span>
+              <span class="cf ph sm">—</span>
+              <span class="cf ph sm">—</span>
+              <span class="cf ph sm">—</span>
+              <span class="cf ph sm">—</span>
+            </div>
+            <div class="pot-display">
+              <span class="label">Pot</span>
+              <span class="val">120</span>
+            </div>
+            <div class="last-action">
+              <span class="who">Sarah</span> raised to <span class="gold serif">80</span>
+            </div>
+            <span class="blind-marker" style="margin-top:2px;">
+              <span class="chip bb">BB</span>
+              <span class="label">40</span>
+            </span>
+          </div>
+
+          <!-- You -->
+          <div class="you-row">
+            <div class="you-cards">
+              <span class="cf md red">A♥</span><span class="cf md blk">K♣</span>
+            </div>
+            <div class="you-info">
+              <div class="name">You</div>
+              <div class="stack"><span class="label">stack</span><br/>4,890</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Position banner -->
+        <div class="pos-banner">
+          <div class="left">
+            <span class="chip bb" style="width:18px;height:18px;font-size:8px;">BB</span>
+            <span class="you-bb">You're the <span class="pos">Big Blind</span></span>
+          </div>
+          <div class="order">acts 2nd preflop · 1st postflop</div>
+        </div>
+
+        <!-- Action bar -->
+        <div class="action-bar">
+          <div class="facing-line">
+            <span class="lhs">Facing 80 to call</span>
+            <span class="rhs">Pot odds 3.0:1</span>
+          </div>
+          <div class="btn-row">
+            <button class="btn fold">Fold</button>
+            <button class="btn call">Call<span class="amt">80</span></button>
+            <button class="btn raise">Raise</button>
+          </div>
+        </div>
+
+        <!-- Hand strip -->
+        <div class="hand-strip">
+          <div class="label">All 10 hands · tap to focus</div>
+          <div class="pucks">
+            <div class="puck won"><span class="num">1</span><span class="net">+240</span></div>
+            <div class="puck waiting"><span class="num">2</span><span class="icon">⏳</span></div>
+            <div class="puck active pending"><span class="num">3</span><span class="icon" style="color:var(--gold-500);">●</span></div>
+            <div class="puck pending"><span class="num">4</span><span class="icon" style="color:var(--gold-500);">●</span></div>
+            <div class="puck waiting"><span class="num">5</span><span class="icon">⏳</span></div>
+            <div class="puck pending"><span class="num">6</span><span class="icon" style="color:var(--gold-500);">●</span></div>
+            <div class="puck waiting"><span class="num">7</span><span class="icon">⏳</span></div>
+            <div class="puck lost"><span class="num">8</span><span class="net">−40</span></div>
+            <div class="puck won"><span class="num">9</span><span class="net">+60</span></div>
+            <div class="puck waiting"><span class="num">10</span><span class="icon">⏳</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="home-ind"></div>
+    </div>
+  </div>
+
+  <!-- STATE 1B — Flop, check to you -->
+  <div class="phone-wrap">
+    <div class="phone-caption">1B · Flop · Check-to-you · You BB</div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="status-bar"><span>9:41</span><span>● ● ●</span></div>
+        <div class="hdr">
+          <div class="back">‹</div>
+          <div class="center">
+            <span class="progress-dots">
+              <span class="dot done"></span>
+              <span class="dot done"></span>
+              <span class="dot done"></span>
+              <span class="dot active"></span>
+              <span class="dot"></span><span class="dot"></span>
+              <span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+            </span>
+            <span style="color:var(--cream-300);font-size:11px;">2 of 10 left</span>
+          </div>
+          <div class="right">
+            <span class="label">Available</span>
+            <span class="val">1,155</span>
+          </div>
+        </div>
+
+        <div class="felt">
+          <div class="opp-row">
+            <div class="opp-avatar">S</div>
+            <div class="opp-info">
+              <div class="name">Sarah</div>
+              <div class="stack">3,740</div>
+            </div>
+          </div>
+          <div class="opp-cards">
+            <span class="cf back"></span><span class="cf back"></span>
+          </div>
+
+          <div class="table-center">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span class="blind-marker">
+                <span class="chip sb">SB</span>
+                <span class="label">20</span>
+              </span>
+              <span class="dealer-btn">D</span>
+            </div>
+            <div class="board" style="margin-top:4px;">
+              <span class="cf sm blk">Q♠</span>
+              <span class="cf sm red">J♦</span>
+              <span class="cf sm red">7♥</span>
+              <span class="cf ph sm">—</span>
+              <span class="cf ph sm">—</span>
+            </div>
+            <div class="pot-display">
+              <span class="label">Pot</span>
+              <span class="val">280</span>
+            </div>
+            <div class="last-action">
+              <span class="who">Sarah</span> checked
+            </div>
+            <span class="blind-marker" style="margin-top:2px;">
+              <span class="chip bb">BB</span>
+              <span class="label">40</span>
+            </span>
+          </div>
+
+          <div class="you-row">
+            <div class="you-cards">
+              <span class="cf md red">K♥</span><span class="cf md blk">10♠</span>
+            </div>
+            <div class="you-info">
+              <div class="name">You</div>
+              <div class="stack"><span class="label">stack</span><br/>4,710</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pos-banner">
+          <div class="left">
+            <span class="chip bb" style="width:18px;height:18px;font-size:8px;">BB</span>
+            <span class="you-bb">You're <span class="pos">first to act</span> (BB postflop)</span>
+          </div>
+          <div class="order">flush + straight draw</div>
+        </div>
+
+        <div class="action-bar">
+          <div class="facing-line">
+            <span class="lhs">✓ Check available</span>
+            <span class="rhs">No bet facing you</span>
+          </div>
+          <div class="btn-row">
+            <button class="btn check">Check</button>
+            <button class="btn bet">Bet</button>
+            <button class="btn raise" style="flex:0.7;">All-In</button>
+          </div>
+        </div>
+
+        <div class="hand-strip">
+          <div class="label">All 10 hands · tap to focus</div>
+          <div class="pucks">
+            <div class="puck won"><span class="num">1</span><span class="net">+240</span></div>
+            <div class="puck waiting"><span class="num">2</span><span class="icon">⏳</span></div>
+            <div class="puck won"><span class="num">3</span><span class="net">+80</span></div>
+            <div class="puck active pending"><span class="num">4</span><span class="icon" style="color:var(--gold-500);">●</span></div>
+            <div class="puck waiting"><span class="num">5</span><span class="icon">⏳</span></div>
+            <div class="puck pending"><span class="num">6</span><span class="icon" style="color:var(--gold-500);">●</span></div>
+            <div class="puck waiting"><span class="num">7</span><span class="icon">⏳</span></div>
+            <div class="puck lost"><span class="num">8</span><span class="net">−40</span></div>
+            <div class="puck won"><span class="num">9</span><span class="net">+60</span></div>
+            <div class="puck waiting"><span class="num">10</span><span class="icon">⏳</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="home-ind"></div>
+    </div>
+  </div>
+
+  <!-- STATE 1C — Turn, all-in decision -->
+  <div class="phone-wrap">
+    <div class="phone-caption">1C · Turn · All-in decision · You SB</div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="status-bar"><span>9:41</span><span>● ● ●</span></div>
+        <div class="hdr">
+          <div class="back">‹</div>
+          <div class="center">
+            <span class="progress-dots">
+              <span class="dot done"></span><span class="dot done"></span><span class="dot done"></span>
+              <span class="dot done"></span><span class="dot done"></span>
+              <span class="dot active"></span>
+              <span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+            </span>
+            <span style="color:var(--cream-300);font-size:11px;">1 of 10 left</span>
+          </div>
+          <div class="right">
+            <span class="label">Available</span>
+            <span class="val">820</span>
+          </div>
+        </div>
+
+        <div class="felt">
+          <div class="opp-row">
+            <div class="opp-avatar">S</div>
+            <div class="opp-info">
+              <div class="name">Sarah</div>
+              <div class="stack">3,420</div>
+            </div>
+          </div>
+          <div class="opp-cards">
+            <span class="cf back"></span><span class="cf back"></span>
+          </div>
+
+          <div class="table-center">
+            <!-- Note: opponent is BB this round → dealer button on you (SB) side conceptually,
+                 but for visual clarity we keep the convention: SB chip near opponent's side here -->
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span class="blind-marker">
+                <span class="chip bb">BB</span>
+                <span class="label">40</span>
+              </span>
+            </div>
+            <div class="board" style="margin-top:4px;">
+              <span class="cf sm red">A♦</span>
+              <span class="cf sm red">9♥</span>
+              <span class="cf sm blk">9♣</span>
+              <span class="cf sm red">A♥</span>
+              <span class="cf ph sm">—</span>
+            </div>
+            <div class="pot-display" style="background: rgba(196,77,66,0.2); border-color: rgba(196,77,66,0.4);">
+              <span class="label" style="color:var(--claret);">Pot</span>
+              <span class="val" style="color:var(--gold-300);">1,640</span>
+            </div>
+            <div class="last-action" style="background: rgba(196,77,66,0.15); border-color: rgba(196,77,66,0.3);">
+              <span class="who" style="color:var(--claret);">Sarah</span> shoved <span class="gold serif">all-in 820</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:2px;">
+              <span class="dealer-btn">D</span>
+              <span class="blind-marker">
+                <span class="chip sb">SB</span>
+                <span class="label">20</span>
+              </span>
+            </div>
+          </div>
+
+          <div class="you-row">
+            <div class="you-cards">
+              <span class="cf md red">A♣</span><span class="cf md blk">Q♠</span>
+            </div>
+            <div class="you-info">
+              <div class="name">You</div>
+              <div class="stack"><span class="label">stack</span><br/>820 <span style="color:var(--claret);font-size:11px;">eq.</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pos-banner" style="background: rgba(196,77,66,0.08); border-color: rgba(196,77,66,0.25);">
+          <div class="left">
+            <span class="chip sb" style="width:18px;height:18px;font-size:8px;">SB</span>
+            <span class="you-bb">You're the <span class="pos">Small Blind</span></span>
+          </div>
+          <div class="order"><span style="color:var(--claret);">⚠ All-in pressure</span></div>
+        </div>
+
+        <div class="action-bar">
+          <div class="facing-line">
+            <span class="lhs">Call 820 = all-in</span>
+            <span class="rhs">Two pair, aces & nines</span>
+          </div>
+          <div class="btn-row">
+            <button class="btn fold">Fold</button>
+            <button class="btn call">Call All-In<span class="amt">820</span></button>
+          </div>
+        </div>
+
+        <div class="hand-strip">
+          <div class="label">All 10 hands · tap to focus</div>
+          <div class="pucks">
+            <div class="puck won"><span class="num">1</span><span class="net">+240</span></div>
+            <div class="puck won"><span class="num">2</span><span class="net">+60</span></div>
+            <div class="puck won"><span class="num">3</span><span class="net">+80</span></div>
+            <div class="puck lost"><span class="num">4</span><span class="net">−320</span></div>
+            <div class="puck won"><span class="num">5</span><span class="net">+120</span></div>
+            <div class="puck active pending"><span class="num">6</span><span class="icon" style="color:var(--claret);">⚡</span></div>
+            <div class="puck waiting"><span class="num">7</span><span class="icon">⏳</span></div>
+            <div class="puck lost"><span class="num">8</span><span class="net">−40</span></div>
+            <div class="puck won"><span class="num">9</span><span class="net">+60</span></div>
+            <div class="puck waiting"><span class="num">10</span><span class="icon">⏳</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="home-ind"></div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SECTION 2 — HAND WON FULL-SCREEN (opponent fold)
+     ═══════════════════════════════════════════════════════════════ -->
+<div class="section-header">
+  <div class="meta">Section 2 · Opponent fold resolution</div>
+  <h2>"You won the hand" — full-screen moment</h2>
+  <p>When Sarah folds one of your hands, this surfaces the second you open the app or when you arrive at the hand. Big celebratory amount, the street she folded on (preflop fold ≠ river fold in feel), what you would have shown, and a glimpse of her mucked cards. Two states: a small preflop-fold pickup, and a big river-fold payday.</p>
+</div>
+
+<div class="phone-row">
+  <!-- Big river fold -->
+  <div class="phone-wrap">
+    <div class="phone-caption">2A · Sarah folded the river</div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="status-bar"><span>9:41</span><span>● ● ●</span></div>
+        <div class="hand-won-screen">
+          <div class="hand-won-bg"></div>
+          <div class="chip-flow">
+            <div class="floater f1"></div>
+            <div class="floater f2"></div>
+            <div class="floater f3"></div>
+          </div>
+          <div class="hand-won-content">
+            <div class="hand-won-eyebrow">Hand 3 · Sarah folded</div>
+            <div class="hand-won-headline">You won.</div>
+            <div class="hand-won-sub">She folded on the river</div>
+
+            <div class="hand-won-pot">
+              <div class="label">Pot collected</div>
+              <div class="amount"><span class="plus">+</span>640</div>
+            </div>
+
+            <div class="hand-won-detail">
+              <div class="row">
+                <span class="lbl">Your hand</span>
+                <span class="val" style="display:flex;gap:2px;">
+                  <span class="cf sm red">A♥</span>
+                  <span class="cf sm blk">K♣</span>
+                </span>
+              </div>
+              <div class="row">
+                <span class="lbl">Board</span>
+                <span class="val" style="display:flex;gap:2px;">
+                  <span class="cf sm blk">Q♠</span><span class="cf sm red">J♦</span><span class="cf sm red">7♥</span><span class="cf sm blk">2♣</span><span class="cf sm red">5♦</span>
+                </span>
+              </div>
+              <div class="row">
+                <span class="lbl">Sarah's cards</span>
+                <span class="val" style="display:flex;gap:2px;">
+                  <span class="cf sm muck"></span>
+                  <span class="cf sm muck"></span>
+                </span>
+              </div>
+              <div class="row">
+                <span class="lbl">Folded after</span>
+                <span class="val">Your river bet of 320</span>
+              </div>
+              <div class="row">
+                <span class="lbl">Of which: blinds + antes</span>
+                <span class="val gold">60</span>
+              </div>
+            </div>
+          </div>
+          <div class="hand-won-actions">
+            <button class="btn-primary">Next hand →</button>
+            <button class="btn-secondary">View full hand history</button>
+          </div>
+        </div>
+        <div class="home-ind"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Preflop fold pickup -->
+  <div class="phone-wrap">
+    <div class="phone-caption">2B · Sarah folded preflop (smaller pickup)</div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="status-bar"><span>9:41</span><span>● ● ●</span></div>
+        <div class="hand-won-screen">
+          <div class="hand-won-bg"></div>
+          <div class="hand-won-content">
+            <div class="hand-won-eyebrow">Hand 7 · Sarah folded</div>
+            <div class="hand-won-headline">Blinds, yours.</div>
+            <div class="hand-won-sub">She folded preflop — you stole the blinds</div>
+
+            <div class="hand-won-pot">
+              <div class="label">Pot collected</div>
+              <div class="amount" style="font-size:46px;"><span class="plus">+</span>60</div>
+            </div>
+
+            <div class="hand-won-detail">
+              <div class="row">
+                <span class="lbl">Your hand</span>
+                <span class="val" style="display:flex;gap:2px;">
+                  <span class="cf sm blk">K♠</span>
+                  <span class="cf sm red">10♦</span>
+                </span>
+              </div>
+              <div class="row">
+                <span class="lbl">Folded after</span>
+                <span class="val">Your raise to 120</span>
+              </div>
+              <div class="row">
+                <span class="lbl">Profit on this hand</span>
+                <span class="val gold">+20 (BB) +40 (SB)</span>
+              </div>
+              <div class="row">
+                <span class="lbl">Sarah's cards</span>
+                <span class="val" style="display:flex;gap:2px;">
+                  <span class="cf sm muck"></span>
+                  <span class="cf sm muck"></span>
+                </span>
+              </div>
+            </div>
+          </div>
+          <div class="hand-won-actions">
+            <button class="btn-primary">Continue · 2 hands left →</button>
+            <button class="btn-secondary">Don't show preflop steals</button>
+          </div>
+        </div>
+        <div class="home-ind"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SECTION 3 — TURN REPORT VARIANTS
+     ═══════════════════════════════════════════════════════════════ -->
+<div class="section-header">
+  <div class="meta">Section 3 · End-of-turn report — 4 variants</div>
+  <h2>Turn complete: rendering the math, with street context</h2>
+  <p>Every variant shows real per-hand net (fixing the "0 win/loss" bug — server should snapshot the at-resolution amount, not the post-settlement zeroed value). Every fold carries its street ("folded preflop" vs "folded the river") so a 20-chip blind steal reads differently from a 600-chip river laydown. Same dataset across all four for direct comparison.</p>
+  <div class="note">
+    <strong>Sample data (shared across all variants):</strong>
+    H1 +240 (won showdown, AK vs QJ), H2 +60 (stole blinds preflop), H3 +640 (Sarah folded river to your bet), H4 −320 (lost showdown AA vs 99 set), H5 +120 (Sarah folded turn), H6 0 (split pot), H7 −40 (auto-folded BB), H8 −180 (you folded river), H9 +60 (stole blinds), H10 −20 (auto-folded SB). <strong>Net +560.</strong>
+  </div>
+</div>
+
+<div class="phone-row">
+  <!-- VARIANT A — Compact lines -->
+  <div class="phone-wrap">
+    <div class="phone-caption">3A · Compact lines
+      <span class="sub">Dense, scannable, one row per hand. Sortable by net.</span>
+    </div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="status-bar"><span>9:41</span><span>● ● ●</span></div>
+        <div class="hdr">
+          <div class="back">‹</div>
+          <div class="center"><span style="color:var(--cream-100);">Turn Complete</span></div>
+          <div class="right">Round 7</div>
+        </div>
+        <div class="turn-report">
+          <div class="report-hero">
+            <div class="eyebrow">Net this turn</div>
+            <div class="net pos">+560</div>
+            <div class="avail-line">Available <span class="mono">675 → 1,235</span></div>
+          </div>
+          <div class="report-content">
+            <div class="report-line">
+              <span class="h">H3</span>
+              <span class="cards"><span class="cf xs red">A♥</span><span class="cf xs blk">K♣</span></span>
+              <span class="desc">Sarah folded <span class="street">river</span> to your 320 bet</span>
+              <span class="net pos">+640</span>
+            </div>
+            <div class="report-line">
+              <span class="h">H1</span>
+              <span class="cards"><span class="cf xs blk">A♠</span><span class="cf xs blk">K♣</span></span>
+              <span class="desc">Won <span class="street">showdown</span> · AK vs QJ</span>
+              <span class="net pos">+240</span>
+            </div>
+            <div class="report-line">
+              <span class="h">H5</span>
+              <span class="cards"><span class="cf xs blk">9♣</span><span class="cf xs blk">9♠</span></span>
+              <span class="desc">Sarah folded <span class="street">turn</span> to your c-bet</span>
+              <span class="net pos">+120</span>
+            </div>
+            <div class="report-line">
+              <span class="h">H2</span>
+              <span class="cards"><span class="cf xs blk">K♠</span><span class="cf xs red">10♦</span></span>
+              <span class="desc">Sarah folded <span class="street">preflop</span> · stole blinds</span>
+              <span class="net pos">+60</span>
+            </div>
+            <div class="report-line">
+              <span class="h">H9</span>
+              <span class="cards"><span class="cf xs red">Q♥</span><span class="cf xs red">10♥</span></span>
+              <span class="desc">Sarah folded <span class="street">preflop</span> · stole blinds</span>
+              <span class="net pos">+60</span>
+            </div>
+            <div class="report-line">
+              <span class="h">H6</span>
+              <span class="cards"><span class="cf xs blk">J♣</span><span class="cf xs red">J♥</span></span>
+              <span class="desc">Split pot <span class="street">showdown</span></span>
+              <span class="net zero">±0</span>
+            </div>
+            <div class="report-line">
+              <span class="h">H10</span>
+              <span class="cards"><span class="cf xs red">7♦</span><span class="cf xs blk">2♣</span></span>
+              <span class="desc">Auto-folded SB · no chips left</span>
+              <span class="net neg">−20</span>
+            </div>
+            <div class="report-line">
+              <span class="h">H7</span>
+              <span class="cards"><span class="cf xs blk">3♠</span><span class="cf xs red">8♦</span></span>
+              <span class="desc">Auto-folded BB · no chips left</span>
+              <span class="net neg">−40</span>
+            </div>
+            <div class="report-line">
+              <span class="h">H8</span>
+              <span class="cards"><span class="cf xs red">K♥</span><span class="cf xs red">Q♦</span></span>
+              <span class="desc">You folded <span class="street">river</span> · −180 sunk</span>
+              <span class="net neg">−180</span>
+            </div>
+            <div class="report-line">
+              <span class="h">H4</span>
+              <span class="cards"><span class="cf xs blk">A♣</span><span class="cf xs blk">A♠</span></span>
+              <span class="desc">Lost <span class="street">showdown</span> · AA vs 99 (set on flop)</span>
+              <span class="net neg">−320</span>
+            </div>
+          </div>
+        </div>
+        <div class="home-ind"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VARIANT B — Expandable -->
+  <div class="phone-wrap">
+    <div class="phone-caption">3B · Expandable rows
+      <span class="sub">Compact line + tap-to-expand full action history.</span>
+    </div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="status-bar"><span>9:41</span><span>● ● ●</span></div>
+        <div class="hdr">
+          <div class="back">‹</div>
+          <div class="center"><span style="color:var(--cream-100);">Turn Complete</span></div>
+          <div class="right">Round 7</div>
+        </div>
+        <div class="turn-report">
+          <div class="report-hero">
+            <div class="eyebrow">Net this turn</div>
+            <div class="net pos">+560</div>
+            <div class="avail-line">Available <span class="mono">675 → 1,235</span></div>
+          </div>
+          <div class="report-content">
+            <!-- Expanded one -->
+            <div class="report-line expandable expanded">
+              <span class="h">H3</span>
+              <span class="cards"><span class="cf xs red">A♥</span><span class="cf xs blk">K♣</span></span>
+              <span class="desc">Sarah folded <span class="street">river</span> to your 320 bet</span>
+              <span class="net pos">+640</span>
+              <span class="chevron">›</span>
+            </div>
+            <div class="report-expand">
+              <div class="expand-section">
+                <div class="lbl">Board</div>
+                <div class="expand-board">
+                  <div class="cards" style="display:flex;gap:2px;">
+                    <span class="cf sm blk">Q♠</span><span class="cf sm red">J♦</span><span class="cf sm red">7♥</span><span class="cf sm blk">2♣</span><span class="cf sm red">5♦</span>
+                  </div>
+                </div>
+              </div>
+              <div class="expand-section">
+                <div class="lbl">Action</div>
+                <div class="action-log">
+                  <div class="a-row"><span class="a-street">Preflop</span><span class="a-acts"><span class="opp-act">Sarah raised 60</span> · <span class="you-act">You called</span></span></div>
+                  <div class="a-row"><span class="a-street">Flop</span><span class="a-acts"><span class="opp-act">Sarah bet 80</span> · <span class="you-act">You called</span></span></div>
+                  <div class="a-row"><span class="a-street">Turn</span><span class="a-acts"><span class="opp-act">Sarah checked</span> · <span class="you-act">You bet 160</span> · <span class="opp-act">Sarah called</span></span></div>
+                  <div class="a-row"><span class="a-street">River</span><span class="a-acts"><span class="opp-act">Sarah checked</span> · <span class="you-act">You bet 320</span> · <span class="opp-act">Sarah folded</span></span></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="report-line expandable">
+              <span class="h">H1</span>
+              <span class="cards"><span class="cf xs blk">A♠</span><span class="cf xs blk">K♣</span></span>
+              <span class="desc">Won <span class="street">showdown</span> · AK vs QJ</span>
+              <span class="net pos">+240</span>
+              <span class="chevron">›</span>
+            </div>
+            <div class="report-line expandable">
+              <span class="h">H5</span>
+              <span class="cards"><span class="cf xs blk">9♣</span><span class="cf xs blk">9♠</span></span>
+              <span class="desc">Sarah folded <span class="street">turn</span> to your c-bet</span>
+              <span class="net pos">+120</span>
+              <span class="chevron">›</span>
+            </div>
+            <div class="report-line expandable">
+              <span class="h">H2</span>
+              <span class="cards"><span class="cf xs blk">K♠</span><span class="cf xs red">10♦</span></span>
+              <span class="desc">Sarah folded <span class="street">preflop</span> · stole blinds</span>
+              <span class="net pos">+60</span>
+              <span class="chevron">›</span>
+            </div>
+            <div class="report-line expandable">
+              <span class="h">H9</span>
+              <span class="cards"><span class="cf xs red">Q♥</span><span class="cf xs red">10♥</span></span>
+              <span class="desc">Sarah folded <span class="street">preflop</span> · stole blinds</span>
+              <span class="net pos">+60</span>
+              <span class="chevron">›</span>
+            </div>
+            <div class="report-line expandable">
+              <span class="h">H4</span>
+              <span class="cards"><span class="cf xs blk">A♣</span><span class="cf xs blk">A♠</span></span>
+              <span class="desc">Lost <span class="street">showdown</span> · AA vs 99 (set)</span>
+              <span class="net neg">−320</span>
+              <span class="chevron">›</span>
+            </div>
+          </div>
+        </div>
+        <div class="home-ind"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VARIANT C — Grouped narrative -->
+  <div class="phone-wrap">
+    <div class="phone-caption">3C · Grouped narrative
+      <span class="sub">Hands collapsed into outcome categories. Story-first.</span>
+    </div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="status-bar"><span>9:41</span><span>● ● ●</span></div>
+        <div class="hdr">
+          <div class="back">‹</div>
+          <div class="center"><span style="color:var(--cream-100);">Turn Complete</span></div>
+          <div class="right">Round 7</div>
+        </div>
+        <div class="turn-report">
+          <div class="report-hero">
+            <div class="eyebrow">Net this turn</div>
+            <div class="net pos">+560</div>
+            <div class="avail-line">Available <span class="mono">675 → 1,235</span></div>
+          </div>
+          <div class="report-content">
+
+            <div class="group">
+              <div class="group-hdr">
+                <span class="icon">♠</span>
+                <span class="title">Big wins · 2 hands</span>
+                <span class="net pos">+880</span>
+              </div>
+              <div class="group-body">
+                <div class="group-item">
+                  <span class="h">H3</span>
+                  <span class="cards"><span class="cf xs red">A♥</span><span class="cf xs blk">K♣</span></span>
+                  <span class="desc">Sarah folded <span class="street">river</span></span>
+                  <span class="amt pos">+640</span>
+                </div>
+                <div class="group-item">
+                  <span class="h">H1</span>
+                  <span class="cards"><span class="cf xs blk">A♠</span><span class="cf xs blk">K♣</span></span>
+                  <span class="desc">Won <span class="street">showdown</span> AK vs QJ</span>
+                  <span class="amt pos">+240</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="group">
+              <div class="group-hdr">
+                <span class="icon">♣</span>
+                <span class="title">Folds you induced · 1 hand</span>
+                <span class="net pos">+120</span>
+              </div>
+              <div class="group-body">
+                <div class="group-item">
+                  <span class="h">H5</span>
+                  <span class="cards"><span class="cf xs blk">9♣</span><span class="cf xs blk">9♠</span></span>
+                  <span class="desc">Sarah folded <span class="street">turn</span> to c-bet</span>
+                  <span class="amt pos">+120</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="group">
+              <div class="group-hdr">
+                <span class="icon">♦</span>
+                <span class="title">Stole the blinds · 2 hands</span>
+                <span class="net pos">+120</span>
+              </div>
+              <div class="group-body">
+                <div class="group-item">
+                  <span class="h">H2</span>
+                  <span class="cards"><span class="cf xs blk">K♠</span><span class="cf xs red">10♦</span></span>
+                  <span class="desc">Sarah folded <span class="street">preflop</span></span>
+                  <span class="amt pos">+60</span>
+                </div>
+                <div class="group-item">
+                  <span class="h">H9</span>
+                  <span class="cards"><span class="cf xs red">Q♥</span><span class="cf xs red">10♥</span></span>
+                  <span class="desc">Sarah folded <span class="street">preflop</span></span>
+                  <span class="amt pos">+60</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="group">
+              <div class="group-hdr">
+                <span class="icon">♥</span>
+                <span class="title">Showdowns lost · 1 hand</span>
+                <span class="net neg">−320</span>
+              </div>
+              <div class="group-body">
+                <div class="group-item">
+                  <span class="h">H4</span>
+                  <span class="cards"><span class="cf xs blk">A♣</span><span class="cf xs blk">A♠</span></span>
+                  <span class="desc">AA cracked by 99 set on flop</span>
+                  <span class="amt neg">−320</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="group">
+              <div class="group-hdr">
+                <span class="icon">⌀</span>
+                <span class="title">Folded to bets · 1 hand</span>
+                <span class="net neg">−180</span>
+              </div>
+              <div class="group-body">
+                <div class="group-item">
+                  <span class="h">H8</span>
+                  <span class="cards"><span class="cf xs red">K♥</span><span class="cf xs red">Q♦</span></span>
+                  <span class="desc">You folded <span class="street">river</span></span>
+                  <span class="amt neg">−180</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="group">
+              <div class="group-hdr">
+                <span class="icon">⏳</span>
+                <span class="title">Auto-folded blinds · 2 hands</span>
+                <span class="net neg">−60</span>
+              </div>
+              <div class="group-body">
+                <div class="group-item">
+                  <span class="h">H7</span>
+                  <span class="desc">Auto-folded BB · no chips</span>
+                  <span class="amt neg">−40</span>
+                </div>
+                <div class="group-item">
+                  <span class="h">H10</span>
+                  <span class="desc">Auto-folded SB · no chips</span>
+                  <span class="amt neg">−20</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="group">
+              <div class="group-hdr">
+                <span class="icon">⚖</span>
+                <span class="title">Split pots · 1 hand</span>
+                <span class="net zero">±0</span>
+              </div>
+              <div class="group-body">
+                <div class="group-item">
+                  <span class="h">H6</span>
+                  <span class="cards"><span class="cf xs blk">J♣</span><span class="cf xs red">J♥</span></span>
+                  <span class="desc">Chopped on paired board</span>
+                  <span class="amt" style="color:var(--cream-400);">±0</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+        <div class="home-ind"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VARIANT D — Per-hand cards -->
+  <div class="phone-wrap">
+    <div class="phone-caption">3D · Per-hand feed cards
+      <span class="sub">Rich, scrollable. Board, cards, narrative per hand.</span>
+    </div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="status-bar"><span>9:41</span><span>● ● ●</span></div>
+        <div class="hdr">
+          <div class="back">‹</div>
+          <div class="center"><span style="color:var(--cream-100);">Turn Complete</span></div>
+          <div class="right">Round 7</div>
+        </div>
+        <div class="turn-report">
+          <div class="report-hero">
+            <div class="eyebrow">Net this turn</div>
+            <div class="net pos">+560</div>
+            <div class="avail-line">Available <span class="mono">675 → 1,235</span></div>
+          </div>
+          <div class="report-content">
+
+            <div class="feed-card won">
+              <div class="feed-card-hdr">
+                <div class="lhs">
+                  <span class="h">Hand 3</span>
+                  <span class="outcome won">River fold</span>
+                </div>
+                <span class="net pos">+640</span>
+              </div>
+              <div class="feed-card-body">
+                <div class="feed-cards-row">
+                  <div class="side">
+                    <span class="label">You</span>
+                    <div class="cards"><span class="cf sm red">A♥</span><span class="cf sm blk">K♣</span></div>
+                  </div>
+                  <span class="vs">vs</span>
+                  <div class="side">
+                    <span class="label">Sarah</span>
+                    <div class="cards"><span class="cf sm muck"></span><span class="cf sm muck"></span></div>
+                  </div>
+                  <div class="board-side">
+                    <span class="label">Board</span>
+                    <div class="cards">
+                      <span class="cf sm blk">Q♠</span><span class="cf sm red">J♦</span><span class="cf sm red">7♥</span><span class="cf sm blk">2♣</span><span class="cf sm red">5♦</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="feed-summary">
+                  Sarah called your <span class="strong">flop and turn</span> bets, then folded to your <span class="strong">river bet of 320</span>. You won <span class="strong">640</span> without showdown.
+                </div>
+              </div>
+            </div>
+
+            <div class="feed-card won">
+              <div class="feed-card-hdr">
+                <div class="lhs">
+                  <span class="h">Hand 1</span>
+                  <span class="outcome won">Showdown</span>
+                </div>
+                <span class="net pos">+240</span>
+              </div>
+              <div class="feed-card-body">
+                <div class="feed-cards-row">
+                  <div class="side">
+                    <span class="label">You</span>
+                    <div class="cards"><span class="cf sm blk">A♠</span><span class="cf sm blk">K♣</span></div>
+                  </div>
+                  <span class="vs">vs</span>
+                  <div class="side">
+                    <span class="label">Sarah</span>
+                    <div class="cards"><span class="cf sm red">Q♥</span><span class="cf sm red">J♦</span></div>
+                  </div>
+                  <div class="board-side">
+                    <span class="label">Board</span>
+                    <div class="cards">
+                      <span class="cf sm blk">A♣</span><span class="cf sm blk">8♠</span><span class="cf sm red">3♥</span><span class="cf sm red">K♦</span><span class="cf sm blk">2♠</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="feed-summary">
+                  <span class="strong">Two pair, aces and kings.</span> Sarah called your <span class="street">river</span> value bet with her busted straight draw.
+                </div>
+              </div>
+            </div>
+
+            <div class="feed-card lost">
+              <div class="feed-card-hdr">
+                <div class="lhs">
+                  <span class="h">Hand 4</span>
+                  <span class="outcome lost">Cooler</span>
+                </div>
+                <span class="net neg">−320</span>
+              </div>
+              <div class="feed-card-body">
+                <div class="feed-cards-row">
+                  <div class="side">
+                    <span class="label">You</span>
+                    <div class="cards"><span class="cf sm blk">A♣</span><span class="cf sm blk">A♠</span></div>
+                  </div>
+                  <span class="vs">vs</span>
+                  <div class="side">
+                    <span class="label">Sarah</span>
+                    <div class="cards"><span class="cf sm red">9♥</span><span class="cf sm blk">9♣</span></div>
+                  </div>
+                  <div class="board-side">
+                    <span class="label">Board</span>
+                    <div class="cards">
+                      <span class="cf sm blk">9♠</span><span class="cf sm red">K♦</span><span class="cf sm red">4♥</span><span class="cf sm blk">7♣</span><span class="cf sm red">2♦</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="feed-summary">
+                  <span class="strong">Aces cracked.</span> Sarah flopped a set of nines. You got it all in on the turn — couldn't get away.
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+        <div class="home-ind"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SECTION 4 — WAITING FOR OPPONENT
+     ═══════════════════════════════════════════════════════════════ -->
+<div class="section-header">
+  <div class="meta">Section 4 · Waiting-for-opponent — 3 variants</div>
+  <h2>Visibility while Sarah is acting</h2>
+  <p>Today this is invisible (just a "Turn sent" home tile). Three options for surfacing the live state of all 10 hands while waiting — pick what fits the feel best.</p>
+</div>
+
+<div class="phone-row">
+  <!-- WAITING A — Read-only match view -->
+  <div class="phone-wrap">
+    <div class="phone-caption">4A · Read-only match view
+      <span class="sub">Same focused-table layout, action bar replaced with "Sarah is acting" banner. Swipe through all 10.</span>
+    </div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="status-bar"><span>9:41</span><span>● ● ●</span></div>
+        <div class="hdr">
+          <div class="back">‹</div>
+          <div class="center"><span style="color:var(--cream-100);">Match · Sarah</span></div>
+          <div class="right">
+            <span class="label">Available</span>
+            <span class="val">1,235</span>
+          </div>
+        </div>
+
+        <div class="readonly-banner">
+          ● Live · Sarah is acting on H4
+        </div>
+
+        <div class="felt readonly">
+          <div class="opp-row">
+            <div class="opp-avatar">S</div>
+            <div class="opp-info">
+              <div class="name">Sarah <span style="color:var(--gold-500);font-size:10px;font-weight:normal;">· thinking</span></div>
+              <div class="stack">3,820</div>
+            </div>
+          </div>
+          <div class="opp-cards">
+            <span class="cf back"></span><span class="cf back"></span>
+          </div>
+
+          <div class="table-center">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span class="blind-marker"><span class="chip sb">SB</span><span class="label">20</span></span>
+              <span class="dealer-btn">D</span>
+            </div>
+            <div class="board" style="margin-top:4px;">
+              <span class="cf sm blk">Q♠</span>
+              <span class="cf sm red">J♦</span>
+              <span class="cf sm red">7♥</span>
+              <span class="cf ph sm">—</span>
+              <span class="cf ph sm">—</span>
+            </div>
+            <div class="pot-display">
+              <span class="label">Pot</span>
+              <span class="val">340</span>
+            </div>
+            <div class="last-action">
+              <span class="who">You</span> bet <span class="gold serif">160</span> · awaiting reply
+            </div>
+            <span class="blind-marker" style="margin-top:2px;"><span class="chip bb">BB</span><span class="label">40</span></span>
+          </div>
+
+          <div class="you-row">
+            <div class="you-cards">
+              <span class="cf md red">K♥</span><span class="cf md red">10♥</span>
+            </div>
+            <div class="you-info">
+              <div class="name">You</div>
+              <div class="stack"><span class="label">stack</span><br/>4,710</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pos-banner">
+          <div class="left">
+            <span class="chip bb" style="width:18px;height:18px;font-size:8px;">BB</span>
+            <span class="you-bb">You're <span class="pos">Big Blind</span></span>
+          </div>
+          <div class="order">your action complete</div>
+        </div>
+
+        <div style="margin: 10px 14px 0; padding: 10px; background: rgba(158,183,164,0.08); border: 1px solid rgba(158,183,164,0.18); border-radius: 12px; text-align: center;">
+          <div style="font-size:11px; color:var(--cream-200);">⏳ Sarah is acting — last seen 2m ago</div>
+          <div style="font-size:10px; color:var(--cream-400); margin-top:4px;">She'll be notified to act</div>
+        </div>
+
+        <div class="hand-strip">
+          <div class="label">All 10 hands · swipe to view</div>
+          <div class="pucks">
+            <div class="puck won"><span class="num">1</span><span class="net">+240</span></div>
+            <div class="puck waiting" style="border-color:rgba(212,179,104,0.4);"><span class="num">2</span><span class="icon" style="color:var(--gold-500);">●</span></div>
+            <div class="puck active waiting"><span class="num">3</span><span class="icon">⏳</span></div>
+            <div class="puck waiting" style="border-color:rgba(212,179,104,0.4);"><span class="num">4</span><span class="icon" style="color:var(--gold-500);">●</span></div>
+            <div class="puck waiting"><span class="num">5</span><span class="icon">⏳</span></div>
+            <div class="puck waiting" style="border-color:rgba(212,179,104,0.4);"><span class="num">6</span><span class="icon" style="color:var(--gold-500);">●</span></div>
+            <div class="puck waiting"><span class="num">7</span><span class="icon">⏳</span></div>
+            <div class="puck lost"><span class="num">8</span><span class="net">−40</span></div>
+            <div class="puck won"><span class="num">9</span><span class="net">+60</span></div>
+            <div class="puck waiting"><span class="num">10</span><span class="icon">⏳</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="home-ind"></div>
+    </div>
+  </div>
+
+  <!-- WAITING B — Replay last turn + live strip -->
+  <div class="phone-wrap">
+    <div class="phone-caption">4B · Replay your last turn + live strip
+      <span class="sub">See what you just did, and watch live as she works through it.</span>
+    </div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="status-bar"><span>9:41</span><span>● ● ●</span></div>
+        <div class="hdr">
+          <div class="back">‹</div>
+          <div class="center"><span style="color:var(--cream-100);">Your Last Turn</span></div>
+          <div class="right">
+            <span class="label">Available</span>
+            <span class="val">1,235</span>
+          </div>
+        </div>
+
+        <div class="waiting-banner">
+          <div class="pulse"></div>
+          <div class="text">
+            <div class="l1">Sarah is responding</div>
+            <div class="l2">3 of your 10 hands left for her · last seen 2m ago</div>
+          </div>
+        </div>
+
+        <div class="replay-timeline">
+          <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--cream-300);margin-bottom:10px;">What you just did</div>
+
+          <div class="replay-row">
+            <span class="timestamp">9:38</span>
+            <span class="h">H3</span>
+            <span class="desc"><span class="you">River bet 320</span> with A♥K♣ on Q♠J♦7♥2♣5♦</span>
+          </div>
+          <div class="replay-row">
+            <span class="timestamp">9:38</span>
+            <span class="h">H1</span>
+            <span class="desc"><span class="you">Called 80 turn</span> with A♠K♣ on A♣8♠3♥K♦</span>
+          </div>
+          <div class="replay-row">
+            <span class="timestamp">9:37</span>
+            <span class="h">H5</span>
+            <span class="desc"><span class="you">C-bet 60</span> with 9♣9♠ on 7♠4♦2♣</span>
+          </div>
+          <div class="replay-row">
+            <span class="timestamp">9:37</span>
+            <span class="h">H4</span>
+            <span class="desc"><span class="you">Shoved all-in 480</span> with A♣A♠ on 9♠K♦4♥7♣ — set danger</span>
+          </div>
+          <div class="replay-row">
+            <span class="timestamp">9:36</span>
+            <span class="h">H8</span>
+            <span class="desc"><span class="you">Folded river</span> to 200 bet · KQ missed</span>
+          </div>
+        </div>
+
+        <div class="live-strip">
+          <div class="label"><span class="pulse-dot"></span>Live · 7 of 10 still awaiting Sarah</div>
+          <div class="pucks">
+            <div class="puck won"><span class="num">1</span><span class="net">+240</span></div>
+            <div class="puck waiting" style="border-color:rgba(212,179,104,0.4);"><span class="num">2</span><span class="icon" style="color:var(--gold-500);">●</span></div>
+            <div class="puck waiting"><span class="num">3</span><span class="icon">⏳</span></div>
+            <div class="puck waiting" style="border-color:rgba(212,179,104,0.4);"><span class="num">4</span><span class="icon" style="color:var(--gold-500);">●</span></div>
+            <div class="puck waiting"><span class="num">5</span><span class="icon">⏳</span></div>
+            <div class="puck waiting" style="border-color:rgba(212,179,104,0.4);"><span class="num">6</span><span class="icon" style="color:var(--gold-500);">●</span></div>
+            <div class="puck waiting"><span class="num">7</span><span class="icon">⏳</span></div>
+            <div class="puck lost"><span class="num">8</span><span class="net">−40</span></div>
+            <div class="puck won"><span class="num">9</span><span class="net">+60</span></div>
+            <div class="puck waiting"><span class="num">10</span><span class="icon">⏳</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="home-ind"></div>
+    </div>
+  </div>
+
+  <!-- WAITING C — Compact dashboard -->
+  <div class="phone-wrap">
+    <div class="phone-caption">4C · Compact dashboard
+      <span class="sub">All 10 hands at a glance. Tap any to drill into the read-only table.</span>
+    </div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="status-bar"><span>9:41</span><span>● ● ●</span></div>
+        <div class="hdr">
+          <div class="back">‹</div>
+          <div class="center"><span style="color:var(--cream-100);">Match · Sarah</span></div>
+          <div class="right">
+            <span class="label">Available</span>
+            <span class="val">1,235</span>
+          </div>
+        </div>
+
+        <div class="dash-header">
+          <h2>Sarah is responding</h2>
+          <div class="sub">7 of 10 hands awaiting her · last seen 2m ago</div>
+        </div>
+
+        <div class="waiting-banner" style="margin-bottom: 14px;">
+          <div class="pulse" style="background:var(--gold-500);box-shadow:0 0 8px var(--gold-500);"></div>
+          <div class="text">
+            <div class="l1" style="color:var(--gold-500);">Currently on H4</div>
+            <div class="l2">Your A♣A♠ vs flopped 9 board · she's facing your shove</div>
+          </div>
+        </div>
+
+        <div class="dash-grid">
+          <div class="dash-card resolved">
+            <div class="top"><span class="h">H1</span><span class="street" style="color:var(--emerald);">Won</span></div>
+            <div class="cards-row">
+              <span class="cf xs blk">A♠</span><span class="cf xs blk">K♣</span>
+            </div>
+            <div class="meta"><span>Showdown</span><span style="color:var(--emerald);">+240</span></div>
+          </div>
+
+          <div class="dash-card opp-acting">
+            <div class="top"><span class="h">H2</span><span class="street gold">Preflop</span></div>
+            <div class="cards-row">
+              <span class="cf xs blk">K♠</span><span class="cf xs red">10♦</span>
+            </div>
+            <div class="meta"><span>Pot 60</span><span class="gold">Sarah BB</span></div>
+            <div class="status acting">→ Facing your raise to 120</div>
+          </div>
+
+          <div class="dash-card opp-acting">
+            <div class="top"><span class="h">H3</span><span class="street gold">River</span></div>
+            <div class="cards-row">
+              <span class="cf xs red">A♥</span><span class="cf xs blk">K♣</span>
+              <span class="mini-board">
+                <span class="cf xs blk">Q♠</span><span class="cf xs red">J♦</span><span class="cf xs red">7♥</span><span class="cf xs blk">2♣</span><span class="cf xs red">5♦</span>
+              </span>
+            </div>
+            <div class="meta"><span>Pot 800</span><span class="gold">Sarah</span></div>
+            <div class="status acting">→ Facing your 320 bet</div>
+          </div>
+
+          <div class="dash-card opp-acting" style="border-color:rgba(196,77,66,0.5);background:linear-gradient(180deg,rgba(196,77,66,0.05),rgba(0,0,0,0.2));">
+            <div class="top"><span class="h">H4</span><span class="street" style="color:var(--claret);">Turn</span></div>
+            <div class="cards-row">
+              <span class="cf xs blk">A♣</span><span class="cf xs blk">A♠</span>
+              <span class="mini-board">
+                <span class="cf xs blk">9♠</span><span class="cf xs red">K♦</span><span class="cf xs red">4♥</span><span class="cf xs blk">7♣</span>
+              </span>
+            </div>
+            <div class="meta"><span>Pot 960</span><span style="color:var(--claret);">All-in</span></div>
+            <div class="status" style="color:var(--claret);font-weight:600;">→ She's facing your shove now</div>
+          </div>
+
+          <div class="dash-card opp-acting">
+            <div class="top"><span class="h">H5</span><span class="street gold">Flop</span></div>
+            <div class="cards-row">
+              <span class="cf xs blk">9♣</span><span class="cf xs blk">9♠</span>
+              <span class="mini-board">
+                <span class="cf xs blk">7♠</span><span class="cf xs red">4♦</span><span class="cf xs blk">2♣</span>
+              </span>
+            </div>
+            <div class="meta"><span>Pot 200</span><span class="gold">Sarah BB</span></div>
+            <div class="status acting">→ Facing your c-bet of 60</div>
+          </div>
+
+          <div class="dash-card opp-acting">
+            <div class="top"><span class="h">H6</span><span class="street gold">Preflop</span></div>
+            <div class="cards-row">
+              <span class="cf xs blk">J♣</span><span class="cf xs red">J♥</span>
+            </div>
+            <div class="meta"><span>Pot 60</span><span class="gold">Sarah BB</span></div>
+            <div class="status acting">→ Facing your raise to 80</div>
+          </div>
+
+          <div class="dash-card resolved">
+            <div class="top"><span class="h">H8</span><span class="street" style="color:var(--claret);">Lost</span></div>
+            <div class="cards-row">
+              <span class="cf xs red">K♥</span><span class="cf xs red">Q♦</span>
+            </div>
+            <div class="meta"><span>You folded river</span><span style="color:var(--claret);">−180</span></div>
+          </div>
+
+          <div class="dash-card resolved">
+            <div class="top"><span class="h">H9</span><span class="street" style="color:var(--emerald);">Won</span></div>
+            <div class="cards-row">
+              <span class="cf xs red">Q♥</span><span class="cf xs red">10♥</span>
+            </div>
+            <div class="meta"><span>Stole blinds</span><span style="color:var(--emerald);">+60</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="home-ind"></div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════════
+     FOOTNOTE
+     ═══════════════════════════════════════════════════════════════ -->
+<div class="footnote">
+  <h3>Design notes for review</h3>
+  <ul>
+    <li><strong>Dealer button position</strong> — In a heads-up round, you're either the SB or BB for the entire round (all 10 hands). The button stays on the same side for the whole round; only the cards/board differ. So the button on every mini-puck reinforces the same fact ten times — solving the "wait, am I SB or BB here?" issue.</li>
+    <li><strong>Per-hand 0 bug</strong> — Server should persist a <code>resolved_amount</code> snapshot on hand close (the +/− at the moment of resolution), not derive net from <code>myReserved</code> after settlement (which is zeroed when chips move into <code>total_chips</code>). All four turn-report variants source from that snapshot, so per-hand math always matches the bottom-line net.</li>
+    <li><strong>Fold context</strong> — Every fold carries its street ("folded preflop" / "folded turn" / "folded river"). Preflop folds are styled as "stole blinds" (low-stakes, calmer); river folds are styled as the big payday. The full-screen Hand Won moment scales the celebration to the pot size.</li>
+    <li><strong>Waiting visibility</strong> — All three waiting variants share the same puck-strip vocabulary as the main turn view (gold dot = action-on-opponent, hourglass = mid-hand waiting on board, ✓/✗ = resolved), so users can scan the strip and immediately know match state.</li>
+    <li><strong>Keep the heads-up animation</strong> — The match-start animation isn't shown here; this redesign sits underneath it. The new felt-table look should feel like a natural continuation of that animation rather than a different surface.</li>
+  </ul>
+</div>
+
+</body>
+</html>
