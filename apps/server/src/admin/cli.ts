@@ -17,8 +17,8 @@
 import 'dotenv/config';
 import { createDb } from '../db/connection.js';
 import { seedUsers, USER_TJ_ID, USER_SL_ID } from '../db/seed.js';
-import { users, matches, rounds, hands, actions } from '../db/schema.js';
-import { eq, sql } from 'drizzle-orm';
+import { matches, rounds, hands, actions } from '../db/schema.js';
+import { eq } from 'drizzle-orm';
 
 const DATABASE_URL = process.env.DATABASE_URL;
 if (!DATABASE_URL) {

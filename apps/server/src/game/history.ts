@@ -1,6 +1,5 @@
-import { eq, and, sql, desc, lt } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 import type { Database } from '../db/connection.js';
-import { hands, rounds, matches, favorites, actions } from '../db/schema.js';
 
 export interface HistoryOptions {
   matchId?: string;

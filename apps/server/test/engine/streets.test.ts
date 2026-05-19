@@ -8,7 +8,7 @@ import {
   nextStreet,
   bothAllIn,
 } from '../../src/engine/streets.js';
-import type { BettingState, ActionType } from '../../src/engine/types.js';
+import type { BettingState } from '../../src/engine/types.js';
 
 const SB = 'sb-user';
 const BB = 'bb-user';

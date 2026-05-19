@@ -1,7 +1,7 @@
-import { eq, and, sql, ne } from 'drizzle-orm';
-import type { Database, Transaction } from '../db/connection.js';
+import { eq, and, sql } from 'drizzle-orm';
+import type { Database } from '../db/connection.js';
 import { matches, rounds, hands, actions, turnHandoffs } from '../db/schema.js';
-import { createPreflopState, createPostflopState, legalActions as engineLegalActions, applyAction as engineApplyAction, nextStreet, bothAllIn } from '../engine/streets.js';
+import { legalActions as engineLegalActions, applyAction as engineApplyAction, nextStreet, bothAllIn } from '../engine/streets.js';
 import { resolveShowdown } from '../engine/showdown.js';
 import { dealFromSeed, boardForStreet } from '../engine/deck.js';
 import { getAvailableChips, assertLedgerInvariant } from './ledger.js';
@@ -87,7 +87,7 @@ export async function applyAction(db: Database, input: ApplyActionInput) {
     // Reconstruct current bet level from actions
     let currentBet = 0;
     let lastRaiseSize = 0;
-    let actionsThisStreet = streetActions.length;
+    const actionsThisStreet = streetActions.length;
 
     if (hand.street === 'preflop') {
       // Preflop starts with blinds
@@ -98,7 +98,6 @@ export async function applyAction(db: Database, input: ApplyActionInput) {
     // Replay street actions to find current bet level
     for (const a of streetActions) {
       if (a.actionType === 'bet' || a.actionType === 'raise' || a.actionType === 'all_in') {
-        const actorReserved = a.actingUserId === match.userAId ? hand.userAReserved : hand.userBReserved;
         // The pot_after minus previous pot gives us the contribution
         if (a.amount + (a.actingUserId === match.userAId ?
           (hand.userAReserved - a.amount) : (hand.userBReserved - a.amount)) > currentBet) {
@@ -130,7 +129,7 @@ export async function applyAction(db: Database, input: ApplyActionInput) {
           reservedInHand: oppReserved,
           isAllIn: oppAvailable === 0 && oppReserved > 0,
         },
-      ] as [typeof arguments[0] extends never ? never : { userId: string; available: number; reservedInHand: number; isAllIn: boolean }, { userId: string; available: number; reservedInHand: number; isAllIn: boolean }],
+      ] as [{ userId: string; available: number; reservedInHand: number; isAllIn: boolean }, { userId: string; available: number; reservedInHand: number; isAllIn: boolean }],
       actionsThisStreet,
       streetClosed: false,
       isTerminal: false,

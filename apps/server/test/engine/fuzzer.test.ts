@@ -17,7 +17,7 @@ import {
 } from '../../src/engine/streets.js';
 import { resolveShowdown } from '../../src/engine/showdown.js';
 import { dealFromSeed, boardForStreet, generateSeed } from '../../src/engine/deck.js';
-import type { BettingState, Street, Card } from '../../src/engine/types.js';
+import type { Street } from '../../src/engine/types.js';
 import { BLIND_SMALL, BLIND_BIG } from '../../src/game/constants.js';
 
 const PLAYER_A = 'player-a';
@@ -150,7 +150,6 @@ describe('Invariant Regression Fuzzer', () => {
     // Force a fold by giving SB tiny stack
     const state = createPreflopState(PLAYER_A, PLAYER_B, 0, 1000, 5, 10);
     // SB has 0 available, must fold or go all-in for 0
-    const legal = legalActions(state);
     const afterFold = engineApplyAction(state, { type: 'fold', amount: 0 });
 
     expect(afterFold.isTerminal).toBe(true);

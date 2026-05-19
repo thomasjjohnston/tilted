@@ -1,5 +1,5 @@
 import { evaluate, compareHands } from './evaluator.js';
-import type { Card, BettingState } from './types.js';
+import type { Card } from './types.js';
 
 export interface ShowdownResult {
   winnerUserId: string | null; // null = split pot

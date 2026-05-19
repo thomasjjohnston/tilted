@@ -8,7 +8,7 @@
 import { dealFromSeed, generateSeed, boardForStreet } from '../engine/deck.js';
 import { createPreflopState, createPostflopState, legalActions, applyAction, nextStreet, bothAllIn } from '../engine/streets.js';
 import { resolveShowdown } from '../engine/showdown.js';
-import type { BettingState, Street, Card } from '../engine/types.js';
+import type { BettingState, Street } from '../engine/types.js';
 
 const SB = 'Player-A (SB)';
 const BB = 'Player-B (BB)';

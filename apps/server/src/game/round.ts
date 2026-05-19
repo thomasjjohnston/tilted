@@ -6,7 +6,6 @@ import { generateSeed, dealFromSeed } from '../engine/deck.js';
 import { endMatch, getMatchState } from './match.js';
 import { assertLedgerInvariant } from './ledger.js';
 import { resolveShowdown } from '../engine/showdown.js';
-import { boardForStreet, dealFromSeed as deal } from '../engine/deck.js';
 import type { Card } from '../engine/types.js';
 import { logEvent } from '../events/logger.js';
 import { dispatch } from '../notif/dispatchers.js';
@@ -42,10 +41,6 @@ export async function openRound(
     status: 'in_progress',
   }).returning();
 
-  // Post blinds atomically for all 10 hands
-  const totalSbBlinds = HANDS_PER_ROUND * BLIND_SMALL;
-  const totalBbBlinds = HANDS_PER_ROUND * BLIND_BIG;
-
   // Deal 10 hands
   for (let i = 0; i < HANDS_PER_ROUND; i++) {
     const seed = generateSeed();
@@ -53,8 +48,6 @@ export async function openRound(
 
     // Map SB/BB to user A/B
     const isUserASb = sbUserId === match.userAId;
-    const userAHole = isUserASb ? dealt.userAHole : dealt.userBHole;
-    const userBHole = isUserASb ? dealt.userBHole : dealt.userAHole;
     // Note: "userA" in the deal is always SB, "userB" is BB
     // But in the DB, userA/userB is the match-level assignment
     // SB's hole cards go to whichever user is SB
