@@ -56,7 +56,9 @@ jobs:
 
   ios:
     name: iOS — build
-    runs-on: macos-14
+    # macos-15 has Xcode 16, which understands the pbxproj format (77)
+    # that xcodegen produces for project.yml's `xcodeVersion: "16.0"`.
+    runs-on: macos-15
 
     steps:
       - uses: actions/checkout@v4
