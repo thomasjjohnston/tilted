@@ -1,6 +1,5 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { eq } from 'drizzle-orm';
 import { getDb } from '../context.js';
 import { applyAction, applyBatchActions, getLegalActions } from '../../game/turn.js';
 import { getHandDetail } from '../../game/hand.js';
@@ -28,7 +27,7 @@ const favoriteBody = z.object({
 
 export async function handRoutes(app: FastifyInstance) {
   // Apply an action to a hand
-  app.post('/hand/:handId/action', async (req, reply) => {
+  app.post('/hand/:handId/action', async (req, _reply) => {
     const { handId } = req.params as { handId: string };
     const body = actionBody.parse(req.body);
     const db = getDb();

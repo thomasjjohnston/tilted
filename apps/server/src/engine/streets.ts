@@ -89,7 +89,6 @@ export function legalActions(state: BettingState): LegalActionsResult {
   }
 
   const actor = getPlayer(state, state.actionOnUserId);
-  const maxCommit = actor.available + actor.reservedInHand;
 
   const actions: ActionType[] = [];
   let callAmount = 0;
@@ -103,7 +102,6 @@ export function legalActions(state: BettingState): LegalActionsResult {
 
     // Can bet (if we have chips)
     if (actor.available > 0) {
-      const minBetSize = Math.min(state.lastRaiseSize || 10, actor.available);
       // Bet means "bet" when currentBet is 0
       actions.push('bet');
       minRaise = Math.min(10, actor.available); // min bet = 1 BB = 10

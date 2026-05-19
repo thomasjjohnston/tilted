@@ -1,4 +1,4 @@
-import { type Card, type Rank, type Suit, HandCategory, type HandRank, RANKS } from './types.js';
+import { type Card, type Rank, type Suit, HandCategory, type HandRank } from './types.js';
 
 // ── Card parsing ─────────────────────────────────────────────────────────────
 

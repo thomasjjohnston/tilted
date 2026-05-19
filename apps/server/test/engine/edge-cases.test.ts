@@ -8,15 +8,12 @@
 import { describe, it, expect } from 'vitest';
 import {
   createPreflopState,
-  createPostflopState,
   legalActions,
   applyAction,
-  nextStreet,
   bothAllIn,
 } from '../../src/engine/streets.js';
 import { resolveShowdown } from '../../src/engine/showdown.js';
-import { dealFromSeed } from '../../src/engine/deck.js';
-import type { BettingState, Card } from '../../src/engine/types.js';
+import type { Card } from '../../src/engine/types.js';
 
 const SB = 'user-sb';
 const BB = 'user-bb';

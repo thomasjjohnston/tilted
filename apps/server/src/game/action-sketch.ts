@@ -19,7 +19,7 @@ export function generateActionSketch(
   winnerId: string | null,
   pot: number,
   sbUserId: string,
-  bbUserId: string,
+  _bbUserId: string,
 ): string {
   if (actions.length === 0) return '';
 

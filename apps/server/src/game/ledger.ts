@@ -1,6 +1,6 @@
 import { eq, sql } from 'drizzle-orm';
 import type { Transaction, Database } from '../db/connection.js';
-import { hands, matches } from '../db/schema.js';
+import { matches } from '../db/schema.js';
 
 /**
  * Calculate a user's available chips.
