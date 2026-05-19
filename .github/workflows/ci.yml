@@ -29,9 +29,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Version is read from package.json's `packageManager` field.
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - uses: actions/setup-node@v4
         with:
@@ -73,10 +72,12 @@ jobs:
 
       - name: Build iOS
         working-directory: apps/ios/Tilted
+        # Generic destination compiles for the simulator slice without
+        # needing a specific simulator device installed on the runner.
         run: |
           xcodebuild build \
             -scheme Tilted \
-            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            -destination 'generic/platform=iOS Simulator' \
             -skipPackagePluginValidation \
             CODE_SIGNING_ALLOWED=NO
 
