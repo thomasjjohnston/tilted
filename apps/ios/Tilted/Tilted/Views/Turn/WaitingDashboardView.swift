@@ -184,7 +184,10 @@ struct WaitingDashboardView: View {
         let oppActing = hand.status == "in_progress" && !hand.actionOnMe
         let resolved = hand.status == "complete"
         let won = hand.winnerUserId == store.currentUserId
-        let net = hand.myResolvedNet ?? 0
+        // Optional: legacy hands resolved before the snapshot column
+        // landed are null here; we hide the amount in that case rather
+        // than printing a misleading "+0".
+        let net = hand.myResolvedNet
 
         return VStack(alignment: .leading, spacing: 6) {
             HStack {
@@ -245,16 +248,18 @@ struct WaitingDashboardView: View {
     }
 
     @ViewBuilder
-    private func statusLine(_ hand: HandView, oppActing: Bool, resolved: Bool, won: Bool, net: Int) -> some View {
+    private func statusLine(_ hand: HandView, oppActing: Bool, resolved: Bool, won: Bool, net: Int?) -> some View {
         if resolved {
             HStack {
                 Text(won ? "Won" : (hand.winnerUserId == nil ? "Split" : "Lost"))
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundColor(won ? Color(hex: 0x4ea878) : .cream300)
                 Spacer()
-                Text(net >= 0 ? "+\(net)" : "\(net)")
-                    .font(.custom("Georgia", size: 11).bold())
-                    .foregroundColor(net >= 0 ? Color(hex: 0x4ea878) : .claret)
+                if let net {
+                    Text(net >= 0 ? "+\(net)" : "\(net)")
+                        .font(.custom("Georgia", size: 11).bold())
+                        .foregroundColor(net >= 0 ? Color(hex: 0x4ea878) : .claret)
+                }
             }
         } else if oppActing {
             Text(oppActingText(hand))
