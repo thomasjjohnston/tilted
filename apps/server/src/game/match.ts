@@ -1,4 +1,4 @@
-import { eq, and, or, desc, ne, inArray } from 'drizzle-orm';
+import { eq, and, or, desc, ne, inArray, sql } from 'drizzle-orm';
 import type { Database, Transaction } from '../db/connection.js';
 import { matches, rounds, hands, users, actions } from '../db/schema.js';
 import { STARTING_STACK, BLIND_SMALL, BLIND_BIG } from './constants.js';
@@ -6,6 +6,8 @@ import { openRound } from './round.js';
 import { generateActionSketch } from './action-sketch.js';
 import { dispatch } from '../notif/dispatchers.js';
 import { enqueueReminder } from '../notif/reminder-cron.js';
+import { logEvent } from '../events/logger.js';
+import { randomQuip } from '../lib/poker-quips.js';
 
 /**
  * Create a new match between `requestingUserId` and `opponentUserId`.
@@ -306,6 +308,57 @@ export async function endMatch(
       endedAt: new Date(),
     })
     .where(eq(matches.matchId, matchId));
+}
+
+/**
+ * Send a "your turn" ping to the opponent in an active match.
+ *
+ * Randomized poker-themed quip; no rate limiting (per product
+ * direction). The dispatch fires post-commit so transaction rollbacks
+ * don't leave phantom pushes.
+ *
+ * Throws:
+ *   - 'Match not found' if matchId doesn't exist
+ *   - 'Not a participant' if fromUserId isn't in the match
+ *   - 'Match is not active' if status !== 'active'
+ */
+export async function sendPing(
+  db: Database,
+  matchId: string,
+  fromUserId: string,
+): Promise<{ sent_at: string; quip: string }> {
+  const quip = randomQuip();
+  const sentAt = new Date();
+
+  const toUserId = await db.transaction(async (tx) => {
+    await tx.execute(sql`SELECT 1 FROM matches WHERE match_id = ${matchId} FOR UPDATE`);
+    const m = await tx.query.matches.findFirst({ where: eq(matches.matchId, matchId) });
+    if (!m) throw new Error('Match not found');
+    if (m.userAId !== fromUserId && m.userBId !== fromUserId) {
+      throw new Error('Not a participant');
+    }
+    if (m.status !== 'active') throw new Error('Match is not active');
+
+    const opp = m.userAId === fromUserId ? m.userBId : m.userAId;
+    await logEvent(tx, fromUserId, 'ping_sent', {
+      match_id: matchId,
+      to_user_id: opp,
+      quip,
+    });
+    return opp;
+  });
+
+  // Post-commit dispatch — does not block on push success/failure.
+  await dispatch(db, {
+    kind: 'ping',
+    toUserId,
+    fromUserId,
+    matchId,
+    quip,
+    dedupeKey: `ping:${matchId}:${fromUserId}:${sentAt.getTime()}`,
+  });
+
+  return { sent_at: sentAt.toISOString(), quip };
 }
 
 // ── Types ────────────────────────────────────────────────────────────────────

@@ -220,12 +220,12 @@ export async function applyAction(db: Database, input: ApplyActionInput) {
         handUpdate.userAReserved = 0;
         handUpdate.userBReserved = 0;
 
-        // Discard folder's hole cards (spec §11)
-        if (input.userId === match.userAId) {
-          handUpdate.userAHole = [];
-        } else {
-          handUpdate.userBHole = [];
-        }
+        // Folder's hole cards stay in the persisted record. Opponent's
+        // view of the hand gates `opponent_hole` on terminal_reason ===
+        // 'showdown' at the serialization layer (match.ts buildHandView,
+        // hand.ts getHandDetail, history.ts) — info asymmetry preserved
+        // without destroying data so the folder can review what they
+        // folded with.
 
         await logEvent(tx, input.userId, 'hand_completed', {
           hand_id: hand.handId, reason: 'fold', winner: winnerId,
@@ -549,10 +549,8 @@ export async function applyBatchActions(
           clientTxId: action.clientTxId,
         });
 
-        // Discard folder's hole cards
-        const holeUpdate = userId === match.userAId
-          ? { userAHole: [] } : { userBHole: [] };
-
+        // Folder's hole cards stay persisted — opponent view is gated
+        // at the serialization layer (see comment in applyAction fold).
         await tx.update(hands).set({
           status: 'complete',
           street: 'complete',
@@ -565,7 +563,6 @@ export async function applyBatchActions(
           userBReserved: 0,
           resolvedNetForA: aDelta,
           resolvedNetForB: bDelta,
-          ...holeUpdate,
         }).where(eq(hands.handId, hand.handId));
 
       } else if (action.actionType === 'check') {

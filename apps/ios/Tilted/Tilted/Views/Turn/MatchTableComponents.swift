@@ -225,17 +225,12 @@ struct FeltTableView: View {
     // MARK: center
 
     private var tableCenter: some View {
-        VStack(spacing: 6) {
-            // SB chip + dealer button row (opponent's side)
+        let layout = FeltLayoutResolver.resolve(isBB: isBB)
+        return VStack(spacing: 6) {
+            // Opponent's blind chip + dealer button (button stays with SB)
             HStack(spacing: 8) {
-                if !isBB {
-                    // Opponent is SB
-                    BlindChip(position: .sb, amount: smallBlind)
-                    DealerButton()
-                } else {
-                    // Opponent is BB → SB is on YOUR side; show their BB here
-                    BlindChip(position: .bb, amount: bigBlind)
-                }
+                BlindChip(position: layout.oppChip, amount: layout.oppChip == .sb ? smallBlind : bigBlind)
+                if layout.oppHasDealer { DealerButton() }
             }
 
             // Board cards
@@ -272,15 +267,10 @@ struct FeltTableView: View {
                 lastActionPill(last)
             }
 
-            // BB chip + dealer button row (your side)
+            // Your blind chip + dealer button (button stays with SB)
             HStack(spacing: 8) {
-                if isBB {
-                    DealerButton()
-                    BlindChip(position: .bb, amount: bigBlind)
-                } else {
-                    // You're SB — show your SB on your side
-                    BlindChip(position: .sb, amount: smallBlind)
-                }
+                if layout.userHasDealer { DealerButton() }
+                BlindChip(position: layout.userChip, amount: layout.userChip == .sb ? smallBlind : bigBlind)
             }
         }
     }
@@ -484,6 +474,41 @@ struct HandPuck: View {
         .shadow(
             color: isFocused ? Color.gold500.opacity(0.25) : .clear,
             radius: isFocused ? 8 : 0
+        )
+    }
+}
+
+// MARK: - Felt layout resolver
+
+/// Pure mapping from `isBB` (whether the user is the Big Blind) to the
+/// chip + dealer button placement on each side of the felt. Extracted
+/// from the view so it can be unit-tested without instantiating SwiftUI.
+///
+/// Heads-up rule: the dealer button sits with the Small Blind. So:
+///   - User is SB  → user side has dealer, opponent shows BB chip
+///   - User is BB  → opponent side has dealer, user shows BB chip
+struct FeltLayout: Equatable {
+    let oppHasDealer: Bool
+    let oppChip: BlindChip.Position
+    let userHasDealer: Bool
+    let userChip: BlindChip.Position
+}
+
+enum FeltLayoutResolver {
+    static func resolve(isBB: Bool) -> FeltLayout {
+        if isBB {
+            return FeltLayout(
+                oppHasDealer: true,
+                oppChip: .sb,
+                userHasDealer: false,
+                userChip: .bb
+            )
+        }
+        return FeltLayout(
+            oppHasDealer: false,
+            oppChip: .bb,
+            userHasDealer: true,
+            userChip: .sb
         )
     }
 }

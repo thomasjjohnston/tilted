@@ -312,6 +312,18 @@ struct HistoryHand: Codable, Identifiable {
     }
 }
 
+// MARK: - Ping
+
+struct PingResponse: Codable {
+    let quip: String
+    let sentAt: String?
+
+    enum CodingKeys: String, CodingKey {
+        case quip
+        case sentAt = "sent_at"
+    }
+}
+
 // MARK: - Users roster (opponent picker)
 
 struct UserRosterEntry: Codable, Identifiable {

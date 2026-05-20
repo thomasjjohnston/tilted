@@ -100,6 +100,12 @@ struct ShowdownResultView: View {
             Color.felt900.opacity(0.95).ignoresSafeArea()
 
             VStack(spacing: 0) {
+                MatchHeaderBar(
+                    myAvailable: match.myAvailable,
+                    opponentName: opponentName,
+                    opponentAvailable: match.opponentAvailable
+                )
+
                 Spacer()
 
                 Text(eyebrowTitle)

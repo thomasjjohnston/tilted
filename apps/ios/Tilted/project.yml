@@ -49,3 +49,36 @@ targets:
           CODE_SIGN_STYLE: Automatic
         Release:
           CODE_SIGN_STYLE: Automatic
+
+  TiltedTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: Tests
+    dependencies:
+      - target: Tilted
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.thomasjjohnston.tilted.tests
+        GENERATE_INFOPLIST_FILE: true
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Tilted.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Tilted"
+      configs:
+        Debug:
+          CODE_SIGN_STYLE: Automatic
+        Release:
+          CODE_SIGN_STYLE: Automatic
+
+schemes:
+  Tilted:
+    build:
+      targets:
+        Tilted: all
+        TiltedTests: [test]
+    test:
+      targets:
+        - TiltedTests
+    run:
+      config: Debug
+    archive:
+      config: Release

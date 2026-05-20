@@ -16,10 +16,15 @@ struct TurnView: View {
     @State private var showTurnComplete = false
     @State private var isAutoChecking = false
 
-    // Hand Won full-screen for opponent folds, and the showdown overlay
-    // for showdowns/splits (still rendered via ShowdownResultView).
-    @State private var handWonView: HandView?
-    @State private var showdownResult: HandView?
+    // Completion overlays — one per outcome type.
+    @State private var handWonView: HandView?      // Opponent folded → you win
+    @State private var handFoldedView: HandView?   // You folded → you lose
+    @State private var showdownResult: HandView?   // Showdown / split / lose-at-showdown
+
+    // Wave-crossing overlay state — populated by advanceAfterResolution
+    // when the next pending hand is on a later street.
+    @State private var waveCrossingFromStreet: String?
+    @State private var waveCrossingToStreet: String?
 
     // Turn summary tracking
     @State private var showTurnSummary = false
@@ -143,6 +148,16 @@ struct TurnView: View {
                 .zIndex(2)
             }
 
+            if let hand = handFoldedView {
+                HandFoldedView(
+                    hand: hand,
+                    match: liveMatch,
+                    onContinue: { handFoldedView = nil; advanceAfterResolution() }
+                )
+                .transition(.opacity)
+                .zIndex(2)
+            }
+
             if let hand = showdownResult {
                 let pendingOthers = pendingHands.filter { $0.handId != hand.handId }
                 ShowdownResultView(
@@ -189,6 +204,12 @@ struct TurnView: View {
             }
 
             if showTurnComplete { turnCompleteOverlay }
+
+            if let from = waveCrossingFromStreet, let to = waveCrossingToStreet {
+                WaveCompleteView(fromStreet: from, toStreet: to)
+                    .transition(.opacity)
+                    .zIndex(4)
+            }
         }
         .sheet(item: $detailSheetHand) { hand in
             HandActionDetailSheet(
@@ -262,51 +283,29 @@ struct TurnView: View {
     // MARK: - Header
 
     private var header: some View {
-        HStack(spacing: 10) {
-            Button { dismiss() } label: {
-                Image(systemName: "chevron.left")
-                    .foregroundColor(.cream200)
-                    .font(.system(size: 18, weight: .medium))
-                    .frame(width: 30, height: 30)
-            }
-
-            // Progress dots — one per hand, gold = done/active, faded = pending
-            HStack(spacing: 3) {
-                ForEach(liveHands) { hand in
-                    Circle()
-                        .fill(dotColor(for: hand))
-                        .frame(width: 6, height: 6)
-                        .shadow(
-                            color: hand.handId == focusedHand?.handId ? Color.gold500 : .clear,
-                            radius: 4
-                        )
+        MatchHeaderBar(
+            myAvailable: liveMatch.myAvailable,
+            opponentName: liveMatch.opponent.displayName.components(separatedBy: " ").first ?? "Opp",
+            opponentAvailable: liveMatch.opponentAvailable,
+            onBack: { dismiss() },
+            trailing: AnyView(
+                HStack(spacing: 8) {
+                    HStack(spacing: 3) {
+                        ForEach(liveHands) { hand in
+                            Circle()
+                                .fill(dotColor(for: hand))
+                                .frame(width: 6, height: 6)
+                                .shadow(
+                                    color: hand.handId == focusedHand?.handId ? Color.gold500 : .clear,
+                                    radius: 4
+                                )
+                        }
+                    }
+                    Text("\(pendingHands.count)/10")
+                        .font(.system(size: 10))
+                        .foregroundColor(.cream300)
                 }
-            }
-
-            Spacer()
-
-            Text("\(pendingHands.count) of 10 left")
-                .font(.system(size: 11))
-                .foregroundColor(.cream300)
-
-            VStack(alignment: .trailing, spacing: 0) {
-                Text("AVAILABLE")
-                    .font(.system(size: 8, weight: .semibold))
-                    .tracking(1.2)
-                    .foregroundColor(.cream300)
-                Text("\(liveMatch.myAvailable)")
-                    .font(.custom("Georgia", size: 15).bold())
-                    .foregroundColor(.gold500)
-            }
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
-        .background(Color.felt800.opacity(0.95))
-        .overlay(
-            Rectangle()
-                .fill(Color.gold500.opacity(0.1))
-                .frame(height: 1),
-            alignment: .bottom
+            )
         )
     }
 
@@ -551,13 +550,20 @@ struct TurnView: View {
            let updatedHand = updatedRound.hands.first(where: { $0.handId == hand.handId }),
            updatedHand.status == "complete" {
             resolvedThisTurn.append(updatedHand)
+            // Every completion type gets a dismissable surface, per the
+            // "Completed Hand requires clearing" UX rule. Pre-mark as
+            // seen so the retroactive queue doesn't re-fire later.
+            store.markCompletionSeen(updatedHand.handId)
             if updatedHand.terminalReason == "showdown" {
                 showdownsThisTurn.append(updatedHand)
                 withAnimation { showdownResult = updatedHand }
                 return
             }
-            // Fold-by-us: don't show a Hand Won celebration (we lost the
-            // hand). Move on to the next pending hand if any.
+            if updatedHand.terminalReason == "fold" && type == "fold" {
+                // The user folded — show the HandFoldedView mirror.
+                withAnimation { handFoldedView = updatedHand }
+                return
+            }
         }
 
         advanceAfterResolution()
@@ -565,8 +571,21 @@ struct TurnView: View {
     }
 
     private func advanceAfterResolution() {
-        let pending = pendingHands
-        if let next = pending.first(where: { $0.handId != focusedHandId }) {
+        guard let current = focusedHand else { checkTurnComplete(); return }
+        let result = HandPicker.nextHand(after: current, in: liveHands)
+        if let crossed = result.crossedToStreet, let next = result.next {
+            // Show the WaveCompleteView for ~1.5s then move focus to
+            // the first hand of the next street.
+            waveCrossingFromStreet = current.street
+            waveCrossingToStreet = crossed
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                withAnimation(.spring(response: 0.32, dampingFraction: 0.85)) {
+                    focusedHandId = next.handId
+                    waveCrossingFromStreet = nil
+                    waveCrossingToStreet = nil
+                }
+            }
+        } else if let next = result.next {
             withAnimation(.spring(response: 0.32, dampingFraction: 0.85)) {
                 focusedHandId = next.handId
             }
@@ -607,6 +626,40 @@ struct TurnView: View {
         )
         isAutoChecking = false
         checkTurnComplete()
+    }
+}
+
+// MARK: - Street ordering helpers
+
+/// Heads-up street-first ordering: preflop hands act first, then flop,
+/// then turn, then river. The picker keeps the user inside one "wave"
+/// before crossing to the next street.
+extension HandView {
+    var streetOrder: Int {
+        switch street {
+        case "preflop": return 0
+        case "flop": return 1
+        case "turn": return 2
+        case "river": return 3
+        default: return 4
+        }
+    }
+}
+
+enum HandPicker {
+    /// Returns the next pending hand to focus, plus the street being
+    /// crossed into (if the wave changes). Sorts by (streetOrder,
+    /// handIndex).
+    static func nextHand(after current: HandView, in hands: [HandView]) -> (next: HandView?, crossedToStreet: String?) {
+        let pending = hands.filter { $0.isPendingAction }
+        let sorted = pending.sorted {
+            ($0.streetOrder, $0.handIndex) < ($1.streetOrder, $1.handIndex)
+        }
+        guard let next = sorted.first(where: { $0.handId != current.handId }) else {
+            return (nil, nil)
+        }
+        let crossed = next.streetOrder > current.streetOrder ? next.street : nil
+        return (next, crossed)
     }
 }
 

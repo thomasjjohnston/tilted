@@ -96,25 +96,39 @@ struct RevealView: View {
     // MARK: - All-In Reveal Page (cinematic, one per hand)
 
     private func allInRevealPage(hand: HandView) -> some View {
-        AllInRevealCard(
-            hand: hand,
-            detail: resolvedHandDetails[hand.handId],
-            opponentName: opponentName,
-            opponentUserId: match.opponent.userId,
-            isFavorited: isFavorited.contains(hand.handId),
-            onFavorite: { fav in
-                if fav { isFavorited.insert(hand.handId) } else { isFavorited.remove(hand.handId) }
-                Task { await store.toggleFavorite(handId: hand.handId, favorite: fav) }
-            },
-            onNext: {
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    revealIndex += 1
-                    if revealIndex >= capturedAllInHands.count {
-                        showSummary = true
+        VStack(spacing: 0) {
+            MatchHeaderBar(
+                myAvailable: match.myAvailable,
+                opponentName: opponentName,
+                opponentAvailable: match.opponentAvailable,
+                trailing: AnyView(
+                    Text("\(revealIndex + 1) of \(capturedAllInHands.count)")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.gold500)
+                )
+            )
+
+            AllInRevealCard(
+                hand: hand,
+                detail: resolvedHandDetails[hand.handId],
+                opponentName: opponentName,
+                opponentUserId: match.opponent.userId,
+                isFavorited: isFavorited.contains(hand.handId),
+                onFavorite: { fav in
+                    if fav { isFavorited.insert(hand.handId) } else { isFavorited.remove(hand.handId) }
+                    Task { await store.toggleFavorite(handId: hand.handId, favorite: fav) }
+                },
+                onNext: {
+                    CompletedHandHaptics.dismissImpact()
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        revealIndex += 1
+                        if revealIndex >= capturedAllInHands.count {
+                            showSummary = true
+                        }
                     }
                 }
-            }
-        )
+            )
+        }
     }
 
     // MARK: - Round Summary

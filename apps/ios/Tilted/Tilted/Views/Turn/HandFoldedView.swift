@@ -1,15 +1,9 @@
 import SwiftUI
 
-// Full-screen celebration when the opponent folded one of your hands.
-// Scales the moment to the pot size: a preflop steal gets a small
-// "Blinds, yours." pickup; a river-fold payday gets a big "You won." moment.
-//
-// Shows what each player held — your hand face-up (revealed), opponent's
-// cards as a muck stack (server discards the folder's hole cards). The
-// fold street is surfaced explicitly so preflop folds read differently
-// from river folds.
-
-struct HandWonView: View {
+/// Full-screen completion screen shown when *you* folded a hand.
+/// Mirrors `HandWonView` for the opposite outcome. Headline scales to
+/// the size of the loss (just blinds vs full pot committed).
+struct HandFoldedView: View {
     let hand: HandView
     let match: MatchState
     let onContinue: () -> Void
@@ -20,37 +14,36 @@ struct HandWonView: View {
         match.opponent.displayName.components(separatedBy: " ").first ?? "Opponent"
     }
 
-    private var foldStreet: String {
-        hand.foldStreet ?? hand.street
-    }
+    private var foldStreet: String { hand.foldStreet ?? hand.street }
 
-    private var isBigPot: Bool {
-        // River fold or pot > 100 BB
-        foldStreet == "river" || hand.pot >= 200
+    private var isBigLoss: Bool {
+        foldStreet == "river" || hand.myReserved >= 100
     }
 
     private var headline: String {
         switch foldStreet {
-        case "preflop": return "Blinds, yours."
-        case "flop": return "Pot, yours."
-        case "turn": return "Pot, yours."
-        case "river": return "You won."
-        default: return "You won."
+        case "preflop": return "Blinds, gone."
+        case "flop": return "Folded the flop."
+        case "turn": return "Folded the turn."
+        case "river": return "Lost it on the river."
+        default: return "Folded."
         }
     }
 
     private var subtitle: String {
         switch foldStreet {
-        case "preflop": return "\(opponentName) folded preflop — you stole the blinds"
-        case "flop": return "\(opponentName) folded on the flop"
-        case "turn": return "\(opponentName) folded on the turn"
-        case "river": return "\(opponentName) folded on the river"
-        default: return "\(opponentName) folded"
+        case "preflop": return "You folded preflop to \(opponentName)"
+        case "flop": return "You folded the flop to \(opponentName)'s bet"
+        case "turn": return "You folded the turn to \(opponentName)'s bet"
+        case "river": return "You folded the river to \(opponentName)'s bet"
+        default: return "You folded to \(opponentName)"
         }
     }
 
-    private var netAmount: Int {
-        hand.myResolvedNet ?? hand.pot
+    /// Amount lost — from server snapshot if present, else myReserved.
+    private var lostAmount: Int {
+        if let net = hand.myResolvedNet { return -net }
+        return hand.myReserved
     }
 
     var body: some View {
@@ -66,14 +59,14 @@ struct HandWonView: View {
 
                 Spacer()
 
-                Text("HAND \(hand.handIndex + 1) · \(opponentName.uppercased()) FOLDED")
+                Text("HAND \(hand.handIndex + 1) · YOU FOLDED")
                     .font(.system(size: 10, weight: .medium))
                     .tracking(3)
-                    .foregroundColor(.gold500)
+                    .foregroundColor(.claret)
                     .padding(.bottom, 10)
 
                 Text(headline)
-                    .font(.custom("Georgia", size: isBigPot ? 38 : 32))
+                    .font(.custom("Georgia", size: isBigLoss ? 38 : 32))
                     .foregroundColor(.cream100)
                     .padding(.bottom, 4)
 
@@ -82,13 +75,13 @@ struct HandWonView: View {
                     .foregroundColor(.cream300)
                     .padding(.bottom, 26)
 
-                potDisplay
+                lossDisplay
                     .scaleEffect(showAmount ? 1 : 0.85)
                     .opacity(showAmount ? 1 : 0)
                     .overlay(
                         ZStack {
-                            ChipPileSlideView(destination: .me)
-                            WinnerSideGlow(won: true)
+                            ChipPileSlideView(destination: .opponent)
+                            WinnerSideGlow(won: false)
                         }
                         .allowsHitTesting(false)
                     )
@@ -123,8 +116,8 @@ struct HandWonView: View {
             )
             RadialGradient(
                 gradient: Gradient(colors: [
-                    Color.gold500.opacity(0.22),
-                    .clear
+                    Color.claret.opacity(0.18),
+                    .clear,
                 ]),
                 center: UnitPoint(x: 0.5, y: 0.3),
                 startRadius: 0,
@@ -134,22 +127,22 @@ struct HandWonView: View {
         .ignoresSafeArea()
     }
 
-    private var potDisplay: some View {
+    private var lossDisplay: some View {
         VStack(spacing: 6) {
-            Text("POT COLLECTED")
+            Text("LOST")
                 .font(.system(size: 10, weight: .medium))
                 .tracking(2)
                 .foregroundColor(.cream300)
 
             HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text("+")
-                    .font(.custom("Georgia", size: isBigPot ? 44 : 36))
-                    .foregroundColor(Color(hex: 0x4ea878))
-                Text("\(netAmount)")
-                    .font(.custom("Georgia", size: isBigPot ? 60 : 50))
-                    .foregroundColor(.gold500)
+                Text("−")
+                    .font(.custom("Georgia", size: isBigLoss ? 44 : 36))
+                    .foregroundColor(.claret)
+                Text("\(lostAmount)")
+                    .font(.custom("Georgia", size: isBigLoss ? 60 : 50))
+                    .foregroundColor(.claret)
             }
-            .shadow(color: Color.gold500.opacity(0.35), radius: 18)
+            .shadow(color: Color.claret.opacity(0.25), radius: 14)
         }
     }
 
@@ -157,12 +150,17 @@ struct HandWonView: View {
         VStack(spacing: 0) {
             detailRow(label: "Your hand") {
                 HStack(spacing: 3) {
-                    ForEach(hand.myHole, id: \.self) { card in
-                        PlayingCardView(card: card, size: .small)
+                    if hand.myHole.isEmpty {
+                        // Should only happen for legacy hands pre-fix S1.
+                        MuckPlaceholderView(size: .small)
+                        MuckPlaceholderView(size: .small)
+                    } else {
+                        ForEach(hand.myHole, id: \.self) { card in
+                            PlayingCardView(card: card, size: .small)
+                        }
                     }
                 }
             }
-
             if !hand.board.isEmpty {
                 divider
                 detailRow(label: "Board") {
@@ -173,27 +171,18 @@ struct HandWonView: View {
                     }
                 }
             }
-
-            divider
-            detailRow(label: "\(opponentName)'s cards") {
-                HStack(spacing: 3) {
-                    MuckPlaceholderView(size: .small)
-                    MuckPlaceholderView(size: .small)
-                }
-            }
-
             divider
             detailRow(label: "Folded on") {
                 Text(foldStreet.capitalized)
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(.gold500)
+                    .foregroundColor(.claret)
             }
         }
         .padding(16)
         .background(Color.black.opacity(0.3))
         .overlay(
             RoundedRectangle(cornerRadius: 14)
-                .stroke(Color.gold500.opacity(0.22), lineWidth: 1)
+                .stroke(Color.claret.opacity(0.22), lineWidth: 1)
         )
         .cornerRadius(14)
     }
@@ -211,7 +200,7 @@ struct HandWonView: View {
 
     private var divider: some View {
         Rectangle()
-            .fill(Color.gold500.opacity(0.1))
+            .fill(Color.claret.opacity(0.1))
             .frame(height: 1)
     }
 

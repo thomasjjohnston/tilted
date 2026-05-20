@@ -3,6 +3,10 @@ import SwiftUI
 
 @Observable
 final class AppStore {
+    init() {
+        loadSeenCompletions()
+    }
+
     // MARK: - Auth State
     var isAuthenticated = false
     var currentUserId: String?
@@ -23,10 +27,71 @@ final class AppStore {
     var activeScreen: ActiveScreen = .home
     var selectedTab: Tab = .home
 
-    /// Hand IDs whose "opponent folded — you won" full-screen moment has
-    /// already been shown to the user this session. Prevents the
-    /// celebration from re-firing on every refocus / refresh.
-    var seenFoldResolutions: Set<String> = []
+    /// Hand IDs whose "Completed Hand" full-screen moment has already
+    /// been shown to the user. Persisted to UserDefaults so completions
+    /// don't re-fire across app launches.
+    var seenCompletions: Set<String> = []
+
+    /// FIFO queue of resolved hands that haven't been shown to the user
+    /// yet — populated by `refresh()` after diffing against
+    /// `seenCompletions`. HomeView binds a fullScreenCover to the head
+    /// of this queue and pops as the user dismisses each.
+    var unseenCompletions: [HandView] = []
+
+    private let seenCompletionsKey = "tilted.seenCompletions"
+
+    /// Back-compat alias for the old name used by TurnView until I2.
+    var seenFoldResolutions: Set<String> {
+        get { seenCompletions }
+        set { seenCompletions = newValue; persistSeenCompletions() }
+    }
+
+    private func loadSeenCompletions() {
+        if let arr = UserDefaults.standard.array(forKey: seenCompletionsKey) as? [String] {
+            seenCompletions = Set(arr)
+        }
+    }
+
+    private func persistSeenCompletions() {
+        UserDefaults.standard.set(Array(seenCompletions), forKey: seenCompletionsKey)
+    }
+
+    /// Mark a hand as having had its completion surface shown — both
+    /// in-memory and persisted. Used by the in-turn flow when a hand
+    /// resolves while the user is acting.
+    @MainActor
+    func markCompletionSeen(_ handId: String) {
+        seenCompletions.insert(handId)
+        persistSeenCompletions()
+    }
+
+    /// Insert a hand into the seen-set, persist, and pop from the queue
+    /// if it's at the head. Called when the user dismisses a Completed
+    /// Hand surface presented by the retroactive queue (HomeView).
+    @MainActor
+    func acknowledgeCompletion(_ handId: String) {
+        markCompletionSeen(handId)
+        if unseenCompletions.first?.handId == handId {
+            unseenCompletions.removeFirst()
+        } else {
+            unseenCompletions.removeAll { $0.handId == handId }
+        }
+    }
+
+    /// Diff resolved hands against seenCompletions; queue anything new.
+    @MainActor
+    private func enqueueUnseenCompletions() {
+        var queued = Set(unseenCompletions.map(\.handId))
+        for match in matches {
+            guard let round = match.currentRound else { continue }
+            for hand in round.hands where hand.status == "complete" {
+                if seenCompletions.contains(hand.handId) { continue }
+                if queued.contains(hand.handId) { continue }
+                unseenCompletions.append(hand)
+                queued.insert(hand.handId)
+            }
+        }
+    }
 
     enum ActiveScreen: Equatable {
         case home
@@ -130,6 +195,10 @@ final class AppStore {
         } catch {
             self.error = error.localizedDescription
         }
+        // After matches update, surface any resolved hands the user
+        // hasn't seen yet — these stack into the unseenCompletions
+        // queue that HomeView reads.
+        enqueueUnseenCompletions()
         isLoading = false
         hasInitiallyLoaded = true
     }
@@ -183,6 +252,19 @@ final class AppStore {
         matchState?.currentRound = round
     }
 
+    /// Update the `matches` list in-place with a fresh `MatchState` so
+    /// any list-driven UI (e.g., HomeView) reflects the change without
+    /// waiting for a refresh round-trip. Inserts at the front if the
+    /// match isn't already in the list (e.g., a newly created match).
+    @MainActor
+    func spliceMatch(_ updated: MatchState) {
+        if let i = matches.firstIndex(where: { $0.matchId == updated.matchId }) {
+            matches[i] = updated
+        } else {
+            matches.insert(updated, at: 0)
+        }
+    }
+
     @MainActor
     func submitAction(handId: String, type: String, amount: Int? = nil) async {
         let clientTxId = UUID().uuidString
@@ -191,9 +273,11 @@ final class AppStore {
         optimisticallyResolveHand(handId: handId, action: type)
 
         do {
-            matchState = try await APIClient.shared.submitAction(
+            let updated = try await APIClient.shared.submitAction(
                 handId: handId, type: type, amount: amount, clientTxId: clientTxId
             )
+            matchState = updated
+            spliceMatch(updated)
         } catch {
             self.error = error.localizedDescription
             await refresh()
@@ -214,6 +298,7 @@ final class AppStore {
                 let result = try await APIClient.shared.submitBatchActions(actions: capturedActions)
                 await MainActor.run {
                     self?.matchState = result
+                    self?.spliceMatch(result)
                 }
             } catch {
                 await MainActor.run {
@@ -228,7 +313,9 @@ final class AppStore {
     @MainActor
     func advanceRound(roundId: String) async {
         do {
-            matchState = try await APIClient.shared.advanceRound(roundId: roundId)
+            let updated = try await APIClient.shared.advanceRound(roundId: roundId)
+            matchState = updated
+            spliceMatch(updated)
         } catch {
             self.error = error.localizedDescription
         }

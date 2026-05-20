@@ -198,6 +198,13 @@ struct HandSummaryCard: View {
                             .foregroundColor(.gold500)
                     }
                 }
+
+                // Timestamp — relative if <24h, absolute otherwise.
+                if let ts = TimestampFormatter.format(hand.completedAt) {
+                    Text(ts)
+                        .font(.system(size: 10))
+                        .foregroundColor(.cream400)
+                }
             }
             .padding(12)
             .background(
