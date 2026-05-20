@@ -49,7 +49,7 @@ struct ChipPileSlideView: View {
             // Slight arc — peak ~10pt above the midpoint.
             y: endOffset.height * phase + (sin(phase * .pi) * (destination == .me ? -10 : 10))
         )
-        .opacity(destination == .split ? 0.7 : (1 - phase * 0.2))
+        .opacity(destination == .split ? 0.7 : Double(1.0 - phase * 0.2))
         .onAppear {
             withAnimation(.timingCurve(0.22, 1.05, 0.36, 1.0, duration: 0.7)) {
                 phase = 1
