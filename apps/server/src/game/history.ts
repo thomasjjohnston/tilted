@@ -56,6 +56,12 @@ export async function getHistory(
     conditions.push(sql`r.round_index = ${options.roundIndex}`);
   }
 
+  // Won/Lost/All partitioning contract:
+  //   - Won: hands the requesting user won (winner_user_id = me).
+  //   - Lost: hands the opponent won (winner_user_id != me AND NOT NULL).
+  //     Split pots have winner_user_id = NULL (resolveShowdown returns
+  //     null for ties) and are intentionally excluded from Lost — they
+  //     belong in 'all' as a neutral outcome.
   if (options.result === 'won') {
     conditions.push(sql`h.winner_user_id = ${userId}`);
   } else if (options.result === 'lost') {

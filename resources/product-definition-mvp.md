@@ -196,7 +196,7 @@ Both players see the reveal next time they open the app. If one opens the app be
 - A hand reaches showdown only when the river's betting is complete with at least one caller.
 - Both players' hole cards are revealed and stored in the hand record.
 - The losing player's cards are revealed and stored regardless (no muck-hide option in MVP — transparency is more valuable than etiquette at two users).
-- Folded hands never reveal the folder's hole cards, either in real-time or in summaries. Those hole cards are discarded from the persisted record. (This preserves the bluff / information asymmetry that makes poker work.)
+- Folded hands never reveal the folder's hole cards to the opponent, either in real-time or in summaries. The cards remain in the persisted record but are gated at the API boundary by `terminal_reason !== 'showdown'` — only the folder themselves sees them on review. (This preserves bluff / information asymmetry without destroying data, so the folder retains their own hand history for replay and analytics.)
 
 ## 12. Hand summaries
 

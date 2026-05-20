@@ -6,6 +6,7 @@ import {
   getCurrentMatch,
   getMatchState,
   listActiveMatches,
+  sendPing,
 } from '../../game/match.js';
 
 const createBody = z.object({ opponent_user_id: z.string().uuid() });
@@ -32,5 +33,22 @@ export async function matchRoutes(app: FastifyInstance) {
     const db = getDb();
     const match = await createMatch(db, req.userId, parsed.data.opponent_user_id);
     return getMatchState(db, match.matchId, req.userId);
+  });
+
+  // Ping the opponent — fires an APNS push with a random poker quip.
+  app.post('/match/:matchId/ping', async (req, reply) => {
+    const { matchId } = req.params as { matchId: string };
+    try {
+      return await sendPing(getDb(), matchId, req.userId);
+    } catch (e) {
+      const msg = (e as Error).message;
+      if (msg === 'Not a participant') {
+        return reply.status(403).send({ error: msg });
+      }
+      if (msg === 'Match not found' || msg === 'Match is not active') {
+        return reply.status(404).send({ error: msg });
+      }
+      throw e;
+    }
   });
 }

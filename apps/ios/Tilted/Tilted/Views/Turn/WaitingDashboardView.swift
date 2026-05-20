@@ -68,40 +68,11 @@ struct WaitingDashboardView: View {
     // MARK: - Header
 
     private var header: some View {
-        HStack {
-            Button { dismiss() } label: {
-                Image(systemName: "chevron.left")
-                    .foregroundColor(.cream200)
-                    .font(.system(size: 18, weight: .medium))
-                    .frame(width: 30, height: 30)
-            }
-            Spacer()
-            VStack(spacing: 0) {
-                Text("MATCH")
-                    .font(.system(size: 9, weight: .semibold))
-                    .tracking(1.5)
-                    .foregroundColor(.cream300)
-                Text(liveMatch.opponent.displayName)
-                    .font(.custom("Georgia", size: 14))
-                    .foregroundColor(.cream100)
-            }
-            Spacer()
-            VStack(alignment: .trailing, spacing: 0) {
-                Text("AVAILABLE")
-                    .font(.system(size: 8, weight: .semibold))
-                    .tracking(1.2)
-                    .foregroundColor(.cream300)
-                Text("\(liveMatch.myAvailable)")
-                    .font(.custom("Georgia", size: 15).bold())
-                    .foregroundColor(.gold500)
-            }
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
-        .background(Color.felt800.opacity(0.95))
-        .overlay(
-            Rectangle().fill(Color.gold500.opacity(0.1)).frame(height: 1),
-            alignment: .bottom
+        MatchHeaderBar(
+            myAvailable: liveMatch.myAvailable,
+            opponentName: opponentName,
+            opponentAvailable: liveMatch.opponentAvailable,
+            onBack: { dismiss() }
         )
     }
 
@@ -274,8 +245,10 @@ struct WaitingDashboardView: View {
     }
 
     private func oppActingText(_ hand: HandView) -> String {
-        if hand.opponentReserved > hand.myReserved {
-            return "→ Facing your \(hand.opponentReserved - hand.myReserved)… wait, your bet — opp to act"
+        // If MY reserved exceeds opponent's, opponent is facing my bet.
+        let yourBetSize = hand.myReserved - hand.opponentReserved
+        if yourBetSize > 0 {
+            return "→ \(opponentName) facing your bet of \(yourBetSize)"
         }
         return "→ \(opponentName) to act"
     }

@@ -54,7 +54,7 @@ jobs:
           DATABASE_URL: postgresql://tilted:tilted@localhost:5432/tilted
 
   ios:
-    name: iOS — build
+    name: iOS — build & test
     # macos-15 has Xcode 16, which understands the pbxproj format (77)
     # that xcodegen produces for project.yml's `xcodeVersion: "16.0"`.
     runs-on: macos-15
@@ -70,14 +70,23 @@ jobs:
         working-directory: apps/ios/Tilted
         run: xcodegen
 
-      - name: Build iOS
-        working-directory: apps/ios/Tilted
-        # Generic destination compiles for the simulator slice without
-        # needing a specific simulator device installed on the runner.
+      - name: Pick first available iPhone simulator
+        id: simulator
         run: |
-          xcodebuild build \
+          # macos-15's preinstalled simulator inventory varies between
+          # runner image revisions. List available iPhone simulators and
+          # take the first one — guarantees the test step has a device.
+          DEVICE_LINE=$(xcrun simctl list devices available | grep -E "^\s*iPhone " | head -1)
+          DEVICE_NAME=$(echo "$DEVICE_LINE" | sed -E 's/^[[:space:]]*([^(]+) \(.*$/\1/' | xargs)
+          echo "Selected simulator: $DEVICE_NAME"
+          echo "name=$DEVICE_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Build & test iOS
+        working-directory: apps/ios/Tilted
+        run: |
+          xcodebuild test \
             -scheme Tilted \
-            -destination 'generic/platform=iOS Simulator' \
+            -destination "platform=iOS Simulator,name=${{ steps.simulator.outputs.name }}" \
             -skipPackagePluginValidation \
             CODE_SIGNING_ALLOWED=NO
 

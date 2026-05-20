@@ -2,10 +2,12 @@ import SwiftUI
 
 struct HomeView: View {
     @Environment(AppStore.self) private var store
+    @Environment(\.scenePhase) private var scenePhase
     @State private var showCoinFlip = false
     @State private var showOpponentPicker = false
     @State private var revealMatch: MatchState?
     @State private var revealRound: RoundView?
+    @State private var pingToast: String?
 
     /// Active matches the current user is in — drives the list view.
     private var activeMatches: [MatchState] {
@@ -29,9 +31,11 @@ struct HomeView: View {
                     ScrollView {
                         VStack(spacing: Spacing.md) {
                             ForEach(activeMatches, id: \.matchId) { match in
-                                MatchRowCard(match: match) {
-                                    openMatch(match)
-                                }
+                                MatchRowCard(
+                                    match: match,
+                                    onTap: { openMatch(match) },
+                                    onPing: { Task { await ping(match: match) } }
+                                )
                             }
                             startMatchButton
                                 .padding(.top, Spacing.md)
@@ -41,6 +45,37 @@ struct HomeView: View {
                         .padding(.bottom, 32)
                     }
                     .refreshable { await store.refresh() }
+                }
+
+                // Ping toast — small chip at the top that auto-clears.
+                if let quip = pingToast {
+                    VStack {
+                        HStack(spacing: 6) {
+                            Image(systemName: "bell.fill")
+                                .font(.system(size: 10))
+                            Text(quip)
+                                .font(.system(size: 12, weight: .medium))
+                                .lineLimit(2)
+                        }
+                        .foregroundColor(.felt800)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 9)
+                        .background(
+                            LinearGradient(colors: [.gold500, .gold700], startPoint: .top, endPoint: .bottom)
+                        )
+                        .clipShape(Capsule())
+                        .shadow(color: .black.opacity(0.3), radius: 6, y: 3)
+                        .padding(.top, 8)
+                        .padding(.horizontal, 24)
+                        Spacer()
+                    }
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .task(id: quip) {
+                        try? await Task.sleep(nanoseconds: 2_500_000_000)
+                        await MainActor.run {
+                            withAnimation(.easeInOut(duration: 0.3)) { pingToast = nil }
+                        }
+                    }
                 }
             }
             .ignoresSafeArea(edges: .bottom)
@@ -92,7 +127,47 @@ struct HomeView: View {
                     }
                 }
             }
+            // Safety-net refresh: catches anything the in-place splice
+            // missed (e.g., opponent's actions since last app open).
+            .task { await store.refresh() }
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active { Task { await store.refresh() } }
+            }
+            // Retroactive Completed Hand surfacing — if any hand
+            // resolved while the user wasn't actively in a turn, the
+            // queue at store.unseenCompletions presents them
+            // sequentially before the user can interact with home.
+            .fullScreenCover(item: Binding(
+                get: { store.unseenCompletions.first },
+                set: { _ in }
+            )) { hand in
+                CompletedHandRouterView(
+                    hand: hand,
+                    match: matchFor(hand) ?? placeholderMatch,
+                    onContinue: { store.acknowledgeCompletion(hand.handId) }
+                )
+                .environment(store)
+            }
         }
+    }
+
+    /// Find the match containing this completed hand so the completion
+    /// screen has the surrounding context (opponent name, stacks, etc).
+    private func matchFor(_ hand: HandView) -> MatchState? {
+        store.matches.first {
+            $0.currentRound?.hands.contains { $0.handId == hand.handId } ?? false
+        }
+    }
+
+    private var placeholderMatch: MatchState {
+        MatchState(
+            matchId: "", status: "active", winnerUserId: nil,
+            opponent: Opponent(userId: "", displayName: "Opponent"),
+            myTotal: 0, opponentTotal: 0,
+            myReserved: 0, opponentReserved: 0,
+            myAvailable: 0, opponentAvailable: 0,
+            currentRound: nil
+        )
     }
 
     // MARK: - Bindings
@@ -106,6 +181,18 @@ struct HomeView: View {
     }
 
     // MARK: - Actions
+
+    @MainActor
+    private func ping(match: MatchState) async {
+        do {
+            let resp = try await APIClient.shared.pingOpponent(matchId: match.matchId)
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                pingToast = "Sent: \"\(resp.quip)\""
+            }
+        } catch {
+            withAnimation { pingToast = "Couldn't send ping" }
+        }
+    }
 
     private func openMatch(_ match: MatchState) {
         store.matchState = match
@@ -186,6 +273,7 @@ struct HomeView: View {
 struct MatchRowCard: View {
     let match: MatchState
     let onTap: () -> Void
+    var onPing: (() -> Void)? = nil
 
     private var opponentInitials: String {
         String(match.opponent.displayName.prefix(2)).uppercased()
@@ -193,6 +281,13 @@ struct MatchRowCard: View {
 
     private var opponentFirst: String {
         match.opponent.displayName.components(separatedBy: " ").first ?? "Opp"
+    }
+
+    /// True when the opponent is on action and the user is waiting — the
+    /// only state where pinging makes sense.
+    private var canPing: Bool {
+        guard let round = match.currentRound, match.status == "active" else { return false }
+        return round.handsPendingOpponent > 0 && round.handsPendingMe == 0
     }
 
     private var statusCopy: String {
@@ -218,50 +313,88 @@ struct MatchRowCard: View {
     }
 
     var body: some View {
-        Button(action: onTap) {
-            HStack(spacing: 12) {
-                AvatarView(initials: opponentInitials, size: .large)
+        VStack(spacing: 8) {
+            Button(action: onTap) {
+                HStack(spacing: 12) {
+                    AvatarView(initials: opponentInitials, size: .large)
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(match.opponent.displayName)
-                        .font(.displaySmall)
-                        .fontDesign(.serif)
-                        .foregroundColor(.cream100)
-                    Text(statusCopy)
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(statusColor)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(match.opponent.displayName)
+                            .font(.displaySmall)
+                            .fontDesign(.serif)
+                            .foregroundColor(.cream100)
+                        Text(statusCopy)
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(statusColor)
+                    }
+
+                    Spacer()
+
+                    // Both stacks visible — never need to drill into a
+                    // match to see who's ahead.
+                    VStack(alignment: .trailing, spacing: 2) {
+                        HStack(spacing: 6) {
+                            Text("You")
+                                .font(.system(size: 8, weight: .semibold))
+                                .tracking(0.8)
+                                .foregroundColor(.cream300)
+                            Text("\(match.myAvailable)")
+                                .font(.custom("Georgia", size: 18).bold())
+                                .foregroundColor(.gold500)
+                        }
+                        HStack(spacing: 6) {
+                            Text(opponentFirst)
+                                .font(.system(size: 8, weight: .semibold))
+                                .tracking(0.8)
+                                .foregroundColor(.cream300)
+                            Text("\(match.opponentAvailable)")
+                                .font(.custom("Georgia", size: 14))
+                                .foregroundColor(.cream100)
+                        }
+                    }
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13))
+                        .foregroundColor(.cream300)
                 }
-
-                Spacer()
-
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text("\(match.myAvailable)")
-                        .font(.custom("Georgia", size: 20))
-                        .foregroundColor(.gold500)
-                    Text("chips")
-                        .font(.system(size: 9, weight: .medium))
-                        .tracking(0.5)
-                        .foregroundColor(.cream400)
-                }
-
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 13))
-                    .foregroundColor(.cream300)
+                .padding(14)
             }
-            .padding(14)
-            .background(
-                LinearGradient(
-                    colors: [Color.gold500.opacity(0.05), Color.black.opacity(0.2)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 14)
-                    .stroke(Color.gold500.opacity(0.25), lineWidth: 1)
-            )
-            .cornerRadius(14)
+
+            // Ping button — only visible while it's the opponent's turn.
+            if canPing, let onPing {
+                Button(action: onPing) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "bell.fill")
+                            .font(.system(size: 11))
+                        Text("Ping \(opponentFirst)")
+                            .font(.system(size: 12, weight: .semibold))
+                    }
+                    .foregroundColor(.felt800)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 7)
+                    .background(
+                        LinearGradient(
+                            colors: [.gold500, .gold700],
+                            startPoint: .top, endPoint: .bottom
+                        )
+                    )
+                    .clipShape(Capsule())
+                }
+                .padding(.bottom, 10)
+            }
         }
+        .background(
+            LinearGradient(
+                colors: [Color.gold500.opacity(0.05), Color.black.opacity(0.2)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(Color.gold500.opacity(0.25), lineWidth: 1)
+        )
+        .cornerRadius(14)
     }
 }
 

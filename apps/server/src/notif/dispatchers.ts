@@ -7,7 +7,8 @@ export type NotifKind =
   | 'match_started'
   | 'turn_handoff'
   | 'round_complete'
-  | 'match_ended';
+  | 'match_ended'
+  | 'ping';
 
 export interface NotifInput {
   kind: NotifKind;
@@ -19,6 +20,8 @@ export interface NotifInput {
   handsPending?: number;
   allInCount?: number;
   winnerUserId?: string;
+  /** Only set when kind === 'ping' — the randomized quip body. */
+  quip?: string;
   /** deterministic id — used as apns-id for idempotent retries. */
   dedupeKey: string;
 }
@@ -75,6 +78,10 @@ export async function dispatch(db: Database | Transaction, n: NotifInput): Promi
         ? 'Match over — you won!'
         : `Match over — ${opponentFirst} won.`;
       category = 'MATCH_ENDED';
+      break;
+    case 'ping':
+      body = `${opponentFirst}: ${n.quip ?? 'Your turn.'}`;
+      category = 'PING';
       break;
   }
 

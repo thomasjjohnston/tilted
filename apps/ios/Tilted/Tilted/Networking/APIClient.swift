@@ -40,7 +40,7 @@ actor APIClient {
     }
 
     func deleteAccount() async throws {
-        var request = URLRequest(url: baseURL.appendingPathComponent("/v1/me"))
+        var request = URLRequest(url: makeURL(path: "/v1/me"))
         request.httpMethod = "DELETE"
         if let token = token {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
@@ -126,28 +126,44 @@ actor APIClient {
     // MARK: - Match-up
 
     func getMatchUp(opponentId: String? = nil) async throws -> MatchUpResponse {
-        let path = opponentId.map { "/v1/matchup?opponent_user_id=\($0)" } ?? "/v1/matchup"
-        return try await get(path)
+        var query: [String: String] = [:]
+        if let opponentId { query["opponent_user_id"] = opponentId }
+        return try await get("/v1/matchup", query: query)
     }
 
     // MARK: - History
 
     func getHistory(matchId: String? = nil, favorites: Bool = false, result: String = "all") async throws -> HistoryResponse {
-        var path = "/v1/history"
-        if let matchId = matchId {
-            path = "/v1/match/\(matchId)/history"
-        }
-        var params: [String] = []
-        if favorites { params.append("favorites=true") }
-        if result != "all" { params.append("result=\(result)") }
-        if !params.isEmpty { path += "?" + params.joined(separator: "&") }
-        return try await get(path)
+        let path = matchId.map { "/v1/match/\($0)/history" } ?? "/v1/history"
+        var query: [String: String] = [:]
+        if favorites { query["favorites"] = "true" }
+        if result != "all" { query["result"] = result }
+        return try await get(path, query: query)
+    }
+
+    // MARK: - Ping
+
+    func pingOpponent(matchId: String) async throws -> PingResponse {
+        return try await post("/v1/match/\(matchId)/ping", body: [:] as [String: String])
     }
 
     // MARK: - HTTP
 
-    private func get<T: Decodable>(_ path: String, authenticated: Bool = true) async throws -> T {
-        var request = URLRequest(url: baseURL.appendingPathComponent(path))
+    /// Build a URL by appending `path` and attaching `query` as proper
+    /// percent-encoded query items. `URL.appendingPathComponent` alone
+    /// encodes `?` into `%3F`, so anything jammed into the path string
+    /// gets silently dropped from the request. Always go through this.
+    func makeURL(path: String, query: [String: String] = [:]) -> URL {
+        var comps = URLComponents(url: baseURL.appendingPathComponent(path), resolvingAgainstBaseURL: false)!
+        if !query.isEmpty {
+            // Sort by key so multi-param URLs are deterministic (and tests stable).
+            comps.queryItems = query.sorted { $0.key < $1.key }.map { URLQueryItem(name: $0.key, value: $0.value) }
+        }
+        return comps.url!
+    }
+
+    private func get<T: Decodable>(_ path: String, query: [String: String] = [:], authenticated: Bool = true) async throws -> T {
+        var request = URLRequest(url: makeURL(path: path, query: query))
         request.httpMethod = "GET"
         if authenticated, let token = token {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
@@ -156,7 +172,7 @@ actor APIClient {
     }
 
     private func post<T: Decodable>(_ path: String, body: Any, authenticated: Bool = true) async throws -> T {
-        var request = URLRequest(url: baseURL.appendingPathComponent(path))
+        var request = URLRequest(url: makeURL(path: path))
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         if authenticated, let token = token {
