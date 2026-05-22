@@ -23,15 +23,34 @@ struct TurnSummaryView: View {
 
     // MARK: - Math
 
-    private func resolvedNet(for hand: HandView) -> Int {
+    /// Resolved-net resolution order:
+    ///   1. Server snapshot (`my_resolved_net`).
+    ///   2. Server-provided contribution + winner — compute net deterministically.
+    ///   3. Final fallback: return nil so callers can render a dash.
+    /// myReserved is NOT a fallback — after settlement the server zeros
+    /// it, so `-myReserved` is always `-0 = 0` for losses (the bug).
+    func resolvedNetOptional(for hand: HandView) -> Int? {
         if let n = hand.myResolvedNet { return n }
-        // Fallback for hands where the snapshot hasn't landed yet (or for
-        // legacy DB rows): infer from outcome.
-        if hand.winnerUserId == currentUserId {
-            return max(hand.pot - hand.myReserved, 0)
+        if let contribution = hand.myContribution {
+            // Award = pot if you won, pot/2 (rounded down) if split, 0 if lost.
+            let award: Int
+            if hand.winnerUserId == currentUserId {
+                award = hand.pot
+            } else if hand.winnerUserId == nil && hand.status == "complete" {
+                award = hand.pot / 2
+            } else {
+                award = 0
+            }
+            return award - contribution
         }
-        if hand.winnerUserId == nil { return 0 }
-        return -hand.myReserved
+        return nil
+    }
+
+    /// Convenience for callers that need a non-nil int — returns 0 if
+    /// both the snapshot AND the contribution are unavailable. Use the
+    /// optional variant when you want to render a dash for that case.
+    private func resolvedNet(for hand: HandView) -> Int {
+        resolvedNetOptional(for: hand) ?? 0
     }
 
     private var netChange: Int {
@@ -135,10 +154,11 @@ struct TurnSummaryView: View {
     }
 
     private func groupNet(_ items: [(hand: HandView, isAuto: Bool)]) -> Int {
-        items.reduce(0) { acc, item in
-            if item.isAuto { return acc - item.hand.myReserved }
-            return acc + resolvedNet(for: item.hand)
-        }
+        // Auto-folds use the same resolvedNet helper now — the previous
+        // `-myReserved` shortcut returned -0 after settlement (the
+        // recurring "+0" bug). The helper falls through snapshot →
+        // contribution → 0 in order.
+        items.reduce(0) { acc, item in acc + resolvedNet(for: item.hand) }
     }
 
     // MARK: - Body
@@ -254,7 +274,11 @@ struct TurnSummaryView: View {
 
     private func handRow(hand: HandView, isAuto: Bool, group: GroupKind) -> some View {
         let isExpanded = expanded.contains(hand.handId)
-        let net = isAuto ? -hand.myReserved : resolvedNet(for: hand)
+        // Single source of truth via resolvedNetOptional — returns nil
+        // when neither snapshot nor contribution are present, so we
+        // render a dash instead of a misleading "+0".
+        let netOpt: Int? = resolvedNetOptional(for: hand)
+        let net: Int = netOpt ?? 0
 
         return VStack(spacing: 0) {
             Button {
@@ -289,12 +313,20 @@ struct TurnSummaryView: View {
 
                     Spacer()
 
-                    Text(net >= 0 ? "+\(net)" : "\(net)")
-                        .font(.custom("Georgia", size: 13).bold())
-                        .foregroundColor(
-                            net > 0 ? Color(hex: 0x4ea878)
-                            : (net < 0 ? .claret : .cream300)
-                        )
+                    if let netOpt {
+                        Text(netOpt >= 0 ? "+\(netOpt)" : "\(netOpt)")
+                            .font(.custom("Georgia", size: 13).bold())
+                            .foregroundColor(
+                                netOpt > 0 ? Color(hex: 0x4ea878)
+                                : (netOpt < 0 ? .claret : .cream300)
+                            )
+                    } else {
+                        // Snapshot AND contribution missing — render dash
+                        // rather than a misleading "+0" (the recurring bug).
+                        Text("—")
+                            .font(.custom("Georgia", size: 13).bold())
+                            .foregroundColor(.cream400)
+                    }
 
                     if !isAuto {
                         Image(systemName: "chevron.right")

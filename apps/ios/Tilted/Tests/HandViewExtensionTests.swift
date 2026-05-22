@@ -31,6 +31,10 @@ final class HandViewExtensionTests: XCTestCase {
             winnerUserId: winnerUserId,
             actionSummary: "",
             myResolvedNet: nil,
+            myContribution: nil,
+            opponentContribution: nil,
+            myShownIndices: nil,
+            opponentShownIndices: nil,
             lastAction: nil
         )
     }

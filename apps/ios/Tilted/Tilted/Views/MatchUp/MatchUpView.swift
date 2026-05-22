@@ -32,6 +32,9 @@ struct MatchUpView: View {
                                 momentsSection(data.moments)
                                 headToHeadSection(data.headToHead)
                                 pinnedHandsSection(data.pinnedHands)
+                                if let notable = data.notableHands, !notable.isEmpty {
+                                    notableHandsSection(notable)
+                                }
                             } else {
                                 noHistoryForOpponent
                             }
@@ -442,6 +445,92 @@ struct MatchUpView: View {
         .padding(.horizontal, 14)
         .padding(.top, 18)
         .padding(.bottom, 24)
+    }
+
+    // MARK: - Notable hands (chats + voluntary card shows)
+
+    @ViewBuilder
+    private func notableHandsSection(_ hands: [NotableHand]) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("💬 NOTABLE HANDS · \(hands.count)")
+                .font(.eyebrow)
+                .tracking(1.5)
+                .foregroundColor(.cream300)
+
+            Text("Hands with chats or voluntary card shows.")
+                .font(.system(size: 11))
+                .foregroundColor(.cream400)
+                .padding(.bottom, 4)
+
+            ForEach(hands) { hand in
+                notableRow(hand)
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.top, 4)
+        .padding(.bottom, 24)
+    }
+
+    private func notableRow(_ hand: NotableHand) -> some View {
+        Button {
+            selectedHandId = IdentifiableString(value: hand.handId)
+        } label: {
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("M\(hand.matchIndex) · R\(hand.roundIndex) · H\(hand.handIndexInRound + 1)")
+                        .font(.system(size: 10, weight: .medium))
+                        .tracking(0.8)
+                        .foregroundColor(.cream300)
+                    HStack(spacing: 3) {
+                        ForEach(hand.myHole, id: \.self) { c in
+                            PlayingCardView(card: c, size: .small)
+                        }
+                        if let opp = hand.opponentHole, !opp.isEmpty {
+                            Text("vs")
+                                .font(.system(size: 10))
+                                .foregroundColor(.cream400)
+                                .padding(.horizontal, 2)
+                            ForEach(opp, id: \.self) { c in
+                                PlayingCardView(card: c, size: .small)
+                            }
+                        }
+                    }
+                }
+                Spacer()
+                VStack(alignment: .trailing, spacing: 2) {
+                    if hand.messageCount > 0 {
+                        Label("\(hand.messageCount)", systemImage: "bubble.left.fill")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(.gold500)
+                            .labelStyle(.titleAndIcon)
+                    }
+                    if hand.hasShownCards {
+                        Label("Shown", systemImage: "eye.fill")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundColor(.gold500)
+                            .labelStyle(.titleAndIcon)
+                    }
+                    if let ts = TimestampFormatter.format(hand.lastActivityAt) {
+                        Text(ts)
+                            .font(.system(size: 9))
+                            .foregroundColor(.cream400)
+                    }
+                }
+            }
+            .padding(12)
+            .background(
+                LinearGradient(
+                    colors: [Color.white.opacity(0.03), Color.black.opacity(0.2)],
+                    startPoint: .top, endPoint: .bottom
+                )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(Color.gold500.opacity(0.2), lineWidth: 1)
+            )
+            .cornerRadius(10)
+        }
+        .buttonStyle(.plain)
     }
 
     private func pinnedCard(_ pin: PinnedHand) -> some View {

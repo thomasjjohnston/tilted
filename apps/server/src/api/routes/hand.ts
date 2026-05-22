@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { getDb } from '../context.js';
 import { applyAction, applyBatchActions, getLegalActions } from '../../game/turn.js';
-import { getHandDetail } from '../../game/hand.js';
+import { getHandDetail, showCards } from '../../game/hand.js';
 import { toggleFavorite } from '../../game/favorites.js';
 
 const actionBody = z.object({
@@ -23,6 +23,10 @@ const batchActionBody = z.object({
 
 const favoriteBody = z.object({
   favorite: z.boolean(),
+});
+
+const showCardsBody = z.object({
+  indices: z.array(z.union([z.literal(0), z.literal(1)])).min(1).max(2),
 });
 
 export async function handRoutes(app: FastifyInstance) {
@@ -78,5 +82,25 @@ export async function handRoutes(app: FastifyInstance) {
     const db = getDb();
     await toggleFavorite(db, req.userId, handId, favorite);
     return reply.status(204).send();
+  });
+
+  // Voluntarily reveal one or both hole cards on a completed hand.
+  app.post('/hand/:handId/show', async (req, reply) => {
+    const { handId } = req.params as { handId: string };
+    const { indices } = showCardsBody.parse(req.body);
+    const db = getDb();
+    try {
+      return await showCards(db, handId, req.userId, indices);
+    } catch (e) {
+      const msg = (e as Error).message;
+      if (msg === 'Not a participant') return reply.status(403).send({ error: msg });
+      if (msg === 'Hand not found' || msg === 'Match not found' || msg === 'Round not found') {
+        return reply.status(404).send({ error: msg });
+      }
+      if (msg === 'Hand is not complete' || msg === 'Invalid card index' || msg === 'Must show at least one card') {
+        return reply.status(400).send({ error: msg });
+      }
+      throw e;
+    }
   });
 }

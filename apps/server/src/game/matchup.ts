@@ -14,6 +14,7 @@ export interface MatchUpView {
   moments: Moment[];
   head_to_head: HeadToHead;
   pinned_hands: PinnedHand[];
+  notable_hands: NotableHand[];
 }
 
 interface UserSummary {
@@ -69,6 +70,29 @@ interface PinnedHand {
   favorited_at: string;
 }
 
+/**
+ * A hand the user can drill back into — has either chat activity or a
+ * voluntary card show by either user. Sorted by most-recent activity.
+ */
+interface NotableHand {
+  hand_id: string;
+  match_index: number;
+  hand_index_in_round: number;
+  round_index: number;
+  my_hole: string[];
+  /** Opponent cards visible to the user — full hole at showdown,
+   *  voluntary-shown subset otherwise. */
+  opponent_hole: string[] | null;
+  board: string[];
+  pot: number;
+  winner_user_id: string | null;
+  message_count: number;
+  /** True if either user has voluntarily shown any card on this hand. */
+  has_shown_cards: boolean;
+  /** ISO timestamp of the most recent message or show event on this hand. */
+  last_activity_at: string;
+}
+
 // ── Entry point ──────────────────────────────────────────────────────────────
 
 function initials(name: string): string {
@@ -101,11 +125,12 @@ export async function getMatchUp(
   ]);
   if (!youUser || !oppUser) throw new Error('Users not found');
 
-  const [scoreboard, headToHead, moments, pinnedHands] = await Promise.all([
+  const [scoreboard, headToHead, moments, pinnedHands, notableHands] = await Promise.all([
     computeScoreboard(db, userId, opponentId),
     computeHeadToHead(db, userId, opponentId),
     computeMoments(db, userId, opponentId, oppUser.displayName),
     computePinnedHands(db, userId, opponentId),
+    computeNotableHands(db, userId, opponentId),
   ]);
 
   return {
@@ -115,6 +140,7 @@ export async function getMatchUp(
     moments,
     head_to_head: headToHead,
     pinned_hands: pinnedHands,
+    notable_hands: notableHands,
   };
 }
 
@@ -631,4 +657,113 @@ function classifyPinnedTag(
     default:
       return { tag: 'highcard', tagCopy: `${potBb} BB pot` };
   }
+}
+
+// ── Notable hands (chats + voluntary shows) ──────────────────────────────────
+
+async function computeNotableHands(
+  db: Database,
+  userId: string,
+  opponentId: string,
+): Promise<NotableHand[]> {
+  const rows = await db.execute<{
+    hand_id: string;
+    hand_index: number;
+    round_index: number;
+    match_index_raw: string;
+    user_a_hole: string;
+    user_b_hole: string;
+    shown_indices_by_a: number[] | null;
+    shown_indices_by_b: number[] | null;
+    user_a_id: string;
+    board: string;
+    pot: number;
+    winner_user_id: string | null;
+    terminal_reason: string | null;
+    message_count: string;
+    last_activity_at: string;
+  }>(sql`
+    WITH paired AS (
+      SELECT
+        h.hand_id, h.hand_index, r.round_index, m.user_a_id, m.started_at,
+        h.user_a_hole::text AS user_a_hole,
+        h.user_b_hole::text AS user_b_hole,
+        h.shown_indices_by_a,
+        h.shown_indices_by_b,
+        h.board::text AS board,
+        h.pot, h.winner_user_id, h.terminal_reason,
+        h.completed_at,
+        (SELECT COUNT(*) FROM messages msg WHERE msg.hand_id = h.hand_id)::text AS message_count,
+        (SELECT MAX(msg.created_at) FROM messages msg WHERE msg.hand_id = h.hand_id) AS last_message_at
+      FROM hands h
+      JOIN rounds r ON r.round_id = h.round_id
+      JOIN matches m ON m.match_id = r.match_id
+      WHERE ((m.user_a_id = ${userId} AND m.user_b_id = ${opponentId})
+          OR (m.user_a_id = ${opponentId} AND m.user_b_id = ${userId}))
+        AND (
+          array_length(h.shown_indices_by_a, 1) > 0
+          OR array_length(h.shown_indices_by_b, 1) > 0
+          OR EXISTS (SELECT 1 FROM messages msg WHERE msg.hand_id = h.hand_id)
+        )
+    )
+    SELECT
+      hand_id, hand_index, round_index, user_a_id,
+      user_a_hole, user_b_hole, shown_indices_by_a, shown_indices_by_b,
+      board, pot, winner_user_id, terminal_reason,
+      message_count,
+      COALESCE(last_message_at, completed_at)::text AS last_activity_at,
+      DENSE_RANK() OVER (ORDER BY started_at)::text AS match_index_raw
+    FROM paired
+    ORDER BY COALESCE(last_message_at, completed_at) DESC
+    LIMIT 50
+  `);
+
+  return (rows as unknown as Array<{
+    hand_id: string;
+    hand_index: number;
+    round_index: number;
+    match_index_raw: string;
+    user_a_hole: string;
+    user_b_hole: string;
+    shown_indices_by_a: number[] | null;
+    shown_indices_by_b: number[] | null;
+    user_a_id: string;
+    board: string;
+    pot: number;
+    winner_user_id: string | null;
+    terminal_reason: string | null;
+    message_count: string;
+    last_activity_at: string;
+  }>).map((r): NotableHand => {
+    const isUserA = r.user_a_id === userId;
+    const myHole = JSON.parse(isUserA ? r.user_a_hole : r.user_b_hole) as string[];
+    const opponentFullHole = JSON.parse(isUserA ? r.user_b_hole : r.user_a_hole) as string[];
+    const opponentShown = (isUserA ? r.shown_indices_by_b : r.shown_indices_by_a) ?? [];
+
+    let opponentHole: string[] | null = null;
+    if (r.terminal_reason === 'showdown') {
+      opponentHole = opponentFullHole;
+    } else if (opponentShown.length > 0) {
+      opponentHole = opponentShown
+        .map((i) => opponentFullHole[i])
+        .filter((c): c is string => typeof c === 'string');
+    }
+
+    const myShown = (isUserA ? r.shown_indices_by_a : r.shown_indices_by_b) ?? [];
+
+    return {
+      hand_id: r.hand_id,
+      hand_index_in_round: r.hand_index,
+      round_index: r.round_index,
+      match_index: Number(r.match_index_raw),
+      my_hole: myHole,
+      opponent_hole: opponentHole,
+      board: JSON.parse(r.board) as string[],
+      pot: r.pot,
+      winner_user_id: r.winner_user_id,
+      message_count: Number(r.message_count ?? 0),
+      has_shown_cards: myShown.length > 0 || opponentShown.length > 0,
+      last_activity_at: r.last_activity_at,
+    };
+  });
 }

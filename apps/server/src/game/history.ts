@@ -24,6 +24,8 @@ export interface HistoryHandView {
   completed_at: string | null;
   my_hole: string[];
   opponent_hole: string[] | null;
+  my_shown_indices: number[];
+  opponent_shown_indices: number[];
   action_sketch: string;
 }
 
@@ -100,6 +102,7 @@ export async function getHistory(
       h.board::text, h.pot, h.winner_user_id, h.terminal_reason,
       h.completed_at::text,
       h.user_a_hole::text, h.user_b_hole::text,
+      h.shown_indices_by_a, h.shown_indices_by_b,
       m.user_a_id,
       f.hand_id as fav_hand_id,
       r.sb_user_id, r.bb_user_id
@@ -124,6 +127,8 @@ export async function getHistory(
     completed_at: string | null;
     user_a_hole: string;
     user_b_hole: string;
+    shown_indices_by_a: number[] | null;
+    shown_indices_by_b: number[] | null;
     user_a_id: string;
     fav_hand_id: string | null;
     sb_user_id: string;
@@ -139,11 +144,22 @@ export async function getHistory(
       ? JSON.parse(row.user_a_hole) as string[]
       : JSON.parse(row.user_b_hole) as string[];
 
+    const opponentFullHole = (isUserA
+      ? JSON.parse(row.user_b_hole) as string[]
+      : JSON.parse(row.user_a_hole) as string[]);
+
+    const myShownIndices = (isUserA ? row.shown_indices_by_a : row.shown_indices_by_b) ?? [];
+    const opponentShownIndices = (isUserA ? row.shown_indices_by_b : row.shown_indices_by_a) ?? [];
+
+    // Same gating as buildHandView: showdown reveals everything;
+    // otherwise only show the indices opponent volunteered.
     let opponentHole: string[] | null = null;
     if (row.terminal_reason === 'showdown') {
-      opponentHole = isUserA
-        ? JSON.parse(row.user_b_hole) as string[]
-        : JSON.parse(row.user_a_hole) as string[];
+      opponentHole = opponentFullHole;
+    } else if (opponentShownIndices.length > 0) {
+      opponentHole = opponentShownIndices
+        .map((i) => opponentFullHole[i])
+        .filter((c): c is string => typeof c === 'string');
     }
 
     return {
@@ -159,6 +175,8 @@ export async function getHistory(
       completed_at: row.completed_at,
       my_hole: myHole,
       opponent_hole: opponentHole,
+      my_shown_indices: myShownIndices,
+      opponent_shown_indices: opponentShownIndices,
       action_sketch: '', // Will be filled by action sketch generator
     };
   });

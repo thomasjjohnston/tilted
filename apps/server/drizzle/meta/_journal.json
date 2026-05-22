@@ -36,6 +36,20 @@
       "when": 1779840000000,
       "tag": "0004_resolved_net_snapshots",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1780012800000,
+      "tag": "0005_card_shows",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1780012860000,
+      "tag": "0006_messages",
+      "breakpoints": true
     }
   ]
 }

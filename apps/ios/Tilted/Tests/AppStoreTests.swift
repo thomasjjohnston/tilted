@@ -85,6 +85,10 @@ final class AppStoreTests: XCTestCase {
             winnerUserId: "user-me",
             actionSummary: "",
             myResolvedNet: 5,
+            myContribution: nil,
+            opponentContribution: nil,
+            myShownIndices: nil,
+            opponentShownIndices: nil,
             lastAction: nil
         )
     }

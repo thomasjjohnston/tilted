@@ -72,6 +72,10 @@ struct RevealView: View {
                             winnerUserId: detail.winnerUserId,
                             actionSummary: hand.actionSummary,
                             myResolvedNet: hand.myResolvedNet,
+                            myContribution: hand.myContribution,
+                            opponentContribution: hand.opponentContribution,
+                            myShownIndices: hand.myShownIndices,
+                            opponentShownIndices: hand.opponentShownIndices,
                             lastAction: hand.lastAction
                         )
                         resolved.append(resolvedHand)

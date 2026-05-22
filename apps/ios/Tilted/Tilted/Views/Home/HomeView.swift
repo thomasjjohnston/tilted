@@ -1,5 +1,14 @@
 import SwiftUI
 
+/// Wrapper passed to the fullScreenCover — either a single hand to
+/// route through CompletedHandRouterView, or multiple grouped preflop
+/// folds to render via GroupedFoldsView.
+struct CompletionPresentation: Identifiable {
+    let id: String   // first hand's id; stable for `.fullScreenCover(item:)`
+    let hands: [HandView]
+    let match: MatchState
+}
+
 struct HomeView: View {
     @Environment(AppStore.self) private var store
     @Environment(\.scenePhase) private var scenePhase
@@ -8,6 +17,7 @@ struct HomeView: View {
     @State private var revealMatch: MatchState?
     @State private var revealRound: RoundView?
     @State private var pingToast: String?
+    @State private var chatMatch: MatchState?
 
     /// Active matches the current user is in — drives the list view.
     private var activeMatches: [MatchState] {
@@ -34,7 +44,8 @@ struct HomeView: View {
                                 MatchRowCard(
                                     match: match,
                                     onTap: { openMatch(match) },
-                                    onPing: { Task { await ping(match: match) } }
+                                    onPing: { Task { await ping(match: match) } },
+                                    onChat: { chatMatch = match }
                                 )
                             }
                             startMatchButton
@@ -133,21 +144,54 @@ struct HomeView: View {
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active { Task { await store.refresh() } }
             }
+            .sheet(item: $chatMatch) { match in
+                MatchChatView(match: match)
+                    .environment(store)
+            }
             // Retroactive Completed Hand surfacing — if any hand
             // resolved while the user wasn't actively in a turn, the
             // queue at store.unseenCompletions presents them
             // sequentially before the user can interact with home.
-            .fullScreenCover(item: Binding(
-                get: { store.unseenCompletions.first },
-                set: { _ in }
-            )) { hand in
-                CompletedHandRouterView(
-                    hand: hand,
-                    match: matchFor(hand) ?? placeholderMatch,
-                    onContinue: { store.acknowledgeCompletion(hand.handId) }
-                )
-                .environment(store)
+            // FoldGrouper collapses identical-loss preflop folds into
+            // a single screen (per product direction).
+            .fullScreenCover(item: nextCompletionPresentation) { presentation in
+                completionScreen(for: presentation)
+                    .environment(store)
             }
+        }
+    }
+
+    /// What to surface next: either a single hand (router decides which
+    /// completion view) or a grouped set of preflop folds.
+    private var nextCompletionPresentation: Binding<CompletionPresentation?> {
+        Binding(
+            get: {
+                let groups = FoldGrouper.group(store.unseenCompletions, currentUserId: store.currentUserId)
+                guard let first = groups.first, let head = first.first else { return nil }
+                return CompletionPresentation(
+                    id: head.handId,
+                    hands: first,
+                    match: matchFor(head) ?? placeholderMatch
+                )
+            },
+            set: { _ in }
+        )
+    }
+
+    @ViewBuilder
+    private func completionScreen(for p: CompletionPresentation) -> some View {
+        if p.hands.count > 1 {
+            GroupedFoldsView(
+                hands: p.hands,
+                match: p.match,
+                onContinue: { store.acknowledgeCompletions(p.hands.map(\.handId)) }
+            )
+        } else {
+            CompletedHandRouterView(
+                hand: p.hands[0],
+                match: p.match,
+                onContinue: { store.acknowledgeCompletion(p.hands[0].handId) }
+            )
         }
     }
 
@@ -274,6 +318,7 @@ struct MatchRowCard: View {
     let match: MatchState
     let onTap: () -> Void
     var onPing: (() -> Void)? = nil
+    var onChat: (() -> Void)? = nil
 
     private var opponentInitials: String {
         String(match.opponent.displayName.prefix(2)).uppercased()
@@ -360,28 +405,50 @@ struct MatchRowCard: View {
                 .padding(14)
             }
 
-            // Ping button — only visible while it's the opponent's turn.
-            if canPing, let onPing {
-                Button(action: onPing) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "bell.fill")
-                            .font(.system(size: 11))
-                        Text("Ping \(opponentFirst)")
-                            .font(.system(size: 12, weight: .semibold))
-                    }
-                    .foregroundColor(.felt800)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 7)
-                    .background(
-                        LinearGradient(
-                            colors: [.gold500, .gold700],
-                            startPoint: .top, endPoint: .bottom
+            HStack(spacing: 8) {
+                // Ping button — only visible while it's the opponent's turn.
+                if canPing, let onPing {
+                    Button(action: onPing) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "bell.fill")
+                                .font(.system(size: 11))
+                            Text("Ping \(opponentFirst)")
+                                .font(.system(size: 12, weight: .semibold))
+                        }
+                        .foregroundColor(.felt800)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 7)
+                        .background(
+                            LinearGradient(
+                                colors: [.gold500, .gold700],
+                                startPoint: .top, endPoint: .bottom
+                            )
                         )
-                    )
-                    .clipShape(Capsule())
+                        .clipShape(Capsule())
+                    }
                 }
-                .padding(.bottom, 10)
+
+                // Chat button — always available for active matches.
+                if let onChat {
+                    Button(action: onChat) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "bubble.left.fill")
+                                .font(.system(size: 11))
+                            Text("Chat")
+                                .font(.system(size: 12, weight: .semibold))
+                        }
+                        .foregroundColor(.cream100)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 7)
+                        .background(Color.black.opacity(0.35))
+                        .overlay(
+                            Capsule().stroke(Color.gold500.opacity(0.3), lineWidth: 1)
+                        )
+                        .clipShape(Capsule())
+                    }
+                }
             }
+            .padding(.bottom, canPing || onChat != nil ? 10 : 0)
         }
         .background(
             LinearGradient(

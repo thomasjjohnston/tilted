@@ -147,6 +147,28 @@ actor APIClient {
         return try await post("/v1/match/\(matchId)/ping", body: [:] as [String: String])
     }
 
+    // MARK: - Show cards
+
+    func showCards(handId: String, indices: [Int]) async throws -> HandDetail {
+        return try await post("/v1/hand/\(handId)/show", body: ["indices": indices])
+    }
+
+    // MARK: - Chat messages
+
+    func sendMessage(matchId: String, body: String, handId: String? = nil) async throws -> Message {
+        var payload: [String: Any] = ["body": body]
+        if let handId { payload["hand_id"] = handId }
+        return try await post("/v1/match/\(matchId)/messages", body: payload)
+    }
+
+    func listMessages(matchId: String, handId: String? = nil, cursor: String? = nil, limit: Int? = nil) async throws -> MessageListResponse {
+        var query: [String: String] = [:]
+        if let handId { query["hand_id"] = handId }
+        if let cursor { query["cursor"] = cursor }
+        if let limit { query["limit"] = String(limit) }
+        return try await get("/v1/match/\(matchId)/messages", query: query)
+    }
+
     // MARK: - HTTP
 
     /// Build a URL by appending `path` and attaching `query` as proper

@@ -197,6 +197,7 @@ Both players see the reveal next time they open the app. If one opens the app be
 - Both players' hole cards are revealed and stored in the hand record.
 - The losing player's cards are revealed and stored regardless (no muck-hide option in MVP — transparency is more valuable than etiquette at two users).
 - Folded hands never reveal the folder's hole cards to the opponent, either in real-time or in summaries. The cards remain in the persisted record but are gated at the API boundary by `terminal_reason !== 'showdown'` — only the folder themselves sees them on review. (This preserves bluff / information asymmetry without destroying data, so the folder retains their own hand history for replay and analytics.)
+- **Voluntary card shows** are a separate mechanic, available on any **completed** hand (showdown OR fold). Each user can choose to reveal one or both of their hole cards to the opponent — useful for showing a bluff after a successful fold, or showing a strong fold. Shows are server-verified (the cards must be real); persisted on `hands.shown_indices_by_a/b` as arrays of 0/1 indices. Reveals are one-way — calling `/v1/hand/:handId/show` with `[0]` then `[1]` adds the second card; once shown a card cannot be un-shown. Lying about your cards is a social game on top of this — it lives in chat text (§12.5), not in the show mechanic.
 
 ## 12. Hand summaries
 
@@ -230,9 +231,31 @@ Opened from the summary card. Shows:
 
 Either player can favorite any hand. Favorites are per-user (my favorites are not the opponent's favorites). Favorites are filterable in the History screen.
 
-### No in-app comments, no share sheet in MVP
+### No share sheet in MVP
 
 Deferred. Users can take iOS screenshots and share via iMessage. Favorite + screenshot covers the MVP requirement.
+
+## 12.5 Chats
+
+Text-only messaging between the two participants of a match. Two surfaces share the same `messages` table:
+
+- **Per-match thread**: `GET /v1/match/:matchId/messages` returns every message in the match (whether scoped to a specific hand or not), oldest-first per page (paginated by `cursor` = `created_at` of the oldest message returned, going further back).
+- **Per-hand sidebar**: `GET /v1/match/:matchId/messages?hand_id=…` filters to messages on that hand only.
+
+Send: `POST /v1/match/:matchId/messages` with `{ body, hand_id? }`. Body is plain text, max 500 chars, must be non-empty after `trim()`. Hand-scoped messages appear in both the per-hand sidebar AND the per-match thread.
+
+Each new message fires a `chat_message` push to the opponent (no rate limit, no coalescing in MVP). The push body is the message body truncated to 80 chars.
+
+No read receipts, no typing indicators, no edits, no deletes, no images in MVP.
+
+## 12.6 Notable hands
+
+A new section in the Match-Up screen lists hands worth revisiting. A hand qualifies as "notable" when **either** condition holds:
+
+- It has at least one chat message (with `hand_id` matching the hand).
+- Either participant has voluntarily shown at least one card on it (non-empty `shown_indices_by_a` or `shown_indices_by_b`).
+
+Sort: most recent activity first (max of last message's `created_at` and the hand's `completed_at`). Limit 50 most-recent entries.
 
 ## 13. UI / screens
 

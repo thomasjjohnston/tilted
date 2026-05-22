@@ -26,6 +26,10 @@ final class HandPickerTests: XCTestCase {
             winnerUserId: nil,
             actionSummary: "",
             myResolvedNet: nil,
+            myContribution: nil,
+            opponentContribution: nil,
+            myShownIndices: nil,
+            opponentShownIndices: nil,
             lastAction: nil
         )
     }
