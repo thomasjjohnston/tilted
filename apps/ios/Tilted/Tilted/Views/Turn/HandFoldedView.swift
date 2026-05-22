@@ -90,6 +90,11 @@ struct HandFoldedView: View {
                     .padding(.horizontal, 28)
                     .padding(.top, 24)
 
+                // Optionally show what you folded with — useful for
+                // bluffs you want to reveal post-hoc.
+                ShowCardsButton(hand: hand, opponentName: opponentName)
+                    .padding(.top, 14)
+
                 Spacer()
 
                 continueButton

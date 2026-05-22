@@ -97,6 +97,11 @@ struct HandWonView: View {
                     .padding(.horizontal, 28)
                     .padding(.top, 24)
 
+                // Voluntary show — let the user reveal their bluff (or
+                // strong fold-induce) to the opponent.
+                ShowCardsButton(hand: hand, opponentName: opponentName)
+                    .padding(.top, 14)
+
                 Spacer()
 
                 continueButton

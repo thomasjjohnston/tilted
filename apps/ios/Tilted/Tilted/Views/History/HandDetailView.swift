@@ -36,12 +36,25 @@ struct HandDetailView: View {
                         .foregroundColor(.cream100)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        isFavorited.toggle()
-                        Task { await store.toggleFavorite(handId: handId, favorite: isFavorited) }
-                    } label: {
-                        Image(systemName: isFavorited ? "star.fill" : "star")
-                            .foregroundColor(.gold500)
+                    HStack(spacing: 10) {
+                        // Voluntary show-cards entry — retroactive,
+                        // available on any resolved hand.
+                        if let d = detail, d.status == "complete" {
+                            ShowCardsButton(
+                                handId: d.handId,
+                                myHole: d.myHole,
+                                initialShownIndices: d.myShownIndices ?? [],
+                                opponentName: "Opp",
+                                onShown: { updated in detail = updated }
+                            )
+                        }
+                        Button {
+                            isFavorited.toggle()
+                            Task { await store.toggleFavorite(handId: handId, favorite: isFavorited) }
+                        } label: {
+                            Image(systemName: isFavorited ? "star.fill" : "star")
+                                .foregroundColor(.gold500)
+                        }
                     }
                 }
             }

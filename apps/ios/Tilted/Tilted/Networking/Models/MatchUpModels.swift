@@ -7,11 +7,46 @@ struct MatchUpResponse: Codable {
     let moments: [Moment]
     let headToHead: HeadToHead
     let pinnedHands: [PinnedHand]
+    let notableHands: [NotableHand]?
 
     enum CodingKeys: String, CodingKey {
         case you, opponent, scoreboard, moments
         case headToHead = "head_to_head"
         case pinnedHands = "pinned_hands"
+        case notableHands = "notable_hands"
+    }
+}
+
+/// Hand worth revisiting: has chat messages or voluntary card shows.
+struct NotableHand: Codable, Identifiable {
+    let handId: String
+    let handIndexInRound: Int
+    let roundIndex: Int
+    let matchIndex: Int
+    let myHole: [String]
+    let opponentHole: [String]?
+    let board: [String]
+    let pot: Int
+    let winnerUserId: String?
+    let messageCount: Int
+    let hasShownCards: Bool
+    let lastActivityAt: String
+
+    var id: String { handId }
+
+    enum CodingKeys: String, CodingKey {
+        case handId = "hand_id"
+        case handIndexInRound = "hand_index_in_round"
+        case roundIndex = "round_index"
+        case matchIndex = "match_index"
+        case myHole = "my_hole"
+        case opponentHole = "opponent_hole"
+        case board
+        case pot
+        case winnerUserId = "winner_user_id"
+        case messageCount = "message_count"
+        case hasShownCards = "has_shown_cards"
+        case lastActivityAt = "last_activity_at"
     }
 }
 

@@ -8,7 +8,8 @@ export type NotifKind =
   | 'turn_handoff'
   | 'round_complete'
   | 'match_ended'
-  | 'ping';
+  | 'ping'
+  | 'chat_message';
 
 export interface NotifInput {
   kind: NotifKind;
@@ -22,6 +23,8 @@ export interface NotifInput {
   winnerUserId?: string;
   /** Only set when kind === 'ping' — the randomized quip body. */
   quip?: string;
+  /** Only set when kind === 'chat_message' — the message body (will be truncated for the push). */
+  messageBody?: string;
   /** deterministic id — used as apns-id for idempotent retries. */
   dedupeKey: string;
 }
@@ -83,6 +86,13 @@ export async function dispatch(db: Database | Transaction, n: NotifInput): Promi
       body = `${opponentFirst}: ${n.quip ?? 'Your turn.'}`;
       category = 'PING';
       break;
+    case 'chat_message': {
+      const raw = n.messageBody ?? '';
+      const truncated = raw.length > 80 ? `${raw.slice(0, 79)}…` : raw;
+      body = `${opponentFirst}: ${truncated}`;
+      category = 'CHAT';
+      break;
+    }
   }
 
   try {

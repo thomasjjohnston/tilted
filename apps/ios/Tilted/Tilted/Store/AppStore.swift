@@ -38,6 +38,12 @@ final class AppStore {
     /// of this queue and pops as the user dismisses each.
     var unseenCompletions: [HandView] = []
 
+    /// Per-thread message cache. Key format:
+    ///   "<matchId>"            — full match thread
+    ///   "<matchId>#<handId>"   — hand-scoped sidebar
+    /// Populated by loadMessages / appended by sendMessage.
+    var messagesByCache: [String: [Message]] = [:]
+
     private let seenCompletionsKey = "tilted.seenCompletions"
 
     /// Back-compat alias for the old name used by TurnView until I2.
@@ -76,6 +82,18 @@ final class AppStore {
         } else {
             unseenCompletions.removeAll { $0.handId == handId }
         }
+    }
+
+    /// Batch variant — used when a grouped Completed Hand surface
+    /// dismisses, acknowledging every hand in the group with a single
+    /// UserDefaults write (less chatty than calling acknowledgeCompletion
+    /// N times).
+    @MainActor
+    func acknowledgeCompletions(_ handIds: [String]) {
+        for id in handIds { seenCompletions.insert(id) }
+        persistSeenCompletions()
+        let idSet = Set(handIds)
+        unseenCompletions.removeAll { idSet.contains($0.handId) }
     }
 
     /// Diff resolved hands against seenCompletions; queue anything new.
@@ -246,6 +264,10 @@ final class AppStore {
             winnerUserId: old.winnerUserId,
             actionSummary: old.actionSummary,
             myResolvedNet: old.myResolvedNet,
+            myContribution: old.myContribution,
+            opponentContribution: old.opponentContribution,
+            myShownIndices: old.myShownIndices,
+            opponentShownIndices: old.opponentShownIndices,
             lastAction: old.lastAction
         )
         round.hands[idx] = optimistic
@@ -325,6 +347,42 @@ final class AppStore {
     func toggleFavorite(handId: String, favorite: Bool) async {
         do {
             try await APIClient.shared.toggleFavorite(handId: handId, favorite: favorite)
+        } catch {
+            self.error = error.localizedDescription
+        }
+    }
+
+    // MARK: - Chat
+
+    /// Cache key used by chat views. Match thread keys to the bare
+    /// matchId; hand-sidebars append the handId.
+    private func cacheKey(matchId: String, handId: String?) -> String {
+        if let handId { return "\(matchId)#\(handId)" }
+        return matchId
+    }
+
+    @MainActor
+    func loadMessages(matchId: String, handId: String? = nil) async {
+        do {
+            let resp = try await APIClient.shared.listMessages(matchId: matchId, handId: handId)
+            messagesByCache[cacheKey(matchId: matchId, handId: handId)] = resp.messages
+        } catch {
+            self.error = error.localizedDescription
+        }
+    }
+
+    @MainActor
+    func sendMessage(matchId: String, body: String, handId: String? = nil) async {
+        do {
+            let msg = try await APIClient.shared.sendMessage(matchId: matchId, body: body, handId: handId)
+            // Append to the relevant cache(s). Hand-scoped messages live
+            // in both the hand sidebar AND the full match thread.
+            let matchKey = cacheKey(matchId: matchId, handId: nil)
+            messagesByCache[matchKey, default: []].append(msg)
+            if let handId {
+                let handKey = cacheKey(matchId: matchId, handId: handId)
+                messagesByCache[handKey, default: []].append(msg)
+            }
         } catch {
             self.error = error.localizedDescription
         }

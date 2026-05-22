@@ -228,10 +228,26 @@ function buildHandView(
   handActions: (typeof actions.$inferSelect)[],
 ): HandView {
   const myHole = isUserA ? h.userAHole : h.userBHole;
-  let opponentHole: string[] | null = null;
+  const opponentFullHole = (isUserA ? h.userBHole : h.userAHole) as string[];
 
+  // Voluntary card shows — requesting user always sees their own; the
+  // opponent's are revealed conditionally below.
+  const myShownIndices = (isUserA ? h.shownIndicesByA : h.shownIndicesByB) ?? [];
+  const opponentShownIndices = (isUserA ? h.shownIndicesByB : h.shownIndicesByA) ?? [];
+
+  // Opponent's hole visible to the requesting user:
+  //   - showdown: full reveal
+  //   - awaiting_runout: full reveal (both all-in, cards already pinned)
+  //   - else: only the indices opponent voluntarily showed
+  let opponentHole: string[] | null = null;
   if (h.status === 'complete' && h.terminalReason === 'showdown') {
-    opponentHole = isUserA ? h.userBHole : h.userAHole;
+    opponentHole = opponentFullHole;
+  } else if (h.status === 'awaiting_runout') {
+    opponentHole = opponentFullHole;
+  } else if (opponentShownIndices.length > 0) {
+    opponentHole = opponentShownIndices
+      .map((i: number) => opponentFullHole[i])
+      .filter((c): c is string => typeof c === 'string');
   }
 
   const myReserved = isUserA ? h.userAReserved : h.userBReserved;
@@ -258,6 +274,22 @@ function buildHandView(
   const myResolvedNet = h.status === 'complete'
     ? (isUserA ? h.resolvedNetForA : h.resolvedNetForB)
     : null;
+
+  // Defense-in-depth against DB rollbacks that wipe the snapshot.
+  // Per-user contribution to the hand is reconstructible from the
+  // actions table + blinds, so iOS can compute resolved net even if
+  // the snapshot column is NULL.
+  const sbIsUserA = round.sbUserId === match.userAId;
+  const aBlind = sbIsUserA ? match.blindSmall : match.blindBig;
+  const bBlind = sbIsUserA ? match.blindBig : match.blindSmall;
+  let aContribution = aBlind;
+  let bContribution = bBlind;
+  for (const a of sortedActions) {
+    if (a.actingUserId === match.userAId) aContribution += a.amount;
+    else if (a.actingUserId === match.userBId) bContribution += a.amount;
+  }
+  const myContribution = isUserA ? aContribution : bContribution;
+  const opponentContribution = isUserA ? bContribution : aContribution;
 
   // Last action summary used by the focused turn-table to render a
   // "Sarah raised to 80" callout. Picks the most recent opponent action
@@ -289,6 +321,10 @@ function buildHandView(
     winner_user_id: h.winnerUserId,
     action_summary: summary,
     my_resolved_net: myResolvedNet,
+    my_contribution: myContribution,
+    opponent_contribution: opponentContribution,
+    my_shown_indices: myShownIndices,
+    opponent_shown_indices: opponentShownIndices,
     last_action: lastAction,
   };
 }
@@ -408,6 +444,16 @@ export interface HandView {
    *  in_progress or awaiting_runout. Snapshotted to survive ledger
    *  settlement (which zeros myReserved). */
   my_resolved_net: number | null;
+  /** Sum of the requesting user's contributions to this hand (blinds +
+   *  every bet/raise/call amount). Defense-in-depth: lets iOS compute
+   *  resolved_net deterministically even if the snapshot column was
+   *  wiped by a DB rollback. */
+  my_contribution: number;
+  opponent_contribution: number;
+  /** Indices (0/1) of cards the requesting user voluntarily shared. */
+  my_shown_indices: number[];
+  /** Indices (0/1) of cards the opponent voluntarily shared with the user. */
+  opponent_shown_indices: number[];
   /** Most recent opponent action — used by the focused turn table
    *  to render a "Sarah raised to 80" callout. */
   last_action: {

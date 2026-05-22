@@ -111,6 +111,14 @@ struct HandView: Codable, Identifiable {
     let winnerUserId: String?
     let actionSummary: String
     let myResolvedNet: Int?
+    /// Defense-in-depth: sum of user's contributions on the hand. Lets
+    /// iOS compute net deterministically when the snapshot is null.
+    let myContribution: Int?
+    let opponentContribution: Int?
+    /// Indices (0/1) the requesting user voluntarily shared.
+    let myShownIndices: [Int]?
+    /// Indices (0/1) the opponent voluntarily shared (visible to user).
+    let opponentShownIndices: [Int]?
     let lastAction: HandLastAction?
 
     var id: String { handId }
@@ -148,6 +156,10 @@ struct HandView: Codable, Identifiable {
         case winnerUserId = "winner_user_id"
         case actionSummary = "action_summary"
         case myResolvedNet = "my_resolved_net"
+        case myContribution = "my_contribution"
+        case opponentContribution = "opponent_contribution"
+        case myShownIndices = "my_shown_indices"
+        case opponentShownIndices = "opponent_shown_indices"
         case lastAction = "last_action"
     }
 }
@@ -220,6 +232,8 @@ struct HandDetail: Codable {
     let isFavorited: Bool
     let myHandRank: String?
     let opponentHandRank: String?
+    let myShownIndices: [Int]?
+    let opponentShownIndices: [Int]?
     let actions: [ActionDetail]
 
     enum CodingKeys: String, CodingKey {
@@ -238,6 +252,8 @@ struct HandDetail: Codable {
         case isFavorited = "is_favorited"
         case myHandRank = "my_hand_rank"
         case opponentHandRank = "opponent_hand_rank"
+        case myShownIndices = "my_shown_indices"
+        case opponentShownIndices = "opponent_shown_indices"
         case actions
     }
 }

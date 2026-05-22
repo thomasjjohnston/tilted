@@ -95,6 +95,11 @@ export const hands = pgTable('hands', {
   // turn report has no way to show per-hand +/- (the "0 win/loss" bug).
   resolvedNetForA: integer('resolved_net_for_a'),
   resolvedNetForB: integer('resolved_net_for_b'),
+  // Voluntary card shows. Each array contains 0-based indices into the
+  // user's hole (0 or 1). Empty by default; opponent only sees the
+  // indices the OTHER user has volunteered.
+  shownIndicesByA: integer('shown_indices_by_a').array().notNull().default(sql`'{}'::integer[]`),
+  shownIndicesByB: integer('shown_indices_by_b').array().notNull().default(sql`'{}'::integer[]`),
   completedAt: timestamp('completed_at', { withTimezone: true }),
 }, (table) => [
   unique('hands_round_hand_idx').on(table.roundId, table.handIndex),
@@ -163,4 +168,17 @@ export const appEvents = pgTable('app_events', {
   kind: text('kind').notNull(),
   payload: jsonb('payload').notNull().default({}),
   occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+// ── Messages (per-match and per-hand chat) ───────────────────────────────────
+
+export const messages = pgTable('messages', {
+  messageId: uuid('message_id').primaryKey().defaultRandom(),
+  matchId: uuid('match_id').notNull().references(() => matches.matchId),
+  // Null = match-thread message; non-null = scoped to a specific hand.
+  // The same message is visible in both surfaces when scoped to a hand.
+  handId: uuid('hand_id').references(() => hands.handId),
+  fromUserId: uuid('from_user_id').notNull().references(() => users.userId),
+  body: text('body').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
