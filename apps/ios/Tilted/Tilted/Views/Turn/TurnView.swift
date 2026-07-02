@@ -38,11 +38,16 @@ struct TurnView: View {
     @State private var allInConfirmHand: HandView?
     @State private var detailSheetHand: HandView?
 
-    // Cart: handId → queued decision. Local until the whole turn submits.
-    @State private var cart: [String: QueuedDecision] = [:]
     @State private var showCart = false
     @State private var isSubmitting = false
     @State private var turnSent = false
+
+    // Cart lives in the store (survives leaving/returning to the turn) —
+    // this is a proxy for readability. Scoped to the round in `.task`.
+    private var cart: [String: QueuedDecision] {
+        get { store.turnCart }
+        nonmutating set { store.turnCart = newValue }
+    }
 
     // MARK: - Live data
 
@@ -223,6 +228,13 @@ struct TurnView: View {
             Text("This queues every remaining chip on this hand. You can still change it before submitting.")
         }
         .task {
+            // Scope the persisted cart to this round — drop a stale cart
+            // left over from a previous round, but keep one for THIS round
+            // if the user stepped away and came back (#1).
+            if store.turnCartRoundId != liveRound.roundId {
+                store.turnCart = [:]
+                store.turnCartRoundId = liveRound.roundId
+            }
             if focusedHandId == nil {
                 focusedHandId = undecidedHands.first?.handId ?? pendingHands.first?.handId ?? round.hands.first?.handId
             }
@@ -633,6 +645,7 @@ struct TurnView: View {
         let ok = await store.submitTurn(roundId: liveRound.roundId, actions: actions)
         isSubmitting = false
         if ok {
+            store.clearTurnCart()
             withAnimation {
                 showCart = false
                 turnSent = true

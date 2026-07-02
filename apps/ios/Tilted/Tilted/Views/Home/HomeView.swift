@@ -137,14 +137,20 @@ struct HomeView: View {
             // resolved while the user wasn't actively in a turn, the
             // queue at store.unseenCompletions presents them
             // sequentially before the user can interact with home.
-            .fullScreenCover(item: Binding(
-                get: { store.unseenCompletions.first },
+            // Grouped results for a submitted turn — one screen per outcome
+            // category, showdowns stepped through (#2/#3). Presented while
+            // there are unseen completions.
+            .fullScreenCover(isPresented: Binding(
+                get: { !store.unseenCompletions.isEmpty },
                 set: { _ in }
-            )) { hand in
-                CompletedHandRouterView(
-                    hand: hand,
-                    match: matchFor(hand) ?? placeholderMatch,
-                    onContinue: { store.acknowledgeCompletion(hand.handId) }
+            )) {
+                TurnResultsView(
+                    hands: store.unseenCompletions,
+                    match: matchFor(store.unseenCompletions.first) ?? placeholderMatch,
+                    currentUserId: store.currentUserId,
+                    onDone: {
+                        store.acknowledgeCompletions(store.unseenCompletions.map(\.handId))
+                    }
                 )
                 .environment(store)
             }
@@ -153,8 +159,9 @@ struct HomeView: View {
 
     /// Find the match containing this completed hand so the completion
     /// screen has the surrounding context (opponent name, stacks, etc).
-    private func matchFor(_ hand: HandView) -> MatchState? {
-        store.matches.first {
+    private func matchFor(_ hand: HandView?) -> MatchState? {
+        guard let hand else { return nil }
+        return store.matches.first {
             $0.currentRound?.hands.contains { $0.handId == hand.handId } ?? false
         }
     }

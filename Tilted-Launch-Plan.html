@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Tilted — Go-to-Market Plan</title>
+<style>
+  /* ==== Tilted design tokens (from DesignTokens.swift) ==== */
+  :root {
+    --felt-900: #051c15;
+    --felt-800: #082a21;
+    --felt-700: #0e3b2e;
+    --felt-600: #164a3a;
+    --felt-500: #1a5a43;
+    --gold-500: #d4b368;
+    --gold-600: #c9a961;
+    --gold-700: #a88334;
+    --gold-800: #7a5f2b;
+    --cream-50: #f6f1e1;
+    --cream-100: #f3ecd6;
+    --cream-200: #d9cfb2;
+    --cream-300: #9eb7a4;
+    --cream-400: #6a8a7a;
+    --claret: #c44d42;
+    --card-red: #c92b2b;
+    --ink: #16241d;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  @page { size: letter; margin: 0; }
+
+  body {
+    font-family: -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: var(--ink);
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .page {
+    width: 8.5in;
+    height: 11in;
+    padding: 0.62in 0.7in 0.55in 0.7in;
+    background: var(--cream-50);
+    page-break-after: always;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .page:last-child { page-break-after: avoid; }
+
+  /* ==== Cover ==== */
+  .cover {
+    background: radial-gradient(ellipse at 50% -10%, var(--felt-500) 0%, var(--felt-700) 45%, var(--felt-800) 75%, var(--felt-900) 100%);
+    color: var(--cream-50);
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  }
+  .cover .suits { font-size: 26px; letter-spacing: 18px; color: var(--gold-500); margin-bottom: 34px; }
+  .cover .suits .red { color: var(--claret); }
+  .cover h1 {
+    font-family: Georgia, serif; font-size: 84px; font-weight: normal;
+    letter-spacing: 2px; color: var(--cream-50); margin-bottom: 6px;
+  }
+  .cover .tagline {
+    font-family: Georgia, serif; font-style: italic; font-size: 17px;
+    color: var(--gold-500); margin-bottom: 60px;
+  }
+  .cover .doc-title {
+    font-size: 13px; letter-spacing: 5px; text-transform: uppercase;
+    color: var(--cream-200); border-top: 1px solid var(--gold-800);
+    border-bottom: 1px solid var(--gold-800); padding: 14px 40px; margin-bottom: 60px;
+  }
+  .cover .meta { font-size: 11px; color: var(--cream-300); line-height: 1.9; }
+  .cover .chip {
+    width: 74px; height: 74px; border-radius: 50%; margin: 0 auto 40px auto;
+    background: var(--felt-600);
+    border: 5px dashed var(--gold-500);
+    display: flex; align-items: center; justify-content: center;
+    font-family: Georgia, serif; font-size: 26px; color: var(--gold-500);
+  }
+
+  /* ==== Common typography ==== */
+  .eyebrow {
+    font-size: 10px; font-weight: 600; letter-spacing: 3.5px; text-transform: uppercase;
+    color: var(--gold-700); margin-bottom: 6px;
+  }
+  h2 {
+    font-family: Georgia, serif; font-weight: normal; font-size: 27px;
+    color: var(--felt-700); margin-bottom: 14px;
+  }
+  h3 {
+    font-family: Georgia, serif; font-weight: normal; font-size: 16px;
+    color: var(--felt-700); margin: 14px 0 6px 0;
+  }
+  p, li { font-size: 10.5px; line-height: 1.55; color: var(--ink); }
+  p { margin-bottom: 7px; }
+  ul, ol { margin: 2px 0 8px 16px; }
+  li { margin-bottom: 3.5px; }
+  strong { color: var(--felt-700); }
+  em { color: var(--gold-800); }
+
+  .rule { height: 2px; background: linear-gradient(90deg, var(--gold-500), transparent 70%); margin: 2px 0 14px 0; }
+
+  .footer {
+    position: absolute; bottom: 0.32in; left: 0.7in; right: 0.7in;
+    display: flex; justify-content: space-between;
+    font-size: 8px; letter-spacing: 2px; text-transform: uppercase; color: var(--cream-400);
+    border-top: 1px solid var(--cream-200); padding-top: 6px;
+  }
+  .footer .suit { color: var(--gold-600); }
+
+  /* ==== Components ==== */
+  .callout {
+    background: var(--felt-700); color: var(--cream-100);
+    border-radius: 8px; padding: 12px 15px; margin: 10px 0;
+  }
+  .callout p, .callout li { color: var(--cream-100); font-size: 10.5px; }
+  .callout strong { color: var(--gold-500); }
+  .callout .label { font-size: 9px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--gold-500); margin-bottom: 5px; font-weight: 600; }
+
+  .note {
+    background: var(--cream-100); border-left: 3px solid var(--gold-500);
+    padding: 9px 12px; margin: 8px 0; border-radius: 0 6px 6px 0;
+  }
+  .note p { margin-bottom: 3px; }
+
+  table { width: 100%; border-collapse: collapse; margin: 8px 0 12px 0; }
+  th {
+    font-size: 8.5px; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 600;
+    color: var(--cream-50); background: var(--felt-700); text-align: left;
+    padding: 6px 8px;
+  }
+  td {
+    font-size: 9.8px; line-height: 1.45; padding: 6px 8px; vertical-align: top;
+    border-bottom: 1px solid var(--cream-200); background: #fffdf4;
+  }
+  tr:nth-child(even) td { background: var(--cream-100); }
+
+  .two-col { display: flex; gap: 14px; }
+  .two-col > div { flex: 1; }
+
+  /* Experiment cards */
+  .xcard {
+    background: #fffdf4; border: 1px solid var(--cream-200); border-top: 3px solid var(--gold-500);
+    border-radius: 6px; padding: 10px 12px 8px 12px; margin-bottom: 9px;
+    break-inside: avoid;
+  }
+  .xcard h4 {
+    font-family: Georgia, serif; font-weight: normal; font-size: 13.5px; color: var(--felt-700);
+    margin-bottom: 2px;
+  }
+  .xcard .cost {
+    float: right; font-size: 8.5px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;
+    color: var(--gold-800); background: var(--cream-100); border: 1px solid var(--cream-200);
+    padding: 2px 7px; border-radius: 10px; margin-top: 1px;
+  }
+  .xcard p { font-size: 9.6px; margin-bottom: 4px; }
+  .xcard .row { display: flex; gap: 10px; margin-top: 5px; }
+  .xcard .row > div { flex: 1; }
+  .xcard .k { font-size: 8px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 1px; }
+  .k.hyp { color: var(--felt-500); }
+  .k.green { color: #3e7d33; }
+  .k.red { color: var(--claret); }
+  .xcard .v { font-size: 9.3px; line-height: 1.4; }
+
+  .option-tag {
+    display: inline-block; font-size: 8.5px; font-weight: 700; letter-spacing: 1.5px;
+    text-transform: uppercase; color: var(--cream-50); background: var(--gold-700);
+    padding: 2px 8px; border-radius: 3px; margin-right: 6px; vertical-align: 1px;
+  }
+  .option-tag.rec { background: var(--felt-500); }
+
+  .metric-tile {
+    background: var(--felt-800); color: var(--cream-100); border-radius: 8px;
+    padding: 10px 12px; flex: 1;
+  }
+  .metric-tile .m-label { font-size: 8px; letter-spacing: 2px; text-transform: uppercase; color: var(--cream-300); margin-bottom: 4px; }
+  .metric-tile .m-value { font-family: Georgia, serif; font-size: 19px; color: var(--gold-500); margin-bottom: 3px; }
+  .metric-tile .m-sub { font-size: 8.6px; color: var(--cream-200); line-height: 1.4; }
+
+  .phasebar { display: flex; gap: 6px; margin: 12px 0; }
+  .phasebar .ph {
+    flex: 1; border-radius: 6px; padding: 8px 9px; color: var(--cream-50); min-height: 86px;
+  }
+  .phasebar .ph .p-num { font-size: 8px; letter-spacing: 2px; text-transform: uppercase; opacity: 0.75; margin-bottom: 3px; }
+  .phasebar .ph .p-name { font-family: Georgia, serif; font-size: 12.5px; margin-bottom: 4px; color: var(--gold-500); }
+  .phasebar .ph .p-desc { font-size: 8.4px; line-height: 1.45; color: var(--cream-100); }
+  .ph0 { background: var(--felt-800); } .ph1 { background: var(--felt-700); }
+  .ph2 { background: var(--felt-600); } .ph3 { background: var(--felt-500); }
+
+  .gate {
+    display: flex; gap: 10px; margin: 8px 0; break-inside: avoid;
+  }
+  .gate .g-verdict {
+    flex: 0 0 92px; border-radius: 6px; padding: 8px; text-align: center;
+    font-size: 9.5px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .gate .g-body { flex: 1; background: #fffdf4; border: 1px solid var(--cream-200); border-radius: 6px; padding: 8px 11px; }
+  .gate .g-body p { font-size: 9.6px; margin-bottom: 2px; }
+  .g-persevere { background: var(--felt-500); color: var(--cream-50); }
+  .g-tune { background: var(--gold-600); color: var(--felt-900); }
+  .g-pivot { background: var(--claret); color: var(--cream-50); }
+
+  .toc-line { display: flex; align-items: baseline; font-size: 11.5px; margin-bottom: 9px; }
+  .toc-line .t-name { color: var(--ink); }
+  .toc-line .t-dots { flex: 1; border-bottom: 1px dotted var(--cream-300); margin: 0 8px; }
+  .toc-line .t-pg { font-family: Georgia, serif; color: var(--gold-700); }
+  .toc-line.major .t-name { font-family: Georgia, serif; font-size: 13.5px; color: var(--felt-700); }
+</style>
+</head>
+<body>
+
+<!-- ============ COVER ============ -->
+<div class="page cover">
+  <div class="chip">T</div>
+  <div class="suits"><span>♠</span><span class="red">♥</span><span>♣</span><span class="red">♦</span></div>
+  <h1>Tilted</h1>
+  <div class="tagline">Ten hands. One stack. A new kind of poker.</div>
+  <div class="doc-title">Go-to-Market &amp; Validated-Learning Plan</div>
+  <div class="meta">
+    Prepared for TJ · July 2026 · Confidential draft v1.0<br>
+    Built on the Lean Startup method: Build → Measure → Learn
+  </div>
+</div>
+
+<!-- ============ PAGE 2: EXEC SUMMARY ============ -->
+<div class="page">
+  <div class="eyebrow">♠ &nbsp;Executive Summary</div>
+  <h2>The bet, and how we'll test it</h2>
+  <div class="rule"></div>
+
+  <p><strong>Tilted is "Words With Friends, but poker."</strong> An asynchronous heads-up Hold'em game where two friends play ten hands in parallel off one shared chip stack. The shared-stack mechanic is genuinely novel — every bet in one hand drains what you can commit to the other nine — and the async turn model serves a real, underserved persona: the poker-loving professional with five free minutes, not a free hour. No real money, ever. The product is the ritual between two friends, not a casino.</p>
+
+  <p>The game is validated as <em>fun at n=2</em>: TJ and Stephen have played voluntarily for weeks and iterated the rules into something both enjoy. Everything beyond that is a hypothesis. This plan treats the launch the way <em>The Lean Startup</em> treats everything: as a sequence of experiments designed to convert leap-of-faith assumptions into validated learning as cheaply and quickly as possible — with explicit pivot-or-persevere gates so we never coast on vanity metrics.</p>
+
+  <div class="callout">
+    <div class="label">The two leap-of-faith assumptions</div>
+    <p><strong>Value hypothesis:</strong> Pairs of friends who like poker will keep playing Tilted voluntarily, week after week, as a standing ritual — without TJ personally nudging them. <em>Measured by pair retention, not downloads.</em></p>
+    <p style="margin-bottom:0;"><strong>Growth hypothesis:</strong> People who love Tilted will pull their friends into it — the invite <em>is</em> the product's front door, because you literally cannot play alone. <em>Measured by invites sent per retained player and invite → active-pair conversion.</em></p>
+  </div>
+
+  <h3>The plan in one paragraph</h3>
+  <p><strong>Phase 0</strong> hardens the current build into a Minimum Lovable Product that survives pairs who aren't TJ+Stephen (turn deadlines, onboarding, invite flow, instrumentation). <strong>Phase 1</strong> seeds 10–20 pairs from TJ's personal network — not as a marketing push but as a learning lab, with weekly interviews and a pivot-on-the-MLP loop. <strong>Phase 2</strong> takes the game public as a portfolio of channel experiments (Hacker News, Product Hunt, poker communities, short-form video, ASO), each with a written hypothesis, a budget, and a kill criterion. <strong>Phase 3</strong> turns on revenue (freemium subscription, tested with a fake-door experiment before any code is written) and doubles down on whichever growth loop the Phase 2 data validates — with a pivot catalog ready if the data says the pair model isn't the business.</p>
+
+  <h3>What success looks like at each gate</h3>
+  <table>
+    <tr><th style="width:14%;">Phase</th><th style="width:30%;">Question it answers</th><th>Gate to advance</th></tr>
+    <tr><td><strong>0 · Harden</strong></td><td>Can strangers-to-us play unsupervised?</td><td>A pair TJ has never coached completes 3 rounds with zero intervention.</td></tr>
+    <tr><td><strong>1 · Seed</strong></td><td>Is it fun beyond TJ + Stephen?</td><td>≥ 8 of 15 pairs still playing voluntarily in week 4; ≥ 5 unprompted rematches.</td></tr>
+    <tr><td><strong>2 · Public</strong></td><td>Can strangers find it, get it, and stick?</td><td>Pair W4 retention ≥ 25% on stranger cohorts; ≥ 1 channel with repeatable pair acquisition.</td></tr>
+    <tr><td><strong>3 · Revenue</strong></td><td>Will anyone pay, and what compounds?</td><td>≥ 3% of active players convert to paid within 60 days of paywall launch.</td></tr>
+  </table>
+
+  <div class="note">
+    <p><strong>Honest framing:</strong> the realistic outcome distribution for any consumer game is harsh. This plan is designed so that every phase produces either a growing business <em>or</em> cheap, fast, decisive learning — and TJ is job-hunting in parallel, so gates double as "how much more of my time does this deserve?" checkpoints.</p>
+  </div>
+
+  <div class="footer"><span>Tilted · Go-to-Market Plan</span><span class="suit">♠ ♥ ♣ ♦</span><span>Page 2</span></div>
+</div>
+
+<!-- ============ PAGE 3: CONTENTS + OPERATING SYSTEM ============ -->
+<div class="page">
+  <div class="eyebrow">♥ &nbsp;Contents &amp; Operating System</div>
+  <h2>How to read this document</h2>
+  <div class="rule"></div>
+
+  <div class="two-col">
+    <div>
+      <div class="toc-line major"><span class="t-name">Executive summary</span><span class="t-dots"></span><span class="t-pg">2</span></div>
+      <div class="toc-line major"><span class="t-name">The Lean operating system</span><span class="t-dots"></span><span class="t-pg">3</span></div>
+      <div class="toc-line major"><span class="t-name">Roadmap &amp; Phase 0 — Harden</span><span class="t-dots"></span><span class="t-pg">4</span></div>
+      <div class="toc-line major"><span class="t-name">Phase 1 — Friends beta</span><span class="t-dots"></span><span class="t-pg">5</span></div>
+      <div class="toc-line major"><span class="t-name">Phase 2 — Public launch</span><span class="t-dots"></span><span class="t-pg">6</span></div>
+      <div class="toc-line"><span class="t-name">Positioning &amp; sequencing options</span><span class="t-dots"></span><span class="t-pg">6</span></div>
+      <div class="toc-line"><span class="t-name">Channel experiment portfolio</span><span class="t-dots"></span><span class="t-pg">7–8</span></div>
+      <div class="toc-line"><span class="t-name">Metrics &amp; pivot-or-persevere gates</span><span class="t-dots"></span><span class="t-pg">9</span></div>
+      <div class="toc-line major"><span class="t-name">Phase 3 — Revenue &amp; growth</span><span class="t-dots"></span><span class="t-pg">10</span></div>
+      <div class="toc-line"><span class="t-name">Monetization experiments</span><span class="t-dots"></span><span class="t-pg">10</span></div>
+      <div class="toc-line"><span class="t-name">Growth investment options</span><span class="t-dots"></span><span class="t-pg">11</span></div>
+      <div class="toc-line"><span class="t-name">The pivot catalog</span><span class="t-dots"></span><span class="t-pg">12</span></div>
+      <div class="toc-line major"><span class="t-name">Risks &amp; 90-day calendar</span><span class="t-dots"></span><span class="t-pg">13</span></div>
+    </div>
+    <div>
+      <div class="callout" style="margin-top:0;">
+        <div class="label">The one metric that matters</div>
+        <p style="margin-bottom:4px;"><strong>Active Pairs</strong> — pairs with ≥ 1 completed round in the trailing 7 days.</p>
+        <p style="margin-bottom:0;">Everything in this plan exists to move Active Pairs and its quality shadow, <strong>Pair W4 Retention</strong>. Downloads, impressions, waitlist signups, and press are inputs, never outcomes.</p>
+      </div>
+      <div class="note">
+        <p><strong>Why pairs, not users?</strong> A solo Tilted install is inventory, not a customer. The unit of value, retention, and revenue is the <em>pair</em>. Every metric in this plan is cohorted by pair-formation week.</p>
+      </div>
+    </div>
+  </div>
+
+  <h3>The Lean Startup loop, applied to Tilted</h3>
+  <p>Every initiative in this plan is written as an experiment: <strong>hypothesis → smallest possible test → actionable metric → green/red criteria</strong>. Three disciplines from the book that we adopt as house rules:</p>
+  <ul>
+    <li><strong>Validated learning over output.</strong> A week that ships nothing but kills a bad assumption is a good week. A week that ships a feature nobody's behavior changes for is waste ("achieving failure").</li>
+    <li><strong>Innovation accounting.</strong> For each phase: (1) establish a real baseline with an MVP-grade test, (2) tune the engine toward the ideal with small batches, (3) hold a scheduled <em>pivot-or-persevere</em> meeting — on the calendar, every 6 weeks, with Stephen or a trusted outsider present to keep it honest.</li>
+    <li><strong>Actionable, not vanity.</strong> Every reported number must be cohort-based, per-pair, and tied to a decision. "12,000 downloads" is banned vocabulary; "the March cohort's pair-activation rate rose from 31% → 44% after the new onboarding" is the house style.</li>
+  </ul>
+
+  <h3>Engine of growth: sticky first, viral second</h3>
+  <p>Lean Startup names three engines — sticky (retention), viral (referral), paid (LTV &gt; CAC). Tilted's natural engine is <strong>sticky</strong> (a standing ritual between friends) with a structurally forced <strong>viral</strong> component (you must invite someone to play at all). Paid acquisition is out of scope until a subscription proves LTV — spending money to acquire users for a free app with unproven retention is the classic way to burn savings on vanity metrics. The plan's ordering follows: prove sticky (Phases 0–1), prove viral (Phase 2), then consider paid (late Phase 3, only if unit economics exist).</p>
+
+  <div class="note">
+    <p><strong>Kanban rule (small batches):</strong> at most <em>one</em> product experiment and <em>one</em> distribution experiment in flight at a time. Solo-founder WIP limits are the difference between a learning loop and a pile of half-finished bets.</p>
+  </div>
+
+  <div class="footer"><span>Tilted · Go-to-Market Plan</span><span class="suit">♠ ♥ ♣ ♦</span><span>Page 3</span></div>
+</div>
+
+<!-- ============ PAGE 4: ROADMAP + PHASE 0 ============ -->
+<div class="page">
+  <div class="eyebrow">♣ &nbsp;Roadmap</div>
+  <h2>Four phases, each a question</h2>
+  <div class="rule"></div>
+
+  <div class="phasebar">
+    <div class="ph ph0">
+      <div class="p-num">Phase 0 · ~3–4 wks</div>
+      <div class="p-name">Harden the MLP</div>
+      <div class="p-desc">Turn deadlines, onboarding, invite flow, analytics, App Store approval. Exit: an uncoached pair survives 3 rounds.</div>
+    </div>
+    <div class="ph ph1">
+      <div class="p-num">Phase 1 · ~6 wks</div>
+      <div class="p-name">Friends beta</div>
+      <div class="p-desc">10–20 pairs from TJ's network. Weekly interviews. Iterate rules &amp; UX. Exit: retention + love signals at n≈30.</div>
+    </div>
+    <div class="ph ph2">
+      <div class="p-num">Phase 2 · ~8–10 wks</div>
+      <div class="p-name">Public launch</div>
+      <div class="p-desc">Portfolio of channel experiments. Find one repeatable source of pairs. Exit: stranger-cohort retention holds.</div>
+    </div>
+    <div class="ph ph3">
+      <div class="p-num">Phase 3 · ongoing</div>
+      <div class="p-name">Revenue &amp; growth</div>
+      <div class="p-desc">Fake-door price test → subscription. Double down on the validated loop, or pivot per the catalog.</div>
+    </div>
+  </div>
+
+  <div class="eyebrow" style="margin-top:10px;">Phase 0 · Weeks 1–4</div>
+  <h2 style="font-size:22px;">Harden: make it survivable by people who aren't us</h2>
+  <div class="rule"></div>
+
+  <p><strong>Principle: no big-bang rewrite.</strong> The server engine is pure, invariant-guarded, and tested — that's the part that can't be wrong, and it's already right. The vibe-coded iOS client is a thin view layer; refactor the paths you touch while shipping the items below, and defer any larger rewrite until Phase 1 feedback tells you what the app needs to become. Rewriting now would bake in rules that are still moving.</p>
+
+  <table>
+    <tr><th style="width:26%;">Workstream</th><th>What ships</th><th style="width:23%;">Why it gates launch</th></tr>
+    <tr><td><strong>Turn liveness</strong></td><td>Gentle nudge push at 24h; configurable turn deadline with auto-fold (default 72h, off for existing matches); "poke" button.</td><td>A flaky opponent currently freezes a match forever. Fatal for casual pairs.</td></tr>
+    <tr><td><strong>First-run onboarding</strong></td><td>A 60-second interactive explainer: one practice turn against a scripted bot teaching the shared-stack idea ("the cart").</td><td>The 10-hands/one-stack concept is the product; unexplained, it's just confusion.</td></tr>
+    <tr><td><strong>Invite flow</strong></td><td>Challenge via iMessage share sheet with a deep link; a match lobby that shows "waiting for Dave to install."</td><td>The invite <em>is</em> the acquisition channel. It must be one tap.</td></tr>
+    <tr><td><strong>Instrumentation</strong></td><td>Funnel events in <code>app_events</code>: invite_sent → link_tap → install → SIWA → pair_formed → first_round_complete → W1/W4 pair activity. One simple dashboard.</td><td>Innovation accounting is impossible without this. Build before marketing, not after.</td></tr>
+    <tr><td><strong>App Store readiness</strong></td><td>Listing, screenshots, privacy labels, age rating (simulated gambling — expect 17+/12+), review notes. Submit early; poker-adjacent apps get slow reviews.</td><td>Review risk is schedule risk. Front-load it.</td></tr>
+    <tr><td><strong>Trust &amp; safety minimum</strong></td><td>Block/report user, display-name moderation, account deletion (App Store requires it with SIWA).</td><td>Required for approval and for strangers-of-friends.</td></tr>
+  </table>
+
+  <div class="callout">
+    <div class="label">Phase 0 exit test (run it literally)</div>
+    <p style="margin-bottom:0;">Hand the TestFlight link to <strong>two friends who have never seen the game</strong>, in different cities, and say nothing but "try this." They form a pair, complete three rounds, and neither texts TJ a question. Until this passes, no marketing dollar or hour is spent.</p>
+  </div>
+
+  <div class="note">
+    <p><strong>Do-not-do list (scope discipline):</strong> no matchmaking, no chat, no Android, no web client, no cosmetics, no tournament mode, no rewrite. Each is a Phase 2/3 option to be <em>earned by data</em>, not a Phase 0 to-do.</p>
+  </div>
+
+  <div class="footer"><span>Tilted · Go-to-Market Plan</span><span class="suit">♠ ♥ ♣ ♦</span><span>Page 4</span></div>
+</div>
+
+<!-- ============ PAGE 5: PHASE 1 ============ -->
+<div class="page">
+  <div class="eyebrow">♦ &nbsp;Phase 1 · Weeks 5–10</div>
+  <h2>Friends beta: a learning lab, not a launch</h2>
+  <div class="rule"></div>
+
+  <p>Phase 1's product is <strong>validated learning about the value hypothesis</strong>, drawn from TJ's personal network — engineer friends, ex-colleagues, poker buddies — rather than the Marin tournament crowd (older, lighter app usage, and money-poker players are the wrong first segment for a no-money game; they remain a Phase 2 experiment, not the seed). Target: <strong>10–20 pairs (~20–40 players)</strong>, recruited personally, one at a time.</p>
+
+  <h3>Recruiting mechanics</h3>
+  <ul>
+    <li><strong>Recruit pairs, not people.</strong> The ask is "you and a friend," never "you." A solo recruit who has to find their own partner is a coin-flip; a recruited pair is a live experiment. Where possible TJ plays match #1 with each recruit personally (concierge onboarding), <em>then</em> pushes them to start a match with their own friend — that second match is the one that counts.</li>
+    <li><strong>Segment deliberately.</strong> Aim for a spread: poker-serious vs. casual; close friends vs. coworkers; same-city vs. long-distance. The goal is to learn <em>which kind of pair</em> Tilted retains — that's the Phase 2 targeting input.</li>
+    <li><strong>Set the contract.</strong> "It's a beta, it's free, I'll ask you questions weekly, and I'll change things under your feet." Beta users who know they're co-developing forgive rough edges and give better feedback.</li>
+  </ul>
+
+  <h3>The measurement plan</h3>
+  <div class="two-col">
+    <div class="metric-tile">
+      <div class="m-label">Value signal</div>
+      <div class="m-value">Pair W4 retention</div>
+      <div class="m-sub">% of pairs completing ≥1 round in week 4 after forming. Benchmark to beat: ≥ 50% at this stage (friends inflate it; strangers will halve it).</div>
+    </div>
+    <div class="metric-tile">
+      <div class="m-label">Love signal</div>
+      <div class="m-value">Unprompted rematch</div>
+      <div class="m-sub">A pair finishes a match (someone busts) and starts a new one without any nudge. The single strongest signal the ritual is real.</div>
+    </div>
+    <div class="metric-tile">
+      <div class="m-label">Growth foreshadow</div>
+      <div class="m-value">2nd-degree invites</div>
+      <div class="m-sub">Beta users inviting people TJ doesn't know. Even 3–5 occurrences de-risks the whole Phase 2 viral thesis.</div>
+    </div>
+  </div>
+
+  <h3>Qualitative engine (this is where the MLP pivots happen)</h3>
+  <ul>
+    <li><strong>Weekly 20-minute calls</strong> with 3–4 rotating players. Script: What's the moment you open the app? What did you almost quit over? Retell your favorite hand — <em>can they, without looking?</em> (the spec's own §19 love test). What would you show a friend?</li>
+    <li><strong>The Sean Ellis question</strong> at week 3: "How disappointed would you be if you could no longer play Tilted?" ≥ 40% "very disappointed" among <em>active</em> players is the classic product-market-fit proxy — at this sample size treat it as directional, not gospel.</li>
+    <li><strong>Rule experiments in small batches:</strong> hand count (10 vs. 5?), turn deadline length, blind escalation. One variable at a time, one cohort at a time — the spec was built for cheap rule changes; use that superpower now, before scale makes experiments slow.</li>
+    <li><strong>Watch three first-runs live</strong> (screen-share or in person). Nothing finds onboarding failure faster than watching a friend squint at the cart screen.</li>
+  </ul>
+
+  <div class="callout">
+    <div class="label">Phase 1 pivot-or-persevere gate (week ~10)</div>
+    <p><strong>Persevere to Phase 2</strong> if: ≥ 50% pair W4 retention, ≥ 5 unprompted rematches, and at least a handful of players can retell a hand from memory.</p>
+    <p><strong>Tune first</strong> if activation is weak but retained pairs love it (onboarding/liveness problem, not a fun problem) — fix, re-cohort, re-measure; 2–3 week loops.</p>
+    <p style="margin-bottom:0;"><strong>Consider a pivot</strong> if even friends-of-TJ pairs quietly stop by week 3: the honest reading is that the ritual isn't self-sustaining yet. Go to the pivot catalog (p. 12) — likely candidates: hand-count/pace changes (zoom-in on what retained pairs loved) or group-play formats.</p>
+  </div>
+
+  <div class="footer"><span>Tilted · Go-to-Market Plan</span><span class="suit">♠ ♥ ♣ ♦</span><span>Page 5</span></div>
+</div>
+
+<!-- ============ PAGE 6: PHASE 2 POSITIONING + SEQUENCING ============ -->
+<div class="page">
+  <div class="eyebrow">♠ &nbsp;Phase 2 · Weeks ~11–20</div>
+  <h2>Public launch: a portfolio of channel experiments</h2>
+  <div class="rule"></div>
+
+  <p>Phase 2 answers the growth hypothesis: <strong>can strangers discover Tilted, pull a friend in, and stick?</strong> The Lean move is to treat "launch" not as an event but as 6–8 <em>independent channel experiments</em>, each with a hypothesis, a budget (mostly hours), and a kill criterion — run at a WIP limit of one at a time, weekly review. Two channels earning a green light matters more than one big spike.</p>
+
+  <h3>First: pick the message (test before the launch, not during)</h3>
+  <table>
+    <tr><th style="width:5%;"></th><th style="width:33%;">Positioning</th><th style="width:34%;">Strength</th><th>Risk</th></tr>
+    <tr><td><strong>P1</strong></td><td>"Words With Friends, but poker."</td><td>Instant comprehension; explains async + friends in four words; nostalgic warmth.</td><td>Dated reference for under-30s; sets casual expectations for a strategic game.</td></tr>
+    <tr><td><strong>P2</strong></td><td>"Poker for people with five minutes."</td><td>Speaks straight to the persona's constraint; strong for busy-professional channels (HN, LinkedIn).</td><td>Undersells the novel mechanic; sounds like every casual game's promise.</td></tr>
+    <tr><td><strong>P3</strong></td><td>"Ten hands. One stack. A new kind of poker."</td><td>Leads with the genuinely new thing; intrigues poker natives; premium, ownable.</td><td>Requires a beat of explanation; abstraction risk for casual players.</td></tr>
+  </table>
+  <p><strong>How to choose:</strong> a $0 smoke test. One landing page (tilted.app), three headline variants rotated (or three cheap $100 ad sets if impatient), measure email-capture / TestFlight-tap rate per variant. Secondary read: which one Phase 1 players spontaneously repeat when describing the game to friends — the message that survives word-of-mouth wins. <em>Working hypothesis: P3 as the brand line, P1 as the explainer sentence that follows it everywhere.</em></p>
+
+  <h3>Sequencing: three options</h3>
+  <div class="xcard">
+    <span class="option-tag rec">Option A · Recommended</span><strong style="font-size:11px; color:var(--felt-700);">Rolling thunder</strong>
+    <p style="margin-top:4px;">One channel per week-or-two, in rising order of audience size and falling order of forgiveness: poker Reddit/Discords → Show HN → short-form video → Product Hunt. Each is a clean experiment with its own cohort; learnings from one improve the next; a flop in a small pond costs nothing. Fits solo capacity and the WIP-limit rule. <em>Tradeoff: no big coordinated splash, less press-worthy.</em></p>
+  </div>
+  <div class="xcard">
+    <span class="option-tag">Option B</span><strong style="font-size:11px; color:var(--felt-700);">Big bang</strong>
+    <p style="margin-top:4px;">Coordinate HN + Product Hunt + Reddit + press outreach in one week for compounding attention and a shot at "trending" flywheels. <em>Tradeoff: one roll of the dice; confounded cohorts (you can't tell which channel worked); a server or App Store hiccup burns every channel at once. Only sensible if Phase 1 metrics are exceptional and the infra has been load-tested.</em></p>
+  </div>
+  <div class="xcard">
+    <span class="option-tag">Option C</span><strong style="font-size:11px; color:var(--felt-700);">Content-first slow burn</strong>
+    <p style="margin-top:4px;">6–8 weeks of build-in-public posts and daily "interesting Tilted hands" content before any launch moment, building a waitlist; launch to the warm list. <em>Tradeoff: slowest path to stranger-retention data — and retention data is the whole point of Phase 2. Best as a background layer under Option A (see channels E/F), not a standalone strategy.</em></p>
+  </div>
+
+  <div class="footer"><span>Tilted · Go-to-Market Plan</span><span class="suit">♠ ♥ ♣ ♦</span><span>Page 6</span></div>
+</div>
+
+<!-- ============ PAGE 7: CHANNEL CARDS 1 ============ -->
+<div class="page">
+  <div class="eyebrow">♥ &nbsp;Phase 2 · Channel Experiment Portfolio (1 of 2)</div>
+  <h2>Each channel is a falsifiable bet</h2>
+  <div class="rule"></div>
+
+  <div class="xcard">
+    <span class="cost">Cost: ~2 days prep</span>
+    <h4>A · Show HN (Hacker News)</h4>
+    <div class="row">
+      <div><div class="k hyp">Hypothesis</div><div class="v">HN's audience <em>is</em> the persona (analytical professionals, five free minutes, love novel mechanics). An engineer-founder story about the shared-stack design + pure-core architecture earns front-page attention that converts to pairs.</div></div>
+    </div>
+    <div class="row">
+      <div><div class="k hyp">Test</div><div class="v">"Show HN: I built a poker variant where you play 10 hands at once off one stack." Post mid-week ~8–9am PT. Lead comment: design rationale, the portfolio-decision insight, honest state of the app. TJ answers comments all day.</div></div>
+      <div><div class="k green">Green</div><div class="v">≥ 100 installs, ≥ 25 pairs formed, W1 pair retention within 20% of friends-cohort baseline.</div></div>
+      <div><div class="k red">Red / learn</div><div class="v">Traffic but no pairs → invite funnel is the bottleneck (prioritize web challenge-link). No traffic → the story angle, not the game, failed; retry once in 6–8 wks with a new angle (e.g., open-sourcing the engine).</div></div>
+    </div>
+  </div>
+
+  <div class="xcard">
+    <span class="cost">Cost: ~3–4 days prep</span>
+    <h4>B · Product Hunt</h4>
+    <div class="row">
+      <div><div class="k hyp">Hypothesis</div><div class="v">PH's early-adopter crowd converts on novelty and polish; a top-10 day yields a durable badge, backlinks/SEO, and a spike big enough to read stranger-retention statistically.</div></div>
+    </div>
+    <div class="row">
+      <div><div class="k hyp">Test</div><div class="v">Launch after HN learnings are folded in. Assets: 30-sec demo video of one full turn (board pass → cart → submit), 5 screenshots, maker story. Rally Phase 1 beta users for genuine day-of comments.</div></div>
+      <div><div class="k green">Green</div><div class="v">≥ 300 installs and ≥ 50 pairs in launch week; measurable waitlist/press spillover.</div></div>
+      <div><div class="k red">Red / learn</div><div class="v">Upvotes without installs → listing promises unclear (message problem). Installs without pairs → same funnel lesson as A, now confirmed on a second audience.</div></div>
+    </div>
+  </div>
+
+  <div class="xcard">
+    <span class="cost">Cost: ~2–4 hrs/wk, ongoing</span>
+    <h4>C · Poker communities (r/poker, poker Discords, 2+2 forums)</h4>
+    <div class="row">
+      <div><div class="k hyp">Hypothesis</div><div class="v">Poker natives will engage with the <em>strategy</em> of the mechanic — bankroll allocation across 10 simultaneous spots is a genuinely new puzzle — even though (because!) no real money is involved.</div></div>
+    </div>
+    <div class="row">
+      <div><div class="k hyp">Test</div><div class="v">Don't advertise; post <em>spots</em>. "You have 2,000 chips across these 10 hands — how do you allocate?" screenshots with real decisions, participate honestly as the builder when asked. One post/week per community, respecting each community's self-promo norms (build karma first; some subs need mod pre-clearance).</div></div>
+      <div><div class="k green">Green</div><div class="v">Threads sustain organic debate; ≥ 10 pairs/mo attributable (ask-at-signup "where did you hear?"); repeat commenters recognizable in-app.</div></div>
+      <div><div class="k red">Red / learn</div><div class="v">"No real money = pointless" dominates → money-poker natives are the wrong segment; reweight toward casual/strategy-gamer channels (D, E) and note the segment learning for Phase 3 targeting.</div></div>
+    </div>
+  </div>
+
+  <div class="xcard">
+    <span class="cost">Cost: ~1 day/wk for 6 wks</span>
+    <h4>D · Short-form video (TikTok / Reels / YouTube Shorts)</h4>
+    <div class="row">
+      <div><div class="k hyp">Hypothesis</div><div class="v">Poker content massively over-performs on short-form; the end-of-round reveal (queued all-ins running out one by one) is native vertical-video drama; the cart's "fund one jam by un-betting another hand" is a hook nobody has seen.</div></div>
+    </div>
+    <div class="row">
+      <div><div class="k hyp">Test</div><div class="v">Produce 15–20 clips before judging anything (algorithmic variance demands volume): reveal moments, "how would you play this?" spots, dev-log snippets. Screen-recorded, captioned, zero production value to start.</div></div>
+      <div><div class="k green">Green</div><div class="v">Any clip &gt; 50k views with install lift visible in that week's cohort; a repeatable format identified.</div></div>
+      <div><div class="k red">Red / learn</div><div class="v">20 clips, all flat → park the channel; revisit post-Phase-3 with creator partnerships instead of first-party content.</div></div>
+    </div>
+  </div>
+
+  <div class="footer"><span>Tilted · Go-to-Market Plan</span><span class="suit">♠ ♥ ♣ ♦</span><span>Page 7</span></div>
+</div>
+
+<!-- ============ PAGE 8: CHANNEL CARDS 2 ============ -->
+<div class="page">
+  <div class="eyebrow">♥ &nbsp;Phase 2 · Channel Experiment Portfolio (2 of 2)</div>
+  <h2>Slow-burn &amp; opportunistic channels</h2>
+  <div class="rule"></div>
+
+  <div class="xcard">
+    <span class="cost">Cost: ~30 min/day</span>
+    <h4>E · Build-in-public (X/Twitter + a monthly blog post)</h4>
+    <div class="row">
+      <div><div class="k hyp">Hypothesis</div><div class="v">An experienced engineer documenting "unemployed senior eng builds a novel poker game solo" earns a compounding audience of exactly the people who play it — and doubles as a public portfolio for the parallel job hunt (the effort is useful even if the channel never converts).</div></div>
+    </div>
+    <div class="row">
+      <div><div class="k hyp">Test</div><div class="v">2–3 posts/week: real metrics (pair retention charts!), rule-change experiments and results, engineering war stories (the chip-ledger invariant is genuinely good content). Monthly long-form post syndicated to HN/Lobsters.</div></div>
+      <div><div class="k green">Green</div><div class="v">Follower quality over count: replies from poker players and indie devs; ≥ 5 pairs/mo attributed; posts that earn inbound (press, podcast invites).</div></div>
+      <div><div class="k red">Red / learn</div><div class="v">This channel is never "red" in 10 weeks — it's a 6-month compounding asset. Judge at the Phase 3 gate; cap at 30 min/day so it can't cannibalize product time.</div></div>
+    </div>
+  </div>
+
+  <div class="xcard">
+    <span class="cost">Cost: ~2 days once, then passive</span>
+    <h4>F · App Store Optimization (ASO)</h4>
+    <div class="row">
+      <div><div class="k hyp">Hypothesis</div><div class="v">"Poker with friends" / "poker no money" searches are low-volume but maximum-intent; owning them yields a small, permanent drip of pre-qualified pairs.</div></div>
+    </div>
+    <div class="row">
+      <div><div class="k hyp">Test</div><div class="v">Keyword-tuned title/subtitle ("Tilted — Poker With Friends"), first-3-screenshots as a story (turn → cart → reveal), preview video. Iterate monthly on search-impression → install conversion in App Store Connect.</div></div>
+      <div><div class="k green">Green</div><div class="v">Steady organic installs with pair-activation ≥ the paid-channel average; ranking top-10 for 2–3 target phrases.</div></div>
+      <div><div class="k red">Red / learn</div><div class="v">Search volume too thin to matter → fine; it cost two days and the listing had to exist anyway. Keep as hygiene.</div></div>
+    </div>
+  </div>
+
+  <div class="xcard">
+    <span class="cost">Cost: hours + $0–300</span>
+    <h4>G · Podcasts &amp; newsletters (poker-strategy + indie-hacker)</h4>
+    <div class="row">
+      <div><div class="k hyp">Hypothesis</div><div class="v">Two adjacent audiences take pitches from makers: poker-strategy pods/newsletters (the mechanic is a fresh discussion topic) and indie-hacker media (the build story). Both convert at small absolute numbers but high pair quality — and both compound channel E.</div></div>
+    </div>
+    <div class="row">
+      <div><div class="k hyp">Test</div><div class="v">10 tailored pitches/mo once Phase 2 data exists (pods want a story with numbers). Offer: "a new poker variant + the retention data from testing it," not "please cover my app."</div></div>
+      <div><div class="k green">Green</div><div class="v">≥ 2 bookings/quarter; attributable pair signups via per-show promo links.</div></div>
+      <div><div class="k red">Red / learn</div><div class="v">No bites in 2 months → the story needs a sharper hook or bigger numbers; recycle effort into channels that are working.</div></div>
+    </div>
+  </div>
+
+  <div class="xcard">
+    <span class="cost">Cost: evenings, $0</span>
+    <h4>H · In-person seeding (SF/Bay tech poker scene + home games — Marin included, deprioritized)</h4>
+    <div class="row">
+      <div><div class="k hyp">Hypothesis</div><div class="v">The Bay Area tech-poker overlap (company game nights, meetup home games) is dense with the exact persona: young-ish, iPhone-carrying professionals who love poker but can't schedule it. In-person demo of a real reveal converts pairs on the spot. The Marin tournament stays on the list as a cheap secondary test of the older/money-player segment — expectation: low conversion, but it's one evening to find out.</div></div>
+    </div>
+    <div class="row">
+      <div><div class="k hyp">Test</div><div class="v">Demo at 3–4 game nights over 6 weeks; QR card on the table ("scan, challenge me"). TJ plays the first match with each recruit (concierge pattern from Phase 1).</div></div>
+      <div><div class="k green">Green</div><div class="v">≥ 30% of demo'd attendees form a pair within 2 weeks; ≥ 1 whole home-game group adopts it between sessions ("league" foreshadowing for Phase 3).</div></div>
+      <div><div class="k red">Red / learn</div><div class="v">Interest in the room, no installs after → the game demos well but lacks pull; probe what's missing in follow-up conversations (this is the richest qualitative channel on the board).</div></div>
+    </div>
+  </div>
+
+  <div class="note">
+    <p><strong>Explicitly not in the portfolio:</strong> paid UA (no unit economics yet — the paid engine needs LTV first), influencer sponsorships (expensive, unmeasurable at this size), PR agencies (premature), cross-promo networks (wrong audience quality). Each becomes discussable only after Phase 3 revenue data exists.</p>
+  </div>
+
+  <div class="footer"><span>Tilted · Go-to-Market Plan</span><span class="suit">♠ ♥ ♣ ♦</span><span>Page 8</span></div>
+</div>
+
+<!-- ============ PAGE 9: PHASE 2 METRICS + GATES ============ -->
+<div class="page">
+  <div class="eyebrow">♣ &nbsp;Phase 2 · Innovation Accounting</div>
+  <h2>The dashboard and the gates</h2>
+  <div class="rule"></div>
+
+  <h3>The pair funnel (pirate metrics, re-derived for a two-sided game)</h3>
+  <table>
+    <tr><th style="width:17%;">Stage</th><th style="width:38%;">Definition</th><th style="width:22%;">Instrument</th><th>Watch for</th></tr>
+    <tr><td><strong>Acquisition</strong></td><td>Install + SIWA complete</td><td>App Store Connect + <code>app_events</code></td><td>Cohort by channel, always.</td></tr>
+    <tr><td><strong>Pairing</strong></td><td>Install → active pair (challenge sent <em>and</em> accepted)</td><td>invite_sent → pair_formed</td><td><strong>The metric this game lives or dies on.</strong> Expect the biggest leak at partner-install.</td></tr>
+    <tr><td><strong>Activation</strong></td><td>Pair completes its first full round (all 10 hands)</td><td>first_round_complete</td><td>&lt; 60% here = onboarding or turn-liveness problem, not a marketing problem.</td></tr>
+    <tr><td><strong>Retention</strong></td><td>Pair W1 / W4: ≥ 1 completed round in that week</td><td>Weekly cohort table</td><td>The value hypothesis, quantified. Friends-cohort baseline from Phase 1 is the yardstick.</td></tr>
+    <tr><td><strong>Referral</strong></td><td>Invites sent per retained player; invite → new-pair rate; k-factor = invites × conversion</td><td>invite_sent by sender cohort</td><td>k ≥ 0.5 = strong assist; k ≥ 1 = self-sustaining (rare; don't require it).</td></tr>
+    <tr><td><strong>Revenue</strong></td><td>— deferred to Phase 3 —</td><td>Fake-door taps only</td><td>Demand signal collected passively during Phase 2 (see p. 10).</td></tr>
+  </table>
+
+  <h3>Pivot-or-persevere: scheduled for week ~20, criteria written now</h3>
+  <div class="gate">
+    <div class="g-verdict g-persevere">Persevere</div>
+    <div class="g-body"><p><strong>Stranger-cohort pair W4 retention ≥ 25%</strong>, at least one channel produces pairs repeatably (two consecutive green months), and referral k ≥ 0.3.</p><p style="margin-bottom:0;">→ Proceed to Phase 3: monetize and double down on the winning channel. This is a real consumer game.</p></div>
+  </div>
+  <div class="gate">
+    <div class="g-verdict g-tune">Tune</div>
+    <div class="g-body"><p><strong>Retained pairs love it but a single funnel stage leaks badly</strong> (e.g., invite → partner-install &lt; 25%, or activation &lt; 50%).</p><p style="margin-bottom:0;">→ Not a pivot — an engineering sprint aimed at the leak (web challenge-link for pairing; onboarding rework for activation; deadlines/nudges for W1). Re-cohort, re-measure, 4-week loops. Growth-hypothesis problems have product solutions.</p></div>
+  </div>
+  <div class="gate">
+    <div class="g-verdict g-pivot">Pivot</div>
+    <div class="g-body"><p><strong>Stranger pairs activate but don't retain (&lt; 15% W4) across two tuned cohorts</strong> — strangers-to-TJ confirm the fun, but not the habit.</p><p style="margin-bottom:0;">→ Go to the pivot catalog (p. 12) with the qualitative data in hand. The mechanic is validated; the <em>format</em> (2-player standing ritual) is what's in question.</p></div>
+  </div>
+
+  <div class="callout">
+    <div class="label">Vanity-metric tripwires (post these above the desk)</div>
+    <ul style="margin-bottom:0;">
+      <li>A launch spike is not traction. Judge every channel by its cohort's W4, read a month later.</li>
+      <li>Never average friends-cohorts with stranger-cohorts — Phase 1 friends will flatter every number.</li>
+      <li>If a week's report can't name the decision a number informs, the number doesn't go in the report.</li>
+    </ul>
+  </div>
+
+  <div class="footer"><span>Tilted · Go-to-Market Plan</span><span class="suit">♠ ♥ ♣ ♦</span><span>Page 9</span></div>
+</div>
+
+<!-- ============ PAGE 10: PHASE 3 MONETIZATION ============ -->
+<div class="page">
+  <div class="eyebrow">♦ &nbsp;Phase 3 · Revenue</div>
+  <h2>Monetization: test demand before writing code</h2>
+  <div class="rule"></div>
+
+  <p><strong>Model: freemium subscription.</strong> Free tier = the complete core game, one active match per pair — the invite loop must never hit a paywall. Paid tier = power features for the hooked. Poker players' willingness to pay recurring money for tools is proven at the high end (solver subscriptions run $39–149/mo); Tilted prices as a consumer game, not a pro tool.</p>
+
+  <h3>Step 1 — Fake-door test (during Phase 2, zero build cost)</h3>
+  <div class="note">
+    <p>Ship a "Tilted Plus" screen in Settings listing candidate features and a price, with a single button: <strong>"Join the waitlist."</strong> No purchase, no entitlement code — just measure who taps, at which displayed price (rotate $1.99 / $3.99 / $5.99 monthly across cohorts), against how active they are. This is the Lean answer to "what would you pay?" — measure behavior, never ask opinions. A 60-second survey <em>after</em> the tap (Van Westendorp's four price questions) adds a second, cheaper signal.</p>
+    <p style="margin-bottom:0;"><strong>Decision rule:</strong> ≥ 5% of W4-retained players tap at any price point → build the subscription. Below that, revenue waits and Phase 3 becomes growth-only until retention deepens.</p>
+  </div>
+
+  <h3>Step 2 — Choose the gates (options, with pros/cons)</h3>
+  <table>
+    <tr><th style="width:24%;">Gate candidate</th><th style="width:40%;">Pros</th><th>Cons / risks</th></tr>
+    <tr><td><strong>Concurrent matches</strong> (free: 1 active match; Plus: unlimited)</td><td>Cleanest gate: only power users hit it; monetizes exactly the most-retained; server already supports per-pair concurrency.</td><td>Caps the social graph's growth if set too tight — consider free = 2 before free = 1.</td></tr>
+    <tr><td><strong>Stats &amp; insights pack</strong> (allocation analytics, aggression/showdown stats, trends vs. each rival)</td><td>Poker players demonstrably pay for exactly this; deep, durable value; feeds the "study your rivalry" emotion.</td><td>Real build cost; needs meaningful hand volume per user before it's compelling.</td></tr>
+    <tr><td><strong>Match templates</strong> (blind structures, 5/20-hand rounds, tournament mode, escalating blinds)</td><td>The spec already anticipates it (§20); creates variety for long-retained pairs; both players get it if <em>either</em> subscribes (generous, shareable).</td><td>Each template is an ongoing rules-testing surface; splits the play experience.</td></tr>
+    <tr><td><strong>Extended history</strong> (free: last 30 days; Plus: forever + export)</td><td>Standard SaaS-style gate; trivial to build.</td><td><span style="color:var(--claret);"><strong>Recommend against:</strong></span> hand history/reminiscence is the love feature and the screenshot-content engine — gating memories punishes your best users and your best marketing.</td></tr>
+  </table>
+  <p><em>Working recommendation: launch Plus = concurrent matches + templates; add the stats pack as the retention-deepener in the following quarter. Never gate history.</em></p>
+
+  <h3>Step 3 — Price &amp; package experiments</h3>
+  <ul>
+    <li><strong>Price points to test:</strong> $2.99/mo · $19.99/yr (the anchor; push annual hard — churn insurance for a ritual product) · <strong>$29.99 "Founding Member" lifetime</strong>, first 500 only: early cash, commitment signal, and a thank-you to beta pairs. Cohort A/B via StoreKit; settle within two cohorts.</li>
+    <li><strong>Pair pricing (differentiator):</strong> a "Table" plan (~$29.99/yr) covering both players in a pair. Nobody in the category does this; it matches the unit of value and turns upgrading into a gift. Test against solo pricing.</li>
+    <li><strong>Web payments later:</strong> if the web challenge-link client ships (p. 11), web-side subscription via Stripe skips Apple's 15–30% — a margin option, not a launch requirement (mind Apple's evolving external-purchase rules at the time).</li>
+    <li><strong>Revenue reality check (write it down, stay sane):</strong> 1,000 retained players × 5% paid × ~$20/yr ≈ <strong>$1k/yr</strong>; 20,000 × 8% ≈ <strong>$32k/yr</strong>. Subscription revenue follows retention scale — which is why Phases 1–2 gate Phase 3, and why the pivot catalog includes bigger-swing options.</li>
+  </ul>
+
+  <div class="footer"><span>Tilted · Go-to-Market Plan</span><span class="suit">♠ ♥ ♣ ♦</span><span>Page 10</span></div>
+</div>
+
+<!-- ============ PAGE 11: PHASE 3 GROWTH OPTIONS ============ -->
+<div class="page">
+  <div class="eyebrow">♦ &nbsp;Phase 3 · Growth Investments</div>
+  <h2>Let the funnel data choose the next build</h2>
+  <div class="rule"></div>
+
+  <p>Phase 3's engineering budget goes to <strong>whichever leak or loop Phase 2 measured as the binding constraint.</strong> Decision table — commit to one at a time (WIP limit still applies):</p>
+
+  <table>
+    <tr><th style="width:26%;">If the data says…</th><th style="width:30%;">…build this</th><th>Rationale &amp; success metric</th></tr>
+    <tr>
+      <td>Invites die at "partner must install an iPhone app" (pairing &lt; 25%)</td>
+      <td><strong>Web challenge-link client.</strong> Text a link; the friend plays their first turn in the browser in ten seconds — no download, works on Android.</td>
+      <td>The single highest-leverage growth build available; the thin-client architecture makes it cheap. Metric: invite → first-turn-played, before vs. after. Expect browser players to convert to installs after ~2 matches (prompt at the moment of delight: after a won reveal).</td>
+    </tr>
+    <tr>
+      <td>Pairs form but go quiet mid-match (W1→W4 drop-off)</td>
+      <td><strong>Liveness &amp; ritual mechanics.</strong> Smarter nudges, streaks for consecutive turn-days, "rivalry record" (lifetime match score between two players), season recaps.</td>
+      <td>Sticky-engine tuning. The rivalry record is likely gold: WWF-style running history makes quitting feel like forfeiting. Metric: median turns/pair/week; W4.</td>
+    </tr>
+    <tr>
+      <td>Solo installs churn with no partner (high acquisition, low pairing)</td>
+      <td><strong>Careful matchmaking ("Open Seat").</strong> Opt-in queue for a stranger match with turn deadlines mandatory; rivalry converts strangers into regular rivals.</td>
+      <td>A deliberate step beyond friends-only — WWF made exactly this move successfully. Guardrails: never the default; friends-first framing everywhere. Metric: % of solo installs saved into an active pair within 7 days.</td>
+    </tr>
+    <tr>
+      <td>Home-game groups adopt in clusters (channel H green)</td>
+      <td><strong>Leagues.</strong> 4–10 player groups, round-robin heads-up pairings, a standings board, season length ~a month.</td>
+      <td>Turns the pair ritual into a group ritual with built-in social pressure to take turns; a natural "Table/League" subscription tier; sharpest wedge into company Slack channels and friend groups. Metric: league completion rate; per-league retention.</td>
+    </tr>
+    <tr>
+      <td>Content flywheel spins (channels C/D green)</td>
+      <td><strong>Share kit.</strong> One-tap beautiful hand-replay export (image/video), spectator links to finished hands, weekly "hand of the week" in-app.</td>
+      <td>Compounds the working channel instead of opening a new one. The replay is already designed screenshot-friendly — make it export-native. Metric: shares/week → attributed installs.</td>
+    </tr>
+    <tr>
+      <td>Everything is green and capacity exists</td>
+      <td><strong>Android (or full web app).</strong></td>
+      <td>Only now. Doubles the addressable pairs; roughly doubles client maintenance for a solo dev. Prefer extending the web client to full parity over a native Android build.</td>
+    </tr>
+  </table>
+
+  <div class="callout">
+    <div class="label">Sequencing principle</div>
+    <p style="margin-bottom:0;">Each build above is 2–6 weeks of solo work. Choose by <strong>measured constraint, not excitement</strong> — the Lean discipline that matters most when the builder is also the founder and the marketer. Ship → re-cohort → re-measure → next pivot-or-persevere meeting. Six-week cycles, forever.</p>
+  </div>
+
+  <div class="note">
+    <p><strong>On paid acquisition (the third engine):</strong> becomes discussable only when subscription data yields an LTV, and only into the proven channel's lookalike audience. Rule of thumb: don't spend a dollar on ads until blended payback &lt; 6 months is plausible on paper — for a $20/yr product that means CAC under ~$10, which is achievable only with a strong viral assist (k ≥ 0.5) doing half the work.</p>
+  </div>
+
+  <div class="footer"><span>Tilted · Go-to-Market Plan</span><span class="suit">♠ ♥ ♣ ♦</span><span>Page 11</span></div>
+</div>
+
+<!-- ============ PAGE 12: PIVOT CATALOG ============ -->
+<div class="page">
+  <div class="eyebrow">♠ &nbsp;Phase 3 · The Pivot Catalog</div>
+  <h2>Pre-committed pivots (decided calmly, in advance)</h2>
+  <div class="rule"></div>
+
+  <p>Lean Startup's sharpest observation: founders pivot too late because the decision is made under sunk-cost pressure. So the pivot options are written <em>now</em>, each with the evidence that would trigger it. If a trigger fires at a scheduled pivot-or-persevere meeting, the corresponding pivot gets a 6-week validation cycle of its own — a pivot is a new strategy with a new baseline, not an admission of failure. The core asset in every scenario: <strong>a validated-fun poker mechanic, a rules-flexible engine, and everything learned about who plays and why.</strong></p>
+
+  <table>
+    <tr><th style="width:20%;">Pivot (Lean type)</th><th style="width:37%;">What Tilted becomes</th><th>Trigger evidence</th></tr>
+    <tr>
+      <td><strong>Leagues-first</strong> <em>(customer-segment)</em></td>
+      <td>The group product: home games, friend groups, and company channels running month-long round-robin seasons; pairs become the atom inside a group ritual.</td>
+      <td>Pairs churn but clustered adoption keeps appearing (channel H, second-degree invites arriving in groups); interviews say "we'd play if the whole crew was in."</td>
+    </tr>
+    <tr>
+      <td><strong>Open-Seat-first</strong> <em>(engine-of-growth: sticky→viral-lite)</em></td>
+      <td>Solo-friendly: download → matched with a rival in 60 seconds → rivalry record does the retention work. Friends remain a feature, not the funnel.</td>
+      <td>Acquisition is easy but pairing is the immovable leak even after the web client; solo installs keep asking for "anyone to play with."</td>
+    </tr>
+    <tr>
+      <td><strong>Format zoom-in</strong> <em>(zoom-in)</em></td>
+      <td>The one thing everyone loved, sharpened: e.g., 5-hand quick rounds; or a daily async "allocation puzzle" (same 10 dealt hands for everyone, global leaderboard) as the front door to matches.</td>
+      <td>Interviews and behavior isolate one loved element (the cart decision, the reveal) while full matches feel long; completion drops mid-match but round-one engagement is universal.</td>
+    </tr>
+    <tr>
+      <td><strong>Platform pivot</strong> <em>(channel)</em></td>
+      <td>Web-first (or iMessage-app-first): the game lives where invites already travel; native apps become the premium shell.</td>
+      <td>Web challenge-link players engage at ≥ 70% of app players and the install step is measurably the growth ceiling.</td>
+    </tr>
+    <tr>
+      <td><strong>Study-tool pivot</strong> <em>(customer-need)</em></td>
+      <td>A poker-training product: the parallel-hands format as drill engine — range quizzes, allocation puzzles, spaced repetition. Sells to the money-poker crowd (channel C's skeptics) at tool prices, $10–20/mo.</td>
+      <td>Retention as a <em>game</em> fails, but poker-serious users keep calling the mechanic "great practice"; C's threads engage with spots while ignoring the app.</td>
+    </tr>
+    <tr>
+      <td><strong>Shelve gracefully</strong> <em>(the honest option)</em></td>
+      <td>Open-source the engine, write the retrospective (genuinely valuable content + job-market signal), keep the server alive cheaply for the pairs who love it. TJ exits with reputation, a portfolio piece, and the option to return.</td>
+      <td>Two full pivot cycles fail their gates; Active Pairs plateaus &lt; 100 despite green channels; or the job hunt converts and hours drop below viability. Deciding this coolly in advance is what makes every earlier bet safe to take.</td>
+    </tr>
+  </table>
+
+  <div class="callout">
+    <div class="label">The standing rule</div>
+    <p style="margin-bottom:0;">Every pivot-or-persevere meeting (weeks ~10, ~20, then every 6 weeks) ends with a one-page memo: baseline numbers, what was learned, the verdict, and the next cycle's single hypothesis. Ten minutes of writing; it is the difference between <em>iterating</em> and <em>wandering</em> — and it's excellent build-in-public content besides.</p>
+  </div>
+
+  <div class="footer"><span>Tilted · Go-to-Market Plan</span><span class="suit">♠ ♥ ♣ ♦</span><span>Page 12</span></div>
+</div>
+
+<!-- ============ PAGE 13: RISKS + CALENDAR ============ -->
+<div class="page">
+  <div class="eyebrow">♥ &nbsp;Risks &amp; The First 90 Days</div>
+  <h2>What could kill it, and what happens Monday</h2>
+  <div class="rule"></div>
+
+  <h3>Risk register</h3>
+  <table>
+    <tr><th style="width:24%;">Risk</th><th style="width:10%;">Odds</th><th>Mitigation</th></tr>
+    <tr><td>App Store review friction (gambling-adjacent category)</td><td>Medium</td><td>No real money, no prizes, clear "social card game" framing; expect a simulated-gambling age rating; submit early with thorough review notes; keep a TestFlight fallback for beta continuity.</td></tr>
+    <tr><td>Name conflict — "Tilted" in App Store / USPTO</td><td>Medium</td><td>Run the trademark + App Store search <em>before</em> Phase 2 spends any brand equity (week 1 task, costs an hour). Fallback names ready; the tagline carries the brand if the mark must change.</td></tr>
+    <tr><td>Solo-founder bandwidth: job lands mid-Phase 2</td><td>High</td><td>By design: every phase ends at a clean gate; channels A–H are pausable; the 6-week memo cadence survives a 10-hr/wk schedule. A job is a funding event for the project, not its death.</td></tr>
+    <tr><td>Money-poker players dismiss it ("no stakes = no point")</td><td>High</td><td>They're not the segment — the WWF audience is. Channel C tests them cheaply; the study-tool pivot is the pre-planned answer if they engage with the mechanic but not the game.</td></tr>
+    <tr><td>Novel mechanic confuses cold users</td><td>Medium</td><td>Phase 0 onboarding + watching first-runs live in Phase 1; the P3 message pre-frames "new kind of poker" so novelty is the promise, not a surprise.</td></tr>
+    <tr><td>Retention illusion from friends-cohorts</td><td>Medium</td><td>Structural: never blend cohorts; stranger-cohort W4 is the only number that advances Phase 2 → 3.</td></tr>
+    <tr><td>Infra/scaling on launch spikes</td><td>Low</td><td>Fly.io scales fine for this shape; pre-launch load test of turn-submit; the game is async — a slow hour is survivable in a way a live game's isn't.</td></tr>
+  </table>
+
+  <h3>The first 90 days, concretely</h3>
+  <table>
+    <tr><th style="width:18%;">Weeks</th><th>Focus</th></tr>
+    <tr><td><strong>1–4</strong></td><td>Phase 0 workstreams (p. 4). Week 1 extras: trademark/name search; landing page up with the three-headline smoke test running quietly. Submit to App Store review by week 3. Run the uncoached-pair exit test twice.</td></tr>
+    <tr><td><strong>5–10</strong></td><td>Phase 1: recruit 2–4 pairs/week from the friends network; weekly interview calls; one rule experiment per fortnight; Sean Ellis survey at week 3 of each cohort; channel E (build-in-public) starts now as background. <strong>Week 10: pivot-or-persevere memo #1.</strong></td></tr>
+    <tr><td><strong>11–13</strong></td><td>Phase 2 opens (if gate passed): positioning decision from smoke-test data; channel C (poker communities) first — smallest, most forgiving, richest feedback; fake-door "Tilted Plus" screen ships quietly. Prep Show HN assets.</td></tr>
+  </table>
+
+  <div class="callout" style="margin-top:6px;">
+    <div class="label">The one-sentence version of this whole plan</div>
+    <p style="margin-bottom:0;">Prove the ritual with friends, prove the funnel with strangers, prove the price with a fake door — one experiment at a time, one metric that matters, and every big decision pre-written so it gets made on evidence instead of hope.</p>
+  </div>
+
+  <div style="text-align:center; margin-top:18px; font-family:Georgia, serif; color:var(--gold-700); font-size:13px;">
+    ♠ &nbsp; ♥ &nbsp; ♣ &nbsp; ♦<br>
+    <span style="font-size:10px; color:var(--cream-400); letter-spacing:2px;">TILTED · CONFIDENTIAL DRAFT V1.0 · JULY 2026</span>
+  </div>
+
+  <div class="footer"><span>Tilted · Go-to-Market Plan</span><span class="suit">♠ ♥ ♣ ♦</span><span>Page 13</span></div>
+</div>
+
+</body>
+</html>

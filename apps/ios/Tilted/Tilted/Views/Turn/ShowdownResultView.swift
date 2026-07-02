@@ -8,6 +8,10 @@ struct ShowdownResultView: View {
     let onFavorite: (Bool) -> Void
     let onBackToList: () -> Void
     let onNextHand: () -> Void
+    /// Label + visibility for the footer buttons, so this view can double
+    /// as a "Next Showdown →" page in the grouped turn-results flow (#3).
+    var nextTitle: String = "Next Hand \u{2192}"
+    var showBackToList: Bool = true
 
     @State private var showResult = false
     @State private var isFavorited = false
@@ -66,9 +70,16 @@ struct ShowdownResultView: View {
     }
 
     private var potDeltaLabel: String {
+        // Use the server's net snapshot — never raw pot or the zeroed
+        // my_reserved (which rendered "-0" after settlement, feedback #4).
+        if let net = hand.myResolvedNet {
+            if net > 0 { return "+\(net)" }
+            if net < 0 { return "\u{2212}\(abs(net))" }
+            return "0"
+        }
         switch outcome {
         case .winShowdown, .opponentFolded: return "+\(hand.pot)"
-        case .loseShowdown, .youFolded: return "-\(hand.myReserved)"
+        case .loseShowdown, .youFolded: return "\u{2212}\(hand.myReserved)"
         case .splitPot: return "+\(hand.pot / 2)"
         }
     }
@@ -332,27 +343,29 @@ struct ShowdownResultView: View {
                 .foregroundColor(.cream400)
 
             HStack(spacing: 8) {
-                Button {
-                    onBackToList()
-                } label: {
-                    Text("\u{2191} All Hands")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.cream200)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(Color.black.opacity(0.3))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(Color.gold500.opacity(0.3), lineWidth: 1)
-                        )
-                        .cornerRadius(10)
+                if showBackToList {
+                    Button {
+                        onBackToList()
+                    } label: {
+                        Text("\u{2191} All Hands")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(.cream200)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color.black.opacity(0.3))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .stroke(Color.gold500.opacity(0.3), lineWidth: 1)
+                            )
+                            .cornerRadius(10)
+                    }
+                    .frame(maxWidth: 130)
                 }
-                .frame(maxWidth: 130)
 
                 Button {
                     onNextHand()
                 } label: {
-                    Text("Next Hand \u{2192}")
+                    Text(nextTitle)
                         .font(.system(size: 12, weight: .bold))
                         .foregroundColor(.felt800)
                         .frame(maxWidth: .infinity)
