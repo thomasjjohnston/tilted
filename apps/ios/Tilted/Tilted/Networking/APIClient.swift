@@ -3,9 +3,21 @@ import Foundation
 actor APIClient {
     static let shared = APIClient()
 
-    private var baseURL = URL(string: "https://tilted-server.fly.dev")!
+    private var baseURL = APIClient.defaultBaseURL
 
     private var token: String?
+
+    init() {
+        #if DEBUG
+        // In DEBUG builds, honor a persisted server override so a device
+        // can point at a laptop running the local stack (docs/LOCAL-TESTING.md).
+        if let override = APIClient.debugServerURL {
+            baseURL = override
+        }
+        #endif
+    }
+
+    static let defaultBaseURL = URL(string: "https://tilted-server.fly.dev")!
 
     func setToken(_ token: String) {
         self.token = token
@@ -271,6 +283,36 @@ struct DeleteResponse: Decodable {
 private struct GameRuleErrorBody: Decodable {
     let message: String
 }
+
+#if DEBUG
+// DEBUG-only server override for local end-to-end testing on a device.
+// The value persists in UserDefaults and is applied at launch (APIClient.init)
+// and immediately when changed. See docs/LOCAL-TESTING.md.
+extension APIClient {
+    static let debugServerKey = "debug_server_url"
+
+    /// Current override as a URL, or nil when unset/blank (→ use Fly default).
+    static var debugServerURL: URL? {
+        guard let s = UserDefaults.standard.string(forKey: debugServerKey),
+              !s.trimmingCharacters(in: .whitespaces).isEmpty,
+              let url = URL(string: s) else { return nil }
+        return url
+    }
+
+    /// The string shown in the debug field (empty = Fly production default).
+    static var debugServerString: String {
+        UserDefaults.standard.string(forKey: debugServerKey) ?? ""
+    }
+
+    /// Persist + apply a new server URL. Empty string clears the override.
+    static func applyDebugServer(_ raw: String) {
+        let trimmed = raw.trimmingCharacters(in: .whitespaces)
+        UserDefaults.standard.set(trimmed, forKey: debugServerKey)
+        let url = (trimmed.isEmpty ? nil : URL(string: trimmed)) ?? defaultBaseURL
+        Task { await APIClient.shared.setBaseURL(url) }
+    }
+}
+#endif
 
 enum APIError: Error, LocalizedError {
     case invalidResponse
