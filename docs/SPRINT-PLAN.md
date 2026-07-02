@@ -374,6 +374,57 @@ MVP meets §19 success criteria and the rules-change feedback pipeline is active
 
 ---
 
+## Sprint 7 — Beta feedback batch (post-MVP)
+
+**Goal:** Address the first round of beta feedback from TJ + friend. Two threads: a set of correctness/UX fixes, and one net-new feature — the **batch turn / cart** (spec §6, §13.2).
+
+**Delivery note (deviates from the one-story-one-PR norm):** at the owner's (TJ's) explicit direction, this whole sprint ships as a **single consolidated PR**, not one PR per story. The stories below are the checklist within that PR. The global Definition of Done still applies; the spec/HLD were updated up front (this batch), not per-story.
+
+**Sprint demo:** Play a turn end-to-end via the cart (click through the board, rebalance chips, submit); open the round summary and history and confirm amounts, outcomes, and win/loss are all correct; verify a single push per turn.
+
+### Fixes
+
+**S7-1 — Home stays behind after a turn (I, 0.5 day)**
+- `HomeView` doesn't refresh when a Turn/Reveal `fullScreenCover` dismisses (no `.task`/`scenePhase` change). Refresh on cover dismiss / return to `.home`.
+- Acceptance: finishing a turn returns to Home with fresh state, no manual pull.
+
+**S7-2 — History shows losses as wins (I, 0.5 day)**
+- `HistoryView` list renders "Won {pot}" for any hand with a winner, never comparing to the current user (detail does). Compare `winnerUserId == currentUserId`; kill the dead "Split" branch.
+- Acceptance: a hand you lost reads as a loss in both the list and the detail.
+
+**S7-3 — Summary & history amounts + outcomes (S + I, 2 days)** *(covers "+0/−0", "wrong in history", "skips how hands ended", "folded" vs "folded the river")*
+- Server: serialize `resolved_net_for_*` and `fold_street` (and a normalized outcome: `won_showdown` / `won_on_blinds` / `folded_{street}` / `lost_*`) into `/history` and `/hand/:id`. Keep opponent hole-card redaction tests.
+- iOS: round summary, history list, and detail all show **net** (not raw `pot`) with a correct non-null fallback, and a full street-granular outcome that is never blank.
+- Acceptance: no "+0/−0"; amounts match the reveal; every hand shows how it ended with street detail.
+
+**S7-4 — Invalid raise bounces the hand back (S + I, 1.5 days)**
+- Reconcile the min-raise in the legal-actions preview with the min-raise enforced in `applyAction` (same rule/source). Add a Fastify error handler so illegal actions return **4xx, not 500**. Client clamps the slider to the true min-raise and surfaces an explicit error on rejection instead of silently refetching.
+- Acceptance: the advertised min-raise is always submittable; a genuinely illegal action shows an error and keeps the turn, without the hand silently reappearing.
+
+**S7-5 — One push per turn handoff (S, 1 day)**
+- Handoff/round-complete pushes are recomputed per-hand-action, so a flurry fires and round-complete can ping both players mid-opponent-turn. Collapse to at most one `turn_handoffs` row per submitted turn; suppress premature/round-complete pushes and blind-only-win pushes (spec §16). Aligns with S7-6's batch submit.
+- Acceptance: completing a turn (incl. many blind wins) delivers the opponent exactly one push, only when control actually passes.
+
+### Feature — batch turn / cart
+
+**S7-6 — Batch submit endpoint (S, 2 days)**
+- `POST /v1/turn/submit` (HLD §7, §9): validate + apply an ordered batch of per-hand actions in one `FOR UPDATE` transaction, all-or-nothing, ledger assertion once at the end. Idempotent via `turn_tx_id` (+ existing per-action `client_tx_id`). Harden the existing internal `applyBatchActions` path into this first-class endpoint. Single `turn_handoffs` row per submit.
+- Acceptance: an over-committed or partially-illegal batch applies nothing and returns the offending hand(s); a legal batch applies atomically; a retried submit is a no-op returning the original result.
+
+**S7-7 — iOS cart turn flow (I, 4 days)**
+- Layer the cart *around* the existing board (which does **not** change): click-through board pass queues decisions locally; a cart/review screen shows queued decisions + live shared-stack readout (available/reserved/in-cart, warn-only over-commit); tapping a row re-opens that hand's board to edit; a single Submit posts the batch. Prototype: `resources/cart-turn-flow.html`.
+- Store holds provisional (unsent) decisions; submit clears them on success, restores on rejection.
+- Acceptance: matches the approved prototype flow, including the bet-big-then-reallocate-to-all-in path; existing board CX untouched.
+
+**S7-8 — Reconcile prior stories & tests (S + I, 0.5 day)**
+- Update S6-1's "action immutability after submit" case to "after **turn** submit" (queued decisions are editable pre-submit; §17). Update the round-summary (S4-2) net wording if needed. Add batch-submit integration tests (all-or-nothing, idempotency, redaction) and a cart store unit test.
+
+### End-of-sprint state
+
+Beta feedback addressed; the turn is a batch/cart with correct chip accounting, correct summaries/history, correct raise validation, and one push per turn.
+
+---
+
 ## Parallelization map
 
 Each sprint has an implied dependency shape. The critical path is mostly through S (server):

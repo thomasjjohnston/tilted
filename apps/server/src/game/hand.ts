@@ -16,7 +16,11 @@ export interface HandDetailView {
   street: string;
   status: string;
   terminal_reason: string | null;
+  fold_street: string | null;
   winner_user_id: string | null;
+  /** Net chips for the requesting user (won positive, lost negative,
+   *  null while unresolved / for legacy rows) — never the raw pot. */
+  my_resolved_net: number | null;
   is_favorited: boolean;
   my_hand_rank: string | null;
   opponent_hand_rank: string | null;
@@ -121,7 +125,11 @@ export async function getHandDetail(
     street: hand.street,
     status: hand.status,
     terminal_reason: hand.terminalReason,
+    fold_street: hand.foldStreet,
     winner_user_id: hand.winnerUserId,
+    my_resolved_net: hand.status === 'complete'
+      ? (isUserA ? hand.resolvedNetForA : hand.resolvedNetForB)
+      : null,
     is_favorited: !!fav,
     my_hand_rank: myHandRank,
     opponent_hand_rank: opponentHandRank,

@@ -1,13 +1,17 @@
 import Fastify from 'fastify';
+import type { FastifyError } from 'fastify';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
 import { execSync } from 'node:child_process';
+import { ZodError } from 'zod';
 import { env } from './env.js';
+import { GameRuleError } from './errors.js';
 import { debugAuthRoutes, bearerAuth } from './api/auth.js';
 import { authAppleRoutes } from './api/routes/auth-apple.js';
 import { authAppleWebhookRoutes } from './api/routes/auth-apple-webhook.js';
 import { matchRoutes } from './api/routes/match.js';
 import { handRoutes } from './api/routes/hand.js';
+import { turnRoutes } from './api/routes/turn.js';
 import { roundRoutes } from './api/routes/round.js';
 import { meRoutes } from './api/routes/me.js';
 import { historyRoutes } from './api/routes/history.js';
@@ -33,6 +37,29 @@ export async function buildApp() {
   });
 
   await app.register(cors, { origin: true });
+
+  // Central error handler. Illegal *game* actions (below min-raise, not
+  // your turn, over-committing the shared stack) are the caller's fault,
+  // not ours — return 422 with the message so the client surfaces a real
+  // error instead of a silent 500 that reads as "the hand bounced back"
+  // (beta feedback S7-4). Malformed requests → 400. Everything else → 500.
+  app.setErrorHandler((error: FastifyError, req, reply) => {
+    if (error instanceof GameRuleError) {
+      return reply.status(422).send({ error: 'GameRuleError', message: error.message });
+    }
+    if (error instanceof ZodError) {
+      return reply.status(400).send({ error: 'BadRequest', message: 'Invalid request', issues: error.issues });
+    }
+    if (error.validation) {
+      return reply.status(400).send({ error: 'BadRequest', message: error.message });
+    }
+    req.log.error(error);
+    const status = error.statusCode ?? 500;
+    return reply.status(status).send({
+      error: status === 500 ? 'InternalServerError' : 'RequestError',
+      message: status === 500 ? 'Internal Server Error' : error.message,
+    });
+  });
 
   // Health check (no auth)
   app.get('/healthz', async () => ({
@@ -65,6 +92,7 @@ export async function buildApp() {
     await authenticated.register(meRoutes);
     await authenticated.register(matchRoutes);
     await authenticated.register(handRoutes);
+    await authenticated.register(turnRoutes);
     await authenticated.register(roundRoutes);
     await authenticated.register(historyRoutes);
     await authenticated.register(matchupRoutes);

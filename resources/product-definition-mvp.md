@@ -101,6 +101,18 @@ A single push notification is delivered to a player when control passes to them.
 
 A player can take arbitrarily long. The two-user trust model makes this acceptable for MVP. A future version will introduce deadlines and auto-actions.
 
+### The turn is composed as a batch (the "cart")
+
+A turn is not a sequence of independently-committed actions — it is a single batch the player assembles and submits as one unit. Concretely:
+
+- The player clicks through each pending hand on the normal board view (§13.2) and chooses an action (fold / check / call / bet / raise). Nothing is sent to the server yet; each choice is *queued locally*.
+- After going through the hands, the player lands on a **review screen ("the cart")** listing every queued decision alongside the shared-stack accounting (available / reserved / in-cart).
+- From the cart the player can re-open any hand — this returns them to that hand's board — and **change the queued decision before submitting**. This is what makes cross-hand chip allocation interactive: a big bet queued on one hand can be turned back into a check to fund an all-in on another. (§7 chip economy is the reason this matters.)
+- **Submit** sends the whole turn to the server in one request. The server revalidates every action against the shared stack and applies them **all-or-nothing** in a single transaction (HLD §7). If any action is illegal, nothing is applied and the player is returned to the cart.
+- The existing board view does not change; the cart is a layer *around* it (a click-through pass plus a review/checkout step).
+
+**Budget while composing (warn-only).** As the player queues bets, a running available-chip readout updates live. If the queued bets exceed the player's stack, the cart shows a warning but still lets the player attempt to submit; the server is the final gate and rejects an over-committed turn atomically. Client-side clamping is a UX aid, not the enforcement mechanism (§4.1 — server is source of truth).
+
 ## 7. Chip economy (the mechanical innovation)
 
 The defining rule: **a player has a single pile of chips shared across all 10 hands.** Chips committed to a pot in one hand are unavailable in the others until that hand resolves.
@@ -168,9 +180,9 @@ A bet-sizing sheet with:
 - A readout of "After this bet, you will have X available" to make cross-hand cost explicit.
 - Server-side validation is authoritative; client-side validation is a UX aid only.
 
-### No quick-apply across hands in MVP
+### Composing across hands (the cart)
 
-Each hand's action is entered individually. A "same size in all hands" toggle was considered and deferred post-MVP.
+Each hand's action is entered individually on its board, but actions are *queued* and submitted together as one turn — see §6, "The turn is composed as a batch." A "same size in all hands" quick-apply toggle was considered and remains deferred post-MVP; the cart deliberately favors per-hand deliberation over bulk actions.
 
 ## 10. All-in hands & end-of-round reveal
 
@@ -210,7 +222,8 @@ Compact tile with:
 - Both players' hole cards (if shown; "Mucked" if folded preflop pre-reveal).
 - The final board (up to 5 cards).
 - Final pot size.
-- Winner and amount won.
+- Winner and the viewer's **net** chips for the hand (e.g. "+240" / "−120" / "split") from the persisted per-hand net snapshot — never the raw pot, and never a placeholder like "+0". Whether the viewer won or lost is determined by comparing the winner to the viewer, so the same hand never reads as a win in a list and a loss in its detail (or vice-versa).
+- How the hand ended, with street granularity: "Folded the river", "Won at showdown", "Won on blinds", etc. — always populated, never blank.
 - A one-line action sketch (e.g., "SB raised, BB 3-bet, SB called; flop checked, turn jam called — BB wins 420").
 - Favorite toggle (star icon).
 
@@ -249,14 +262,20 @@ If there is no active match, the CTA is "Start new match."
 
 ### 13.2 Turn view (playing your turn)
 
-Entered by tapping "Take your turn."
+Entered by tapping "Take your turn." The turn is a two-part flow: click through the hands on the board, then review and submit from the cart (§6).
 
-- A vertically scrolling stack of **hand cards** — one per pending hand.
-- Each hand card shows: hand number, your hole cards, current board (if any), pot size, current bet facing you, your available chips, your reserved-in-this-hand chips, the action buttons (Fold / Check / Call / Bet-Raise).
-- Hands that are not pending your action (because you already acted or they're terminal) are still visible but collapsed/greyed.
-- A sticky header shows: "X of 10 hands left in your turn."
-- When you act on a hand, it animates to a "done" state and auto-scrolls to the next pending hand.
-- After the last pending hand is acted on, a full-screen confirmation appears: "Turn sent. Waiting on [opponent]."
+**Board pass.** The player moves through each pending hand on the standard board view:
+
+- Each hand's board shows: hand number, your hole cards, current board (if any), pot size, current bet facing you, your available chips, your reserved-in-this-hand chips, the action buttons (Fold / Check / Call / Bet-Raise). This view is unchanged from the existing board CX.
+- Choosing an action *queues* it (nothing is sent yet) and advances to the next pending hand.
+- A header shows "X of 10 hands left in your turn." After the last pending hand, the player lands on the cart.
+
+**Cart (review / checkout).**
+
+- Lists every hand with its queued decision, plus the shared-stack readout (available / reserved / in-cart), updating live.
+- Any still-undecided hand is flagged; the player cannot submit until every pending hand has a queued decision.
+- Tapping any hand row re-opens that hand's board to change the queued decision, then returns to the cart.
+- A single **Submit turn** sends the whole batch. Over-committed carts warn but may still be submitted; the server rejects atomically (warn-only, §6). On success: "Turn sent. Waiting on [opponent]."
 
 ### 13.3 Bet/raise sheet
 
@@ -298,7 +317,7 @@ A sketch, not authoritative; schema to be finalized in design.
 - **User** — `user_id`, `display_name`, `apns_token`.
 - **Match** — `match_id`, `user_a_id`, `user_b_id`, `starting_stack`, `blind_small`, `blind_big`, `current_round_id`, `status` (active / ended), `winner_user_id`, `started_at`, `ended_at`.
 - **Round** — `round_id`, `match_id`, `round_index`, `sb_user_id`, `bb_user_id`, `status` (dealing / in_progress / revealing / complete), `created_at`, `completed_at`.
-- **Hand** — `hand_id`, `round_id`, `hand_index` (0–9), `deck_seed`, `board` (array up to 5 cards), `user_a_hole`, `user_b_hole`, `pot`, `status` (preflop / flop / turn / river / awaiting_runout / complete), `terminal_reason` (fold / showdown), `winner_user_id`, `completed_at`.
+- **Hand** — `hand_id`, `round_id`, `hand_index` (0–9), `deck_seed`, `board` (array up to 5 cards), `user_a_hole`, `user_b_hole`, `pot`, `status` (preflop / flop / turn / river / awaiting_runout / complete), `terminal_reason` (fold / showdown), `fold_street` (preflop / flop / turn / river — the street a fold resolved on, powering summary detail like "folded the river"), `winner_user_id`, `resolved_net_for_a` / `resolved_net_for_b` (snapshotted per-user net chip change at resolution, so summaries and history never recompute from live/zeroed reserved), `completed_at`.
 - **Action** — `action_id`, `hand_id`, `acting_user_id`, `street` (preflop / flop / turn / river), `action_type` (fold / check / call / bet / raise / all_in), `amount`, `pot_after`, `client_sent_at`, `server_recorded_at`.
 - **Favorite** — `user_id`, `hand_id`, `created_at`.
 
@@ -318,7 +337,8 @@ A sketch, not authoritative; schema to be finalized in design.
 ## 16. Notifications
 
 - Apple Push Notification Service.
-- One notification per turn handoff, delivered to the player whose turn just began.
+- **Exactly one notification per turn handoff**, delivered to the player whose turn just began. Because a turn is now submitted as one batch (§6), this is one push per submitted turn that leaves the opponent with pending hands — not one per hand acted on.
+- Hands won purely on blinds (opponent folds without you acting) do **not** generate their own push, and no push fires while the opponent is still mid-turn on the round's opening hands. The player is notified once, when control actually passes to them.
 - Payload: `"{opponent} finished their turn. {N} hands are waiting for you."`
 - Tap opens directly into the Turn view.
 - No other push types in MVP (no match-end push, no round-complete push).
@@ -328,12 +348,12 @@ A sketch, not authoritative; schema to be finalized in design.
 - **Both fold in the same round, same turn?** Not possible — only one player acts per turn.
 - **Hand terminates preflop with SB's fold.** BB wins the pot (the SB's posted blind and nothing more beyond what's in there — 5 chips). Standard.
 - **Simultaneous connection loss.** The game is fully turn-based with server authority. Reconnects see the current state.
-- **Bet slider jumps past legal min-raise.** Client snaps to min-raise; server rejects anything illegal.
+- **Bet slider jumps past legal min-raise.** The min-raise the client shows must equal the min-raise the server enforces (both computed from the same rule; a mismatch is a bug). The slider snaps to that min-raise; the server revalidates and is authoritative. A rejected action surfaces an explicit error rather than silently returning the hand to the player.
 - **Ties (chopped pots).** Contributions split evenly. For odd chips, award the odd chip to out-of-position player (standard HU).
 - **Running out of chips mid-round.** Possible. Player may have zero available and still owe a blind post in the next round — handled at the round boundary (bust check).
 - **What if you jam hand 1 for 2000 before posting the other 9 SBs?** Blinds are posted atomically at round start, BEFORE any player action. So all 10 SBs are posted before you can act in any hand. Available after blinds = `2000 − 50 = 1950`, and any in-hand action works off that.
 - **Can I see my opponent's remaining available chips live?** Yes — both totals and available/reserved are visible to both players at all times. No hidden information beyond hole cards.
-- **Can I change my action after submitting?** No. Actions are final on submit. An "Are you sure?" confirmation appears for all-in actions.
+- **Can I change my action after submitting?** Within a turn, yes — every queued decision is editable from the cart until you submit the whole turn (§6). Once the turn is submitted, all of its actions are final. An "Are you sure?" confirmation appears for all-in actions.
 
 ## 18. Feedback loop (the MVP is an experiment)
 
