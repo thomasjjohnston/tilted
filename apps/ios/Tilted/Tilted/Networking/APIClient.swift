@@ -102,6 +102,30 @@ actor APIClient {
         return try await post("/v1/batch-actions", body: body)
     }
 
+    /// Submit a whole turn as one all-or-nothing batch (the cart, spec §6).
+    /// `clientTxId`s are caller-provided and stable so a network retry
+    /// dedupes server-side rather than double-applying.
+    func submitTurn(
+        roundId: String?,
+        turnTxId: String,
+        actions: [(handId: String, type: String, amount: Int?, clientTxId: String)]
+    ) async throws -> MatchState {
+        var body: [String: Any] = [
+            "turn_tx_id": turnTxId,
+            "actions": actions.map { a -> [String: Any] in
+                var d: [String: Any] = [
+                    "hand_id": a.handId,
+                    "type": a.type,
+                    "client_tx_id": a.clientTxId,
+                ]
+                if let amount = a.amount { d["amount"] = amount }
+                return d
+            },
+        ]
+        if let roundId { body["round_id"] = roundId }
+        return try await post("/v1/turn/submit", body: body)
+    }
+
     func getLegalActions(handId: String) async throws -> LegalActionsResponse {
         return try await get("/v1/hand/\(handId)/legal-actions")
     }
@@ -207,6 +231,15 @@ actor APIClient {
                     throw APIError.unauthorized
                 }
 
+                // 422 = illegal game action (below min-raise, over-committed,
+                // not your turn). Surface the server's message cleanly so the
+                // UI shows a real error instead of a raw dump (feedback S7-4).
+                if http.statusCode == 422 {
+                    let message = (try? JSONDecoder().decode(GameRuleErrorBody.self, from: data))?.message
+                        ?? "That move isn't allowed."
+                    throw APIError.gameRule(message: message)
+                }
+
                 guard (200...299).contains(http.statusCode) else {
                     let body = String(data: data, encoding: .utf8) ?? ""
                     throw APIError.serverError(status: http.statusCode, body: body)
@@ -235,10 +268,15 @@ struct DeleteResponse: Decodable {
     let ok: Bool
 }
 
+private struct GameRuleErrorBody: Decodable {
+    let message: String
+}
+
 enum APIError: Error, LocalizedError {
     case invalidResponse
     case notFound
     case unauthorized
+    case gameRule(message: String)
     case serverError(status: Int, body: String)
     case unknown
 
@@ -247,6 +285,7 @@ enum APIError: Error, LocalizedError {
         case .invalidResponse: return "Invalid response from server"
         case .notFound: return "Resource not found"
         case .unauthorized: return "Session expired — sign in again"
+        case .gameRule(let message): return message
         case .serverError(let status, let body): return "Server error \(status): \(body)"
         case .unknown: return "Unknown error"
         }

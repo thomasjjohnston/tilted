@@ -328,19 +328,31 @@ struct TurnSummaryView: View {
         let oppName = match.opponent.displayName.components(separatedBy: " ").first ?? "Opp"
         switch group {
         case .bigWin:
-            return "Won showdown"
+            return "Won at showdown"
         case .foldInduced:
-            return "\(oppName) folded \(hand.foldStreet ?? "post-flop")"
+            return "\(oppName) folded \(foldStreetPhrase(hand.foldStreet))"
         case .blindSteal:
             return "\(oppName) folded preflop"
         case .splitPot:
             return "Chopped on the board"
         case .showdownLost:
-            return "Lost showdown"
+            return "Lost at showdown"
         case .youFolded:
-            return "You folded \(hand.foldStreet ?? "post-flop")"
+            return "You folded \(foldStreetPhrase(hand.foldStreet))"
         case .autoFolded:
-            return "Auto-folded"
+            return "Auto-folded — no chips available"
+        }
+    }
+
+    /// "the flop" / "the turn" / "the river" / "preflop" — so the row reads
+    /// "You folded the river", never a bare "folded" (beta feedback S7-3).
+    private func foldStreetPhrase(_ street: String?) -> String {
+        switch street {
+        case "flop": return "the flop"
+        case "turn": return "the turn"
+        case "river": return "the river"
+        case "preflop": return "preflop"
+        default: return "post-flop"
         }
     }
 

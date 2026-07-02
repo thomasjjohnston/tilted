@@ -172,12 +172,15 @@ struct HomeView: View {
 
     // MARK: - Bindings
 
+    // Dismissing a full-screen cover doesn't re-run HomeView's `.task` or
+    // change scenePhase, so Home would otherwise show stale state after a
+    // turn (beta feedback S7-1). Refresh on the way back to home.
     private var showTurn: Binding<Bool> {
-        Binding(get: { store.activeScreen == .turn }, set: { if !$0 { store.activeScreen = .home } })
+        Binding(get: { store.activeScreen == .turn }, set: { if !$0 { store.activeScreen = .home; Task { await store.refresh() } } })
     }
 
     private var showWaiting: Binding<Bool> {
-        Binding(get: { store.activeScreen == .waiting }, set: { if !$0 { store.activeScreen = .home } })
+        Binding(get: { store.activeScreen == .waiting }, set: { if !$0 { store.activeScreen = .home; Task { await store.refresh() } } })
     }
 
     // MARK: - Actions

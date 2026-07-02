@@ -202,6 +202,34 @@ struct ActionRequest: Codable {
     }
 }
 
+// MARK: - Turn submit (the cart / batch turn, spec §6)
+
+struct TurnActionItem: Codable {
+    let handId: String
+    let type: String
+    let amount: Int?
+    let clientTxId: String
+
+    enum CodingKeys: String, CodingKey {
+        case handId = "hand_id"
+        case type
+        case amount
+        case clientTxId = "client_tx_id"
+    }
+}
+
+struct TurnSubmitRequest: Codable {
+    let roundId: String?
+    let turnTxId: String
+    let actions: [TurnActionItem]
+
+    enum CodingKeys: String, CodingKey {
+        case roundId = "round_id"
+        case turnTxId = "turn_tx_id"
+        case actions
+    }
+}
+
 // MARK: - Hand Detail
 
 struct HandDetail: Codable {
@@ -216,7 +244,9 @@ struct HandDetail: Codable {
     let street: String
     let status: String
     let terminalReason: String?
+    let foldStreet: String?
     let winnerUserId: String?
+    let myResolvedNet: Int?
     let isFavorited: Bool
     let myHandRank: String?
     let opponentHandRank: String?
@@ -234,7 +264,9 @@ struct HandDetail: Codable {
         case street
         case status
         case terminalReason = "terminal_reason"
+        case foldStreet = "fold_street"
         case winnerUserId = "winner_user_id"
+        case myResolvedNet = "my_resolved_net"
         case isFavorited = "is_favorited"
         case myHandRank = "my_hand_rank"
         case opponentHandRank = "opponent_hand_rank"
@@ -287,6 +319,8 @@ struct HistoryHand: Codable, Identifiable {
     let pot: Int
     let winnerUserId: String?
     let terminalReason: String?
+    let foldStreet: String?
+    let myResolvedNet: Int?
     let isFavorited: Bool
     let completedAt: String?
     let myHole: [String]
@@ -304,11 +338,93 @@ struct HistoryHand: Codable, Identifiable {
         case pot
         case winnerUserId = "winner_user_id"
         case terminalReason = "terminal_reason"
+        case foldStreet = "fold_street"
+        case myResolvedNet = "my_resolved_net"
         case isFavorited = "is_favorited"
         case completedAt = "completed_at"
         case myHole = "my_hole"
         case opponentHole = "opponent_hole"
         case actionSketch = "action_sketch"
+    }
+}
+
+// MARK: - Hand outcome (shared summary/history/detail rendering)
+
+/// Viewer-scoped outcome of a completed hand — one source of truth used by
+/// the round summary, history list, and hand detail so they can never
+/// disagree (a win in the list, a loss in detail) or render blank (beta
+/// feedback S7-2/S7-3). Built from the raw fields every one of those
+/// endpoints now returns: terminal_reason, fold_street, winner_user_id,
+/// my_resolved_net. Kept Foundation-only; color mapping lives in
+/// DesignTokens.
+struct HandOutcome {
+    enum Result { case won, lost, split, unresolved }
+
+    let result: Result
+    /// Signed net chips for the viewer (won positive, lost negative). Nil
+    /// only for legacy rows with no snapshot — show the label alone, never
+    /// a misleading "+0".
+    let net: Int?
+    /// Human label with street granularity, always populated.
+    let label: String
+
+    static func make(
+        terminalReason: String?,
+        foldStreet: String?,
+        winnerUserId: String?,
+        currentUserId: String?,
+        myResolvedNet: Int?,
+        status: String
+    ) -> HandOutcome {
+        let resolved = status == "complete" || status == "awaiting_runout"
+        guard resolved else {
+            return HandOutcome(result: .unresolved, net: myResolvedNet, label: "In progress")
+        }
+
+        let iWon = winnerUserId != nil && winnerUserId == currentUserId
+
+        switch terminalReason {
+        case "showdown":
+            if winnerUserId == nil {
+                return HandOutcome(result: .split, net: myResolvedNet, label: "Split pot")
+            }
+            return HandOutcome(result: iWon ? .won : .lost, net: myResolvedNet,
+                               label: iWon ? "Won at showdown" : "Lost at showdown")
+        case "fold":
+            let street = foldStreet ?? "preflop"
+            if iWon {
+                return HandOutcome(result: .won, net: myResolvedNet,
+                                   label: street == "preflop" ? "Won on blinds" : "Won — opponent folded \(Self.streetPhrase(street))")
+            }
+            return HandOutcome(result: .lost, net: myResolvedNet, label: Self.foldedPhrase(street))
+        default:
+            if winnerUserId == nil {
+                return HandOutcome(result: .split, net: myResolvedNet, label: "Split pot")
+            }
+            return HandOutcome(result: iWon ? .won : .lost, net: myResolvedNet,
+                               label: iWon ? "Won" : "Lost")
+        }
+    }
+
+    /// Signed amount string ("+240", "−120"), or nil when there's no snapshot.
+    var netText: String? {
+        guard let net else { return nil }
+        if net > 0 { return "+\(net)" }
+        if net < 0 { return "−\(abs(net))" }  // U+2212 minus
+        return "0"
+    }
+
+    private static func streetPhrase(_ street: String) -> String {
+        switch street {
+        case "flop": return "the flop"
+        case "turn": return "the turn"
+        case "river": return "the river"
+        default: return "preflop"
+        }
+    }
+
+    private static func foldedPhrase(_ street: String) -> String {
+        street == "preflop" ? "Folded preflop" : "Folded \(streetPhrase(street))"
     }
 }
 

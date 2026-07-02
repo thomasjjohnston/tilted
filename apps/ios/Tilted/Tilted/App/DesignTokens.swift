@@ -79,3 +79,17 @@ enum Spacing {
     static let xl: CGFloat = 24
     static let xxl: CGFloat = 32
 }
+
+// MARK: - Hand outcome tint
+
+extension HandOutcome {
+    /// Accent color for the outcome — gold for wins, claret for losses.
+    var tint: Color {
+        switch result {
+        case .won: return .gold500
+        case .lost: return .claret
+        case .split: return .cream200
+        case .unresolved: return .cream300
+        }
+    }
+}

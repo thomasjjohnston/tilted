@@ -310,6 +310,28 @@ final class AppStore {
         }
     }
 
+    /// Submit a whole turn as one all-or-nothing batch (the cart, spec §6).
+    /// Returns true on success; on failure sets `error` and leaves the
+    /// cart intact so the caller can let the user fix and resubmit.
+    @MainActor
+    func submitTurn(
+        roundId: String?,
+        actions: [(handId: String, type: String, amount: Int?, clientTxId: String)]
+    ) async -> Bool {
+        error = nil
+        do {
+            let updated = try await APIClient.shared.submitTurn(
+                roundId: roundId, turnTxId: UUID().uuidString, actions: actions
+            )
+            matchState = updated
+            spliceMatch(updated)
+            return true
+        } catch {
+            self.error = error.localizedDescription
+            return false
+        }
+    }
+
     @MainActor
     func advanceRound(roundId: String) async {
         do {
