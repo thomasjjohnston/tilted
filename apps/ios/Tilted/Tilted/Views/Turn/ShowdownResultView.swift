@@ -12,6 +12,9 @@ struct ShowdownResultView: View {
     /// as a "Next Showdown →" page in the grouped turn-results flow (#3).
     var nextTitle: String = "Next Hand \u{2192}"
     var showBackToList: Bool = true
+    /// When set, the footer shows a "See details" button (used when
+    /// reviewing a hand from the round summary) instead of "All Hands".
+    var onSeeDetails: (() -> Void)? = nil
 
     @State private var showResult = false
     @State private var isFavorited = false
@@ -336,14 +339,32 @@ struct ShowdownResultView: View {
 
     private var dualFooter: some View {
         VStack(spacing: 8) {
-            Text(remainingPendingCount == 0
-                 ? "All hands handled."
-                 : "\(remainingPendingCount) more pending")
-                .font(.system(size: 10))
-                .foregroundColor(.cream400)
+            if onSeeDetails == nil {
+                Text(remainingPendingCount == 0
+                     ? "All hands handled."
+                     : "\(remainingPendingCount) more pending")
+                    .font(.system(size: 10))
+                    .foregroundColor(.cream400)
+            }
 
             HStack(spacing: 8) {
-                if showBackToList {
+                if let onSeeDetails {
+                    Button {
+                        onSeeDetails()
+                    } label: {
+                        Text("See details")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(.cream200)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color.black.opacity(0.3))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .stroke(Color.gold500.opacity(0.3), lineWidth: 1)
+                            )
+                            .cornerRadius(10)
+                    }
+                } else if showBackToList {
                     Button {
                         onBackToList()
                     } label: {

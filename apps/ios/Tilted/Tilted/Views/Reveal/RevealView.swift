@@ -13,6 +13,7 @@ struct RevealView: View {
     @State private var isLoading = true
     @State private var hasAdvanced = false
     @State private var isFavorited: Set<String> = []
+    @State private var reviewHand: HandView?
 
     private var opponentName: String {
         match.opponent.displayName.components(separatedBy: " ").first ?? "Opponent"
@@ -93,6 +94,16 @@ struct RevealView: View {
                 showSummary = true
             }
         }
+        // Tap any hand in the summary → replay it with the showdown-style
+        // animation, with a "See details" jump to the full replay.
+        .fullScreenCover(item: $reviewHand) { hand in
+            HandReviewView(
+                hand: hand,
+                match: store.matchState ?? match,
+                onClose: { reviewHand = nil }
+            )
+            .environment(store)
+        }
     }
 
     // MARK: - All-In Reveal Page (cinematic, one per hand)
@@ -167,10 +178,20 @@ struct RevealView: View {
                 // Hand-by-hand breakdown
                 VStack(spacing: 6) {
                     ForEach(allHands) { hand in
-                        handResultRow(hand: hand, match: store.matchState ?? match)
+                        Button {
+                            reviewHand = hand
+                        } label: {
+                            handResultRow(hand: hand, match: store.matchState ?? match)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
                 .padding(.horizontal, 18)
+
+                Text("Tap a hand to replay it")
+                    .font(.system(size: 10))
+                    .foregroundColor(.cream400)
+                    .padding(.top, 8)
 
                 Spacer().frame(height: 20)
 
@@ -301,6 +322,38 @@ struct RevealView: View {
                 )
         )
         .cornerRadius(8)
+    }
+}
+
+// MARK: - Hand Review (from the round summary)
+
+/// Replays one completed hand with the showdown-style animation and offers
+/// a "See details" jump into the full replay (the same page History shows).
+struct HandReviewView: View {
+    let hand: HandView
+    let match: MatchState
+    let onClose: () -> Void
+
+    @Environment(AppStore.self) private var store
+    @State private var showDetail = false
+
+    var body: some View {
+        ShowdownResultView(
+            hand: hand,
+            match: match,
+            remainingPendingCount: 0,
+            hasNextPending: true,
+            onFavorite: { fav in Task { await store.toggleFavorite(handId: hand.handId, favorite: fav) } },
+            onBackToList: {},
+            onNextHand: onClose,
+            nextTitle: "Close \u{2713}",
+            showBackToList: false,
+            onSeeDetails: { showDetail = true }
+        )
+        .sheet(isPresented: $showDetail) {
+            HandDetailView(handId: hand.handId)
+                .environment(store)
+        }
     }
 }
 
