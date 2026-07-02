@@ -1,6 +1,31 @@
 import SwiftUI
 
-// MARK: - Turn View — hybrid focused table + 10-hand strip
+// MARK: - Turn View — cart flow (spec §6)
+//
+// A turn is composed as a batch: the player clicks through each pending
+// hand on the board and *queues* a decision (nothing is sent yet), then
+// reviews everything on the cart and submits the whole turn as one
+// all-or-nothing request. Tapping a cart row returns to that hand's board
+// to change the queued decision. The board CX itself is unchanged.
+
+/// One queued, not-yet-submitted decision for a hand.
+struct QueuedDecision: Equatable {
+    let type: String        // fold / check / call / bet / raise / all_in
+    let amount: Int?        // committed chips for bet/raise/all_in
+    let clientTxId: String  // stable, so a retried submit dedupes server-side
+
+    var label: String {
+        switch type {
+        case "fold": return "Fold"
+        case "check": return "Check"
+        case "call": return "Call"
+        case "bet": return "Bet \(amount ?? 0)"
+        case "raise": return "Raise — commit \(amount ?? 0)"
+        case "all_in": return "All-in \(amount ?? 0)"
+        default: return type
+        }
+    }
+}
 
 struct TurnView: View {
     @Environment(AppStore.self) private var store
@@ -8,33 +33,22 @@ struct TurnView: View {
     let match: MatchState
     let round: RoundView
 
-    // Focused hand (the one rendered on the felt). Defaults to the
-    // lowest-index pending hand; user can tap a puck to focus another.
     @State private var focusedHandId: String?
     @State private var betSheetHand: HandView?
     @State private var allInConfirmHand: HandView?
-    @State private var showTurnComplete = false
-    @State private var isAutoChecking = false
+    @State private var detailSheetHand: HandView?
 
-    // Completion overlays — one per outcome type.
-    @State private var handWonView: HandView?      // Opponent folded → you win
-    @State private var handFoldedView: HandView?   // You folded → you lose
-    @State private var showdownResult: HandView?   // Showdown / split / lose-at-showdown
+    @State private var showCart = false
+    @State private var isSubmitting = false
+    @State private var turnSent = false
+    @State private var continuationNote: String?
 
-    // Wave-crossing overlay state — populated by advanceAfterResolution
-    // when the next pending hand is on a later street.
-    @State private var waveCrossingFromStreet: String?
-    @State private var waveCrossingToStreet: String?
-
-    // Turn summary tracking
-    @State private var showTurnSummary = false
-    @State private var stackBefore: Int = 0
-    @State private var deliberateActions: [(handIndex: Int, summary: String)] = []
-    @State private var autoActedHands: [(handIndex: Int, action: String)] = []
-    @State private var autoActedHandSnapshots: [HandView] = []
-    @State private var showdownsThisTurn: [HandView] = []
-    @State private var resolvedThisTurn: [HandView] = []
-    @State private var handStatusesBefore: [String: String] = [:]
+    // Cart lives in the store (survives leaving/returning to the turn) —
+    // this is a proxy for readability. Scoped to the round in `.task`.
+    private var cart: [String: QueuedDecision] {
+        get { store.turnCart }
+        nonmutating set { store.turnCart = newValue }
+    }
 
     // MARK: - Live data
 
@@ -42,8 +56,15 @@ struct TurnView: View {
         store.matchState?.currentRound?.hands ?? round.hands
     }
 
+    /// Hands that need a decision this turn.
     private var pendingHands: [HandView] {
         liveHands.filter { $0.isPendingAction }
+    }
+
+    private var undecidedHands: [HandView] {
+        pendingHands
+            .filter { cart[$0.handId] == nil }
+            .sorted { ($0.streetOrder, $0.handIndex) < ($1.streetOrder, $1.handIndex) }
     }
 
     private var focusedHand: HandView? {
@@ -51,15 +72,40 @@ struct TurnView: View {
            let found = liveHands.first(where: { $0.handId == id }) {
             return found
         }
-        return pendingHands.first ?? liveHands.first
+        return undecidedHands.first ?? pendingHands.first ?? liveHands.first
     }
 
     private var liveMatch: MatchState { store.matchState ?? match }
     private var liveRound: RoundView { liveMatch.currentRound ?? round }
 
     private var myRole: String { liveRound.myRole }
-    private var smallBlind: Int { 5 }   // Mirrors server constants
+    private var smallBlind: Int { 5 }
     private var bigBlind: Int { 10 }
+
+    // MARK: - Cart accounting
+
+    /// Chips a queued decision commits beyond what's already reserved.
+    private func cost(_ decision: QueuedDecision, hand: HandView) -> Int {
+        switch decision.type {
+        case "fold", "check": return 0
+        case "call": return hand.callCost
+        case "bet", "raise", "all_in": return decision.amount ?? 0
+        default: return 0
+        }
+    }
+
+    private var cartCommitted: Int {
+        cart.reduce(0) { acc, entry in
+            guard let hand = liveHands.first(where: { $0.handId == entry.key }) else { return acc }
+            return acc + cost(entry.value, hand: hand)
+        }
+    }
+
+    /// Provisional available after the queued bets (warn-only — the server
+    /// is the final gate).
+    private var provisionalAvailable: Int { liveMatch.myAvailable - cartCommitted }
+    private var isOverCommitted: Bool { provisionalAvailable < 0 }
+    private var allDecided: Bool { !pendingHands.isEmpty && undecidedHands.isEmpty }
 
     // MARK: - Body
 
@@ -93,11 +139,7 @@ struct TurnView: View {
                             actionBar(for: hand)
                                 .padding(.horizontal, 14)
 
-                            // Show a tap-for-history affordance
                             Button {
-                                // Tap focused hand → open detail sheet for full history
-                                // (reuse existing HandActionDetailSheet via the
-                                // dedicated state below).
                                 detailSheetHand = hand
                             } label: {
                                 HStack(spacing: 4) {
@@ -114,13 +156,14 @@ struct TurnView: View {
                     }
                     .scrollIndicators(.hidden)
                 } else {
-                    // Round complete or no current round → empty state
                     Spacer()
                     Text("No hand to focus")
                         .font(.system(size: 13))
                         .foregroundColor(.cream300)
                     Spacer()
                 }
+
+                reviewBar
 
                 HandStrip(
                     hands: liveHands,
@@ -134,81 +177,31 @@ struct TurnView: View {
                 )
             }
 
-            if isAutoChecking {
-                autoActOverlay
-            }
-
-            if let hand = handWonView {
-                HandWonView(
-                    hand: hand,
-                    match: liveMatch,
-                    onContinue: { handWonView = nil; advanceAfterResolution() }
-                )
-                .transition(.opacity)
-                .zIndex(2)
-            }
-
-            if let hand = handFoldedView {
-                HandFoldedView(
-                    hand: hand,
-                    match: liveMatch,
-                    onContinue: { handFoldedView = nil; advanceAfterResolution() }
-                )
-                .transition(.opacity)
-                .zIndex(2)
-            }
-
-            if let hand = showdownResult {
-                let pendingOthers = pendingHands.filter { $0.handId != hand.handId }
-                ShowdownResultView(
-                    hand: hand,
-                    match: liveMatch,
-                    remainingPendingCount: pendingOthers.count,
-                    hasNextPending: !pendingOthers.isEmpty,
-                    onFavorite: { fav in
-                        Task { await store.toggleFavorite(handId: hand.handId, favorite: fav) }
-                    },
-                    onBackToList: {
-                        showdownResult = nil
-                        checkTurnComplete()
-                    },
-                    onNextHand: {
-                        showdownResult = nil
-                        if let next = pendingOthers.first {
-                            focusedHandId = next.handId
-                        } else {
-                            checkTurnComplete()
-                        }
-                    }
-                )
-                .transition(.opacity)
-                .zIndex(2)
-            }
-
-            if showTurnSummary {
-                TurnSummaryView(
-                    match: liveMatch,
-                    round: liveRound,
-                    resolvedHands: resolvedThisTurn,
-                    autoActedHands: autoActedHands,
-                    autoActedHandViews: autoActedHandSnapshots,
-                    stackBefore: stackBefore,
-                    currentUserId: store.currentUserId,
-                    onSendTurn: {
-                        showTurnSummary = false
-                        withAnimation { showTurnComplete = true }
-                    }
-                )
-                .transition(.opacity)
-                .zIndex(3)
-            }
-
-            if showTurnComplete { turnCompleteOverlay }
-
-            if let from = waveCrossingFromStreet, let to = waveCrossingToStreet {
-                WaveCompleteView(fromStreet: from, toStreet: to)
+            if showCart {
+                cartOverlay
                     .transition(.opacity)
-                    .zIndex(4)
+                    .zIndex(3)
+            }
+
+            if turnSent { turnCompleteOverlay.zIndex(4) }
+
+            if let note = continuationNote {
+                VStack {
+                    Text(note)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.felt800)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 9)
+                        .background(LinearGradient(colors: [.gold500, .gold700], startPoint: .top, endPoint: .bottom))
+                        .clipShape(Capsule())
+                        .shadow(color: .black.opacity(0.3), radius: 6, y: 3)
+                        .padding(.top, 60)
+                        .padding(.horizontal, 24)
+                    Spacer()
+                }
+                .transition(.move(edge: .top).combined(with: .opacity))
+                .zIndex(5)
             }
         }
         .sheet(item: $detailSheetHand) { hand in
@@ -232,7 +225,7 @@ struct TurnView: View {
                 match: liveMatch,
                 onSubmit: { amount, type in
                     betSheetHand = nil
-                    Task { await submitAction(hand: hand, type: type, amount: amount) }
+                    queue(hand: hand, type: type, amount: amount)
                 }
             )
             .presentationDetents([.medium])
@@ -241,50 +234,38 @@ struct TurnView: View {
             get: { allInConfirmHand != nil },
             set: { if !$0 { allInConfirmHand = nil } }
         )) {
-            Button("Confirm All-In", role: .destructive) {
+            Button("Queue All-In", role: .destructive) {
                 if let hand = allInConfirmHand {
                     allInConfirmHand = nil
-                    Task { await submitAction(hand: hand, type: "all_in") }
+                    // All-in commits every provisional chip that remains,
+                    // plus whatever this hand already has room for.
+                    let amount = max(0, provisionalAvailable)
+                    queue(hand: hand, type: "all_in", amount: amount)
                 }
             }
             Button("Cancel", role: .cancel) { allInConfirmHand = nil }
         } message: {
-            Text("This action cannot be undone.")
-        }
-        .onChange(of: pendingHands.count) { _, newCount in
-            if newCount == 0 && !showTurnComplete && !showTurnSummary
-                && showdownResult == nil && handWonView == nil {
-                checkTurnComplete()
-            }
-        }
-        .onChange(of: focusedHand?.handId) { _, _ in
-            checkForUnseenFoldResolution()
+            Text("This queues every remaining chip on this hand. You can still change it before submitting.")
         }
         .task {
-            stackBefore = match.myAvailable
-            for hand in round.hands {
-                handStatusesBefore[hand.handId] = hand.status
+            // Scope the persisted cart to this round — drop a stale cart
+            // left over from a previous round, but keep one for THIS round
+            // if the user stepped away and came back (#1).
+            if store.turnCartRoundId != liveRound.roundId {
+                store.turnCart = [:]
+                store.turnCartRoundId = liveRound.roundId
             }
             if focusedHandId == nil {
-                focusedHandId = pendingHands.first?.handId ?? round.hands.first?.handId
+                focusedHandId = undecidedHands.first?.handId ?? pendingHands.first?.handId ?? round.hands.first?.handId
             }
-            checkForUnseenFoldResolution()
-            await autoActIfNeeded()
-        }
-        .onChange(of: store.matchState?.currentRound?.hands.map(\.status)) { _, _ in
-            Task { await autoActIfNeeded() }
         }
     }
-
-    // MARK: - Detail sheet state (separate from focused hand)
-
-    @State private var detailSheetHand: HandView?
 
     // MARK: - Header
 
     private var header: some View {
         MatchHeaderBar(
-            myAvailable: liveMatch.myAvailable,
+            myAvailable: provisionalAvailable,
             opponentName: liveMatch.opponent.displayName.components(separatedBy: " ").first ?? "Opp",
             opponentAvailable: liveMatch.opponentAvailable,
             onBack: { dismiss() },
@@ -301,7 +282,7 @@ struct TurnView: View {
                                 )
                         }
                     }
-                    Text("\(pendingHands.count)/10")
+                    Text("\(undecidedHands.count) left")
                         .font(.system(size: 10))
                         .foregroundColor(.cream300)
                 }
@@ -310,67 +291,84 @@ struct TurnView: View {
     }
 
     private func dotColor(for hand: HandView) -> Color {
+        if cart[hand.handId] != nil { return .gold500 }             // queued
+        if hand.isPendingAction { return Color.gold500.opacity(0.3) } // needs a decision
         if hand.status == "complete" {
             return hand.winnerUserId == store.currentUserId
                 ? Color(hex: 0x4ea878) : Color.cream400.opacity(0.4)
         }
-        if hand.actionOnMe { return .gold500 }
         return Color.cream300.opacity(0.25)
     }
 
-    // MARK: - Action bar
+    // MARK: - Review bar (enter the cart)
+
+    @ViewBuilder
+    private var reviewBar: some View {
+        if !pendingHands.isEmpty {
+            Button {
+                focusedHandId = focusedHand?.handId
+                withAnimation { showCart = true }
+            } label: {
+                HStack {
+                    Text(allDecided ? "Review turn" : "Review turn \u{2014} \(undecidedHands.count) still to decide")
+                        .font(.system(size: 13, weight: .semibold))
+                    Spacer()
+                    Text("\(pendingHands.count - undecidedHands.count)/\(pendingHands.count)")
+                        .font(.system(size: 12))
+                    Image(systemName: "chevron.up")
+                        .font(.system(size: 11, weight: .bold))
+                }
+                .foregroundColor(allDecided ? .felt800 : .cream100)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 11)
+                .background(
+                    allDecided
+                        ? AnyView(LinearGradient(colors: [.gold500, .gold700], startPoint: .top, endPoint: .bottom))
+                        : AnyView(Color.black.opacity(0.35))
+                )
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    // MARK: - Action bar (queues, does not submit)
 
     @ViewBuilder
     private func actionBar(for hand: HandView) -> some View {
         if hand.isPendingAction {
             VStack(spacing: 8) {
                 HStack {
-                    if hand.facingBet {
+                    if let queued = cart[hand.handId] {
+                        HStack(spacing: 5) {
+                            Image(systemName: "cart.fill").font(.system(size: 10))
+                            Text("Queued: \(queued.label)")
+                                .font(.system(size: 12, weight: .semibold))
+                        }
+                        .foregroundColor(.gold500)
+                    } else if hand.facingBet {
                         Text("Facing \(hand.callCost) to call")
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundColor(.gold500)
                     } else {
-                        HStack(spacing: 4) {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 11))
-                            Text("Check available")
-                                .font(.system(size: 12, weight: .semibold))
-                        }
-                        .foregroundColor(.gold500)
+                        Text("Check available")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(.gold500)
                     }
                     Spacer()
-                    if hand.facingBet, liveMatch.myAvailable >= hand.callCost {
-                        Text("After call: \(liveMatch.myAvailable - hand.callCost)")
-                            .font(.system(size: 10))
-                            .foregroundColor(.cream300)
-                    } else {
-                        Text("Stack: \(liveMatch.myAvailable)")
-                            .font(.system(size: 10))
-                            .foregroundColor(.cream300)
-                    }
+                    Text("Avail: \(provisionalAvailable)")
+                        .font(.system(size: 10))
+                        .foregroundColor(isOverCommitted ? .claret : .cream300)
                 }
                 HStack(spacing: 6) {
                     if hand.facingBet {
-                        actionBtn("Fold", style: .fold) { handleAction(hand: hand, type: "fold", amount: nil) }
-                        if liveMatch.myAvailable >= hand.callCost {
-                            actionBtn("Call \(hand.callCost)", style: .call) {
-                                handleAction(hand: hand, type: "call", amount: nil)
-                            }
-                            if liveMatch.myAvailable > hand.callCost {
-                                actionBtn("Raise", style: .primary) {
-                                    handleAction(hand: hand, type: "raise", amount: nil)
-                                }
-                            }
-                        }
-                        if liveMatch.myAvailable > 0 {
-                            actionBtn("All-In", style: .allIn) { handleAction(hand: hand, type: "all_in", amount: nil) }
-                        }
+                        actionBtn("Fold", style: .fold) { queue(hand: hand, type: "fold", amount: nil) }
+                        actionBtn("Call \(hand.callCost)", style: .call) { queue(hand: hand, type: "call", amount: nil) }
+                        actionBtn("Raise", style: .primary) { handleAction(hand: hand, type: "raise", amount: nil) }
+                        actionBtn("All-In", style: .allIn) { handleAction(hand: hand, type: "all_in", amount: nil) }
                     } else {
-                        actionBtn("Check", style: .call) { handleAction(hand: hand, type: "check", amount: nil) }
-                        if liveMatch.myAvailable > 0 {
-                            actionBtn("Bet", style: .primary) { handleAction(hand: hand, type: "bet", amount: nil) }
-                            actionBtn("All-In", style: .allIn) { handleAction(hand: hand, type: "all_in", amount: nil) }
-                        }
+                        actionBtn("Check", style: .call) { queue(hand: hand, type: "check", amount: nil) }
+                        actionBtn("Bet", style: .primary) { handleAction(hand: hand, type: "bet", amount: nil) }
+                        actionBtn("All-In", style: .allIn) { handleAction(hand: hand, type: "all_in", amount: nil) }
                     }
                 }
             }
@@ -382,7 +380,6 @@ struct TurnView: View {
             )
             .cornerRadius(14)
         } else {
-            // Resolved or waiting — no actions; show a brief status line.
             HStack {
                 statusBanner(for: hand)
                 Spacer()
@@ -396,23 +393,27 @@ struct TurnView: View {
         if hand.status == "in_progress" && !hand.actionOnMe {
             HStack(spacing: 8) {
                 Circle().fill(Color.cream300).frame(width: 6, height: 6)
-                    .shadow(color: .cream300, radius: 4)
                 Text("Waiting on \(match.opponent.displayName.components(separatedBy: " ").first ?? "opponent")")
                     .font(.system(size: 12))
                     .foregroundColor(.cream200)
             }
         } else if hand.status == "complete" {
+            let outcome = HandOutcome.make(
+                terminalReason: hand.terminalReason,
+                foldStreet: hand.foldStreet,
+                winnerUserId: hand.winnerUserId,
+                currentUserId: store.currentUserId,
+                myResolvedNet: hand.myResolvedNet,
+                status: hand.status
+            )
             HStack(spacing: 6) {
-                let won = hand.winnerUserId == store.currentUserId
-                Text(won ? "Won" : (hand.winnerUserId == nil ? "Split" : "Lost"))
+                Text(outcome.label)
                     .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(won ? Color(hex: 0x4ea878) : .cream300)
-                if let net = hand.myResolvedNet {
-                    Text(net >= 0 ? "+\(net)" : "\(net)")
-                        .font(.custom("Georgia", size: 13).bold())
-                        .foregroundColor(net >= 0 ? Color(hex: 0x4ea878) : .claret)
+                if let net = outcome.netText {
+                    Text(net).font(.custom("Georgia", size: 13).bold())
                 }
             }
+            .foregroundColor(outcome.tint)
         }
     }
 
@@ -461,31 +462,152 @@ struct TurnView: View {
         }
     }
 
-    // MARK: - Auto-act overlay
+    // MARK: - Cart overlay (review / checkout)
 
-    private var autoActOverlay: some View {
-        ZStack {
-            Color.felt900.opacity(0.85).ignoresSafeArea()
-            VStack(spacing: 12) {
-                ProgressView().tint(.gold500).scaleEffect(1.2)
-                Text("Auto-folding unplayable hands…")
-                    .font(.system(size: 13))
-                    .foregroundColor(.cream200)
-                Text("0 chips available")
-                    .font(.system(size: 11))
-                    .foregroundColor(.cream300)
+    private var cartOverlay: some View {
+        ZStack(alignment: .bottom) {
+            Color.felt900.opacity(0.96).ignoresSafeArea()
+                .onTapGesture { withAnimation { showCart = false } }
+
+            VStack(spacing: 0) {
+                HStack {
+                    Text("Review your turn")
+                        .font(.custom("Georgia", size: 22))
+                        .foregroundColor(.cream100)
+                    Spacer()
+                    Button { withAnimation { showCart = false } } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.cream200)
+                            .frame(width: 30, height: 30)
+                            .background(Color.cream100.opacity(0.08))
+                            .clipShape(Circle())
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 24)
+                .padding(.bottom, 8)
+
+                // Chip bar
+                HStack {
+                    chipStat("Available", value: provisionalAvailable, tint: isOverCommitted ? .claret : .gold500)
+                    chipStat("Reserved", value: liveMatch.myReserved + cartCommitted, tint: .cream100)
+                    chipStat("In cart", value: cartCommitted, tint: Color(hex: 0x8fb9ff))
+                }
+                .padding(.horizontal, 16)
+
+                if isOverCommitted {
+                    Text("\u{26A0} Over-committed by \(-provisionalAvailable) \u{2014} you can still submit, but the server will reject the whole turn.")
+                        .font(.system(size: 11))
+                        .foregroundColor(.claret)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 16)
+                        .padding(.top, 6)
+                }
+
+                ScrollView {
+                    LazyVStack(spacing: 8) {
+                        ForEach(pendingHands.sorted { ($0.streetOrder, $0.handIndex) < ($1.streetOrder, $1.handIndex) }) { hand in
+                            cartRow(hand: hand)
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                }
+
+                if let err = store.error {
+                    Text(err)
+                        .font(.system(size: 12))
+                        .foregroundColor(.claret)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 6)
+                }
+
+                Button {
+                    Task { await submitTurn() }
+                } label: {
+                    HStack {
+                        if isSubmitting { ProgressView().tint(.felt800) }
+                        Text(allDecided ? "Submit turn \u{2014} \(pendingHands.count) hands" : "Decide all hands to submit")
+                            .font(.system(size: 15, weight: .bold))
+                    }
+                    .foregroundColor(.felt800)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 15)
+                    .background(LinearGradient(colors: [.gold500, .gold700], startPoint: .top, endPoint: .bottom))
+                    .cornerRadius(12)
+                    .opacity(allDecided && !isSubmitting ? 1 : 0.5)
+                }
+                .disabled(!allDecided || isSubmitting)
+                .padding(.horizontal, 16)
+                .padding(.bottom, 28)
+                .padding(.top, 4)
             }
         }
-        .transition(.opacity)
     }
 
-    // MARK: - Turn complete overlay
+    private func chipStat(_ label: String, value: Int, tint: Color) -> some View {
+        VStack(spacing: 2) {
+            Text(label.uppercased())
+                .font(.system(size: 9, weight: .medium))
+                .tracking(0.8)
+                .foregroundColor(.cream400)
+            Text("\(value)")
+                .font(.custom("Georgia", size: 20))
+                .foregroundColor(tint)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 10)
+        .background(Color.black.opacity(0.25))
+        .cornerRadius(12)
+    }
+
+    private func cartRow(hand: HandView) -> some View {
+        let queued = cart[hand.handId]
+        return Button {
+            focusedHandId = hand.handId
+            withAnimation { showCart = false }
+        } label: {
+            HStack(spacing: 10) {
+                HStack(spacing: 3) {
+                    ForEach(hand.myHole, id: \.self) { c in
+                        PlayingCardView(card: c, size: .small)
+                            .scaleEffect(0.82)
+                            .frame(width: 20, height: 28)
+                    }
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Hand \(hand.handIndex + 1) \u{00B7} \(hand.street) \u{00B7} pot \(hand.pot)")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.cream50)
+                    Text(queued?.label ?? "Needs action")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(queued == nil ? Color(hex: 0xe0a83a) : .gold500)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12))
+                    .foregroundColor(.cream400)
+            }
+            .padding(11)
+            .background(Color.felt800.opacity(0.55))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(queued == nil ? Color(hex: 0xe0a83a).opacity(0.5) : Color.white.opacity(0.08), lineWidth: 1)
+            )
+            .cornerRadius(12)
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - Turn sent overlay
 
     private var turnCompleteOverlay: some View {
         ZStack {
-            Color.felt900.opacity(0.9).ignoresSafeArea()
+            Color.felt900.opacity(0.94).ignoresSafeArea()
             VStack(spacing: Spacing.lg) {
-                Text("✅").font(.system(size: 64))
+                Text("\u{2705}").font(.system(size: 64))
                 Text("Turn sent.")
                     .font(.displayMedium).fontDesign(.serif).foregroundColor(.cream100)
                 Text("Waiting on \(match.opponent.displayName.components(separatedBy: " ").first ?? "opponent").")
@@ -506,20 +628,7 @@ struct TurnView: View {
         return myRole == "bb" ? "you act first postflop" : "you act second postflop"
     }
 
-    // MARK: - Fold resolution surfacing
-
-    private func checkForUnseenFoldResolution() {
-        guard let hand = focusedHand else { return }
-        guard hand.status == "complete",
-              hand.terminalReason == "fold",
-              hand.winnerUserId == store.currentUserId else { return }
-        // Only show once per hand per session
-        guard !store.seenFoldResolutions.contains(hand.handId) else { return }
-        store.seenFoldResolutions.insert(hand.handId)
-        withAnimation { handWonView = hand }
-    }
-
-    // MARK: - Action dispatch
+    // MARK: - Queueing & submit
 
     private func handleAction(hand: HandView, type: String, amount: Int?) {
         if type == "raise" || type == "bet" {
@@ -527,105 +636,64 @@ struct TurnView: View {
         } else if type == "all_in" {
             allInConfirmHand = hand
         } else {
-            Task { await submitAction(hand: hand, type: type, amount: amount) }
+            queue(hand: hand, type: type, amount: amount)
         }
     }
 
-    private func submitAction(hand: HandView, type: String, amount: Int? = nil) async {
-        await store.submitAction(handId: hand.handId, type: type, amount: amount)
-
-        let actionLabel: String
-        switch type {
-        case "fold": actionLabel = "Folded"
-        case "check": actionLabel = "Checked"
-        case "call": actionLabel = "Called"
-        case "bet": actionLabel = "Bet \(amount ?? 0)"
-        case "raise": actionLabel = "Raised to \(amount ?? 0)"
-        case "all_in": actionLabel = "All-in"
-        default: actionLabel = type
-        }
-        deliberateActions.append((handIndex: hand.handIndex, summary: actionLabel))
-
-        if let updatedRound = store.matchState?.currentRound,
-           let updatedHand = updatedRound.hands.first(where: { $0.handId == hand.handId }),
-           updatedHand.status == "complete" {
-            resolvedThisTurn.append(updatedHand)
-            // Every completion type gets a dismissable surface, per the
-            // "Completed Hand requires clearing" UX rule. Pre-mark as
-            // seen so the retroactive queue doesn't re-fire later.
-            store.markCompletionSeen(updatedHand.handId)
-            if updatedHand.terminalReason == "showdown" {
-                showdownsThisTurn.append(updatedHand)
-                withAnimation { showdownResult = updatedHand }
-                return
-            }
-            if updatedHand.terminalReason == "fold" && type == "fold" {
-                // The user folded — show the HandFoldedView mirror.
-                withAnimation { handFoldedView = updatedHand }
-                return
-            }
-        }
-
-        advanceAfterResolution()
-        await autoActIfNeeded()
-    }
-
-    private func advanceAfterResolution() {
-        guard let current = focusedHand else { checkTurnComplete(); return }
-        let result = HandPicker.nextHand(after: current, in: liveHands)
-        if let crossed = result.crossedToStreet, let next = result.next {
-            // Show the WaveCompleteView for ~1.5s then move focus to
-            // the first hand of the next street.
-            waveCrossingFromStreet = current.street
-            waveCrossingToStreet = crossed
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                withAnimation(.spring(response: 0.32, dampingFraction: 0.85)) {
-                    focusedHandId = next.handId
-                    waveCrossingFromStreet = nil
-                    waveCrossingToStreet = nil
-                }
-            }
-        } else if let next = result.next {
+    /// Queue a decision locally and advance to the next undecided hand.
+    private func queue(hand: HandView, type: String, amount: Int?) {
+        cart[hand.handId] = QueuedDecision(type: type, amount: amount, clientTxId: UUID().uuidString)
+        if let next = undecidedHands.first(where: { $0.handId != hand.handId }) {
             withAnimation(.spring(response: 0.32, dampingFraction: 0.85)) {
                 focusedHandId = next.handId
             }
+        } else {
+            // Everything decided — surface the cart to review & submit.
+            withAnimation { showCart = true }
         }
-        checkTurnComplete()
     }
 
-    private func checkTurnComplete() {
-        let currentPending = store.matchState?.currentRound?.hands.filter { $0.isPendingAction } ?? []
-        if currentPending.isEmpty && !showTurnSummary && !showTurnComplete {
-            if !resolvedThisTurn.isEmpty || !autoActedHands.isEmpty || deliberateActions.count > 1 {
-                withAnimation { showTurnSummary = true }
+    private func submitTurn() async {
+        guard allDecided, !isSubmitting else { return }
+        isSubmitting = true
+        store.error = nil
+        let actions: [(handId: String, type: String, amount: Int?, clientTxId: String)] =
+            pendingHands.compactMap { hand in
+                guard let d = cart[hand.handId] else { return nil }
+                return (handId: hand.handId, type: d.type, amount: d.amount, clientTxId: d.clientTxId)
+            }
+        let ok = await store.submitTurn(roundId: liveRound.roundId, actions: actions)
+        isSubmitting = false
+        if ok {
+            store.clearTurnCart()
+            store.turnCartRoundId = liveRound.roundId
+            // A turn isn't necessarily over after one submit: streets can
+            // advance within your own turn (e.g. as BB you close preflop and
+            // the flop deals with action back on you). Only show "Turn sent"
+            // when nothing is on you; otherwise continue the turn seamlessly
+            // so you're not bounced home and immediately re-summoned (#2).
+            let stillPending = store.matchState?.currentRound?.hands.filter { $0.isPendingAction } ?? []
+            if stillPending.isEmpty {
+                withAnimation {
+                    showCart = false
+                    turnSent = true
+                }
             } else {
-                withAnimation { showTurnComplete = true }
+                let sorted = stillPending.sorted { ($0.streetOrder, $0.handIndex) < ($1.streetOrder, $1.handIndex) }
+                focusedHandId = sorted.first?.handId
+                withAnimation { showCart = false }
+                showContinuation("New cards dealt \u{2014} \(stillPending.count) hand\(stillPending.count == 1 ? "" : "s") still need you")
             }
         }
+        // On failure store.error is set and shown in the cart; user can fix.
     }
 
-    private func autoActIfNeeded() async {
-        guard !isAutoChecking else { return }
-        guard let currentRound = store.matchState?.currentRound else { return }
-        let available = store.matchState?.myAvailable ?? 0
-        guard available == 0 else { return }
-
-        let pending = currentRound.hands.filter { $0.isPendingAction }
-        guard !pending.isEmpty else { return }
-
-        isAutoChecking = true
-        let actionsToTake = pending.map { hand in
-            (hand: hand, action: hand.facingBet ? "fold" : "check")
+    private func showContinuation(_ text: String) {
+        withAnimation { continuationNote = text }
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 2_600_000_000)
+            withAnimation { if continuationNote == text { continuationNote = nil } }
         }
-        autoActedHandSnapshots = actionsToTake.map { $0.hand }
-        for (hand, action) in actionsToTake {
-            autoActedHands.append((handIndex: hand.handIndex, action: action))
-        }
-        await store.submitBatchActions(
-            actions: actionsToTake.map { ($0.hand.handId, $0.action, nil as Int?) }
-        )
-        isAutoChecking = false
-        checkTurnComplete()
     }
 }
 

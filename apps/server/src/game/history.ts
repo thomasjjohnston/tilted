@@ -20,6 +20,12 @@ export interface HistoryHandView {
   pot: number;
   winner_user_id: string | null;
   terminal_reason: string | null;
+  /** Street a fold resolved on ('folded the river'); null for showdowns. */
+  fold_street: string | null;
+  /** Net chips for the requesting user (won positive, lost negative,
+   *  null for legacy rows) — never the raw pot. Fixes history showing
+   *  full-pot amounts and wins-that-were-losses (beta feedback S7-3). */
+  my_resolved_net: number | null;
   is_favorited: boolean;
   completed_at: string | null;
   my_hole: string[];
@@ -87,6 +93,9 @@ export async function getHistory(
     pot: number;
     winner_user_id: string | null;
     terminal_reason: string | null;
+    fold_street: string | null;
+    resolved_net_for_a: number | null;
+    resolved_net_for_b: number | null;
     completed_at: string | null;
     user_a_hole: string;
     user_b_hole: string;
@@ -98,6 +107,7 @@ export async function getHistory(
     SELECT
       h.hand_id, h.hand_index, r.round_index, r.match_id,
       h.board::text, h.pot, h.winner_user_id, h.terminal_reason,
+      h.fold_street, h.resolved_net_for_a, h.resolved_net_for_b,
       h.completed_at::text,
       h.user_a_hole::text, h.user_b_hole::text,
       m.user_a_id,
@@ -121,6 +131,9 @@ export async function getHistory(
     pot: number;
     winner_user_id: string | null;
     terminal_reason: string | null;
+    fold_street: string | null;
+    resolved_net_for_a: number | null;
+    resolved_net_for_b: number | null;
     completed_at: string | null;
     user_a_hole: string;
     user_b_hole: string;
@@ -155,6 +168,8 @@ export async function getHistory(
       pot: row.pot,
       winner_user_id: row.winner_user_id,
       terminal_reason: row.terminal_reason,
+      fold_street: row.fold_street,
+      my_resolved_net: isUserA ? row.resolved_net_for_a : row.resolved_net_for_b,
       is_favorited: row.fav_hand_id !== null,
       completed_at: row.completed_at,
       my_hole: myHole,

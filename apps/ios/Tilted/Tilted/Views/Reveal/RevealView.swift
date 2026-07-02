@@ -13,6 +13,7 @@ struct RevealView: View {
     @State private var isLoading = true
     @State private var hasAdvanced = false
     @State private var isFavorited: Set<String> = []
+    @State private var reviewHand: HandView?
 
     private var opponentName: String {
         match.opponent.displayName.components(separatedBy: " ").first ?? "Opponent"
@@ -71,7 +72,9 @@ struct RevealView: View {
                             foldStreet: hand.foldStreet,
                             winnerUserId: detail.winnerUserId,
                             actionSummary: hand.actionSummary,
-                            myResolvedNet: hand.myResolvedNet,
+                            // Net is only snapshotted after the runout — take
+                            // it from the freshly-fetched detail (#5).
+                            myResolvedNet: detail.myResolvedNet ?? hand.myResolvedNet,
                             lastAction: hand.lastAction
                         )
                         resolved.append(resolvedHand)
@@ -90,6 +93,16 @@ struct RevealView: View {
             if capturedAllInHands.isEmpty {
                 showSummary = true
             }
+        }
+        // Tap any hand in the summary → replay it with the showdown-style
+        // animation, with a "See details" jump to the full replay.
+        .fullScreenCover(item: $reviewHand) { hand in
+            HandReviewView(
+                hand: hand,
+                match: store.matchState ?? match,
+                onClose: { reviewHand = nil }
+            )
+            .environment(store)
         }
     }
 
@@ -165,10 +178,20 @@ struct RevealView: View {
                 // Hand-by-hand breakdown
                 VStack(spacing: 6) {
                     ForEach(allHands) { hand in
-                        handResultRow(hand: hand, match: store.matchState ?? match)
+                        Button {
+                            reviewHand = hand
+                        } label: {
+                            handResultRow(hand: hand, match: store.matchState ?? match)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
                 .padding(.horizontal, 18)
+
+                Text("Tap a hand to replay it")
+                    .font(.system(size: 10))
+                    .foregroundColor(.cream400)
+                    .padding(.top, 8)
 
                 Spacer().frame(height: 20)
 
@@ -221,6 +244,19 @@ struct RevealView: View {
         }
     }
 
+    /// Signed net string from the server snapshot, with a sane fallback
+    /// for legacy rows that never got one.
+    private func netText(for hand: HandView, won: Bool, isSplit: Bool) -> String {
+        if let net = hand.myResolvedNet {
+            if net > 0 { return "+\(net)" }
+            if net < 0 { return "\u{2212}\(abs(net))" }
+            return "0"
+        }
+        if isSplit { return "+\(hand.pot / 2)" }
+        if won { return "+\(hand.pot)" }
+        return "\u{2212}\(hand.myReserved)"
+    }
+
     private func handResultRow(hand: HandView, match: MatchState) -> some View {
         let won = hand.winnerUserId != nil && hand.winnerUserId != match.opponent.userId
         let lost = hand.winnerUserId == match.opponent.userId
@@ -263,24 +299,11 @@ struct RevealView: View {
 
             Spacer()
 
-            // Amount
-            if isFold {
-                Text("-\(hand.myReserved)")
-                    .font(.custom("Georgia", size: 14))
-                    .foregroundColor(.cream300)
-            } else if isSplit {
-                Text("+\(hand.pot / 2)")
-                    .font(.custom("Georgia", size: 14))
-                    .foregroundColor(.cream200)
-            } else if won {
-                Text("+\(hand.pot)")
-                    .font(.custom("Georgia", size: 14))
-                    .foregroundColor(.gold500)
-            } else {
-                Text("-\(hand.myReserved)")
-                    .font(.custom("Georgia", size: 14))
-                    .foregroundColor(.claret)
-            }
+            // Amount — server net snapshot, never raw pot or the zeroed
+            // my_reserved (which showed "-0" for every hand, feedback #5).
+            Text(netText(for: hand, won: won, isSplit: isSplit))
+                .font(.custom("Georgia", size: 14))
+                .foregroundColor(won ? .gold500 : (lost ? .claret : .cream200))
         }
         .padding(.vertical, 6)
         .padding(.horizontal, 10)
@@ -302,6 +325,38 @@ struct RevealView: View {
     }
 }
 
+// MARK: - Hand Review (from the round summary)
+
+/// Replays one completed hand with the showdown-style animation and offers
+/// a "See details" jump into the full replay (the same page History shows).
+struct HandReviewView: View {
+    let hand: HandView
+    let match: MatchState
+    let onClose: () -> Void
+
+    @Environment(AppStore.self) private var store
+    @State private var showDetail = false
+
+    var body: some View {
+        ShowdownResultView(
+            hand: hand,
+            match: match,
+            remainingPendingCount: 0,
+            hasNextPending: true,
+            onFavorite: { fav in Task { await store.toggleFavorite(handId: hand.handId, favorite: fav) } },
+            onBackToList: {},
+            onNextHand: onClose,
+            nextTitle: "Close \u{2713}",
+            showBackToList: false,
+            onSeeDetails: { showDetail = true }
+        )
+        .sheet(isPresented: $showDetail) {
+            HandDetailView(handId: hand.handId)
+                .environment(store)
+        }
+    }
+}
+
 // MARK: - All-In Reveal Card (cinematic per-hand)
 
 struct AllInRevealCard: View {
@@ -315,6 +370,18 @@ struct AllInRevealCard: View {
 
     @State private var boardRevealCount = 0
     @State private var showResult = false
+
+    /// Signed net from the server snapshot; falls back to pot math only for
+    /// legacy rows without a snapshot.
+    private var netAmountText: String {
+        if let net = hand.myResolvedNet {
+            if net > 0 { return "+\(net)" }
+            if net < 0 { return "\u{2212}\(abs(net))" }
+            return "0"
+        }
+        if hand.winnerUserId == nil { return "+\(hand.pot / 2)" }
+        return hand.winnerUserId != opponentUserId ? "+\(hand.pot)" : "\u{2212}\(hand.myReserved)"
+    }
 
     private var isWin: Bool {
         guard let winner = hand.winnerUserId else { return false }
@@ -433,12 +500,12 @@ struct AllInRevealCard: View {
 
                     Spacer().frame(height: 4)
 
-                    // Winner + amount
+                    // Winner + amount (net snapshot, never zeroed reserved).
                     if hand.winnerUserId == nil {
                         Text("Split pot")
                             .font(.system(size: 14))
                             .foregroundColor(.cream300)
-                        Text("+\(hand.pot / 2)")
+                        Text(netAmountText)
                             .font(.custom("Georgia", size: 44))
                             .foregroundColor(.cream100)
                     } else {
@@ -456,7 +523,7 @@ struct AllInRevealCard: View {
                             .font(.system(size: 14))
                             .foregroundColor(weWon ? .gold500 : .claret)
 
-                        Text(weWon ? "+\(hand.pot)" : "-\(hand.myReserved)")
+                        Text(netAmountText)
                             .font(.custom("Georgia", size: 44))
                             .foregroundColor(weWon ? .gold500 : .claret)
                     }

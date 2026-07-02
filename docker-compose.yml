@@ -1,3 +1,6 @@
+# Local end-to-end stack: Postgres + Tilted server + the Practice Bot.
+# `docker compose up --build` and point your phone at http://<laptop-ip>:3000.
+# See docs/LOCAL-TESTING.md.
 services:
   postgres:
     image: postgres:16
@@ -6,9 +9,47 @@ services:
       POSTGRES_PASSWORD: tilted
       POSTGRES_DB: tilted
     ports:
-      - '5433:5432'
+      - '5433:5432'   # host 5433 (lets you run the server natively too)
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U tilted -d tilted']
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  server:
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile
+    # NODE_ENV must be 'production' — the prod image omits pino-pretty, so
+    # 'development' would crash the logger. Debug auth is open regardless,
+    # which is what lets the bot and the phone sign in locally.
+    environment:
+      DATABASE_URL: postgres://tilted:tilted@postgres:5432/tilted
+      PORT: '3000'
+      NODE_ENV: production
+    # Migrate + seed (idempotent), then start.
+    command: ['sh', '-c', 'node apps/server/dist/db/bootstrap.js && node apps/server/dist/http.js']
+    ports:
+      - '3000:3000'   # bound on 0.0.0.0 → reachable from your phone on the LAN
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  bot:
+    build:
+      context: apps/bot
+    environment:
+      SERVER_URL: http://server:3000
+      BOT_USER_ID: b07b07b0-0000-4000-8000-000000000b07
+      BOT_AGGRESSION: '0.35'      # 0..1 — higher = more folds, bets & raises
+      POLL_INTERVAL_MS: '3000'
+      BOT_AUTO_CHALLENGE: 'true'  # auto-creates a match with anyone who signs in
+      BOT_ADVANCE_ROUNDS: 'true'
+    depends_on:
+      - server
+    restart: unless-stopped
 
 volumes:
   pgdata:

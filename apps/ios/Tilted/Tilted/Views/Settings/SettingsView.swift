@@ -4,6 +4,9 @@ struct SettingsView: View {
     @Environment(AppStore.self) private var store
     @State private var showDeleteConfirm = false
     @State private var deleteError: String?
+    #if DEBUG
+    @State private var debugServer: String = APIClient.debugServerString
+    #endif
 
     var body: some View {
         NavigationStack {
@@ -80,6 +83,36 @@ struct SettingsView: View {
                                 .foregroundColor(.cream300)
                         }
                         .listRowBackground(Color.felt600)
+
+                        #if DEBUG
+                        Section {
+                            TextField("http://192.168.x.x:3000", text: $debugServer)
+                                .foregroundColor(.cream100)
+                                .autocorrectionDisabled()
+                                .textInputAutocapitalization(.never)
+                                .keyboardType(.URL)
+                            Button("Apply & sign out") {
+                                APIClient.applyDebugServer(debugServer)
+                                store.logout()
+                            }
+                            .foregroundColor(.gold500)
+                            if !debugServer.isEmpty {
+                                Button("Reset to production") {
+                                    debugServer = ""
+                                    APIClient.applyDebugServer("")
+                                    store.logout()
+                                }
+                                .foregroundColor(.cream300)
+                            }
+                        } header: {
+                            Text("Debug · Server")
+                                .foregroundColor(.cream300)
+                        } footer: {
+                            Text("Point this build at a local server for testing (see docs/LOCAL-TESTING.md). Blank = production. Signs you out so you re-authenticate against the new server.")
+                                .foregroundColor(.cream400)
+                        }
+                        .listRowBackground(Color.felt600)
+                        #endif
                     }
                     .scrollContentBackground(.hidden)
                     .listStyle(.insetGrouped)

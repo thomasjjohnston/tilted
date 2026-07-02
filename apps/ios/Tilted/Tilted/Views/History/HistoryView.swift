@@ -58,7 +58,7 @@ struct HistoryView: View {
                         ScrollView {
                             LazyVStack(spacing: 8) {
                                 ForEach(hands) { hand in
-                                    HandSummaryCard(hand: hand) {
+                                    HandSummaryCard(hand: hand, currentUserId: store.currentUserId) {
                                         selectedHandId = hand.handId
                                     }
                                 }
@@ -135,7 +135,19 @@ struct HistoryView: View {
 
 struct HandSummaryCard: View {
     let hand: HistoryHand
+    let currentUserId: String?
     let onTap: () -> Void
+
+    private var outcome: HandOutcome {
+        HandOutcome.make(
+            terminalReason: hand.terminalReason,
+            foldStreet: hand.foldStreet,
+            winnerUserId: hand.winnerUserId,
+            currentUserId: currentUserId,
+            myResolvedNet: hand.myResolvedNet,
+            status: "complete"
+        )
+    }
 
     var body: some View {
         Button(action: onTap) {
@@ -184,7 +196,8 @@ struct HandSummaryCard: View {
                     }
                 }
 
-                // Result
+                // Result — viewer-scoped outcome + net (never raw pot,
+                // never a win shown for a hand you lost).
                 HStack {
                     Text("Pot: \(hand.pot)")
                         .font(.bodySecondary)
@@ -192,11 +205,14 @@ struct HandSummaryCard: View {
 
                     Spacer()
 
-                    if hand.winnerUserId != nil {
-                        Text(hand.winnerUserId == nil ? "Split" : "Won \(hand.pot)")
-                            .font(.bodySecondary)
-                            .foregroundColor(.gold500)
+                    HStack(spacing: 6) {
+                        Text(outcome.label)
+                        if let net = outcome.netText {
+                            Text(net).fontWeight(.semibold)
+                        }
                     }
+                    .font(.bodySecondary)
+                    .foregroundColor(outcome.tint)
                 }
 
                 // Timestamp — relative if <24h, absolute otherwise.

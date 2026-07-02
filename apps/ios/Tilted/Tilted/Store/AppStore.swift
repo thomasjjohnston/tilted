@@ -27,6 +27,20 @@ final class AppStore {
     var activeScreen: ActiveScreen = .home
     var selectedTab: Tab = .home
 
+    /// Queued (not-yet-submitted) cart decisions for the current turn,
+    /// keyed by handId. Lives in the store — not TurnView's @State — so
+    /// leaving the turn and coming back keeps your in-progress cart
+    /// (beta feedback #1). Scoped to `turnCartRoundId`; cleared on submit
+    /// or when a new round begins.
+    var turnCart: [String: QueuedDecision] = [:]
+    var turnCartRoundId: String?
+
+    @MainActor
+    func clearTurnCart() {
+        turnCart = [:]
+        turnCartRoundId = nil
+    }
+
     /// Hand IDs whose "Completed Hand" full-screen moment has already
     /// been shown to the user. Persisted to UserDefaults so completions
     /// don't re-fire across app launches.
@@ -76,6 +90,17 @@ final class AppStore {
         } else {
             unseenCompletions.removeAll { $0.handId == handId }
         }
+    }
+
+    /// Acknowledge a whole batch of completions at once — used by the
+    /// grouped turn-results flow (#2), which shows one screen per outcome
+    /// category instead of one per hand.
+    @MainActor
+    func acknowledgeCompletions(_ handIds: [String]) {
+        for id in handIds { seenCompletions.insert(id) }
+        persistSeenCompletions()
+        let ack = Set(handIds)
+        unseenCompletions.removeAll { ack.contains($0.handId) }
     }
 
     /// Diff resolved hands against seenCompletions; queue anything new.
@@ -307,6 +332,28 @@ final class AppStore {
                 // Refresh to reconcile on error
                 await self?.refresh()
             }
+        }
+    }
+
+    /// Submit a whole turn as one all-or-nothing batch (the cart, spec §6).
+    /// Returns true on success; on failure sets `error` and leaves the
+    /// cart intact so the caller can let the user fix and resubmit.
+    @MainActor
+    func submitTurn(
+        roundId: String?,
+        actions: [(handId: String, type: String, amount: Int?, clientTxId: String)]
+    ) async -> Bool {
+        error = nil
+        do {
+            let updated = try await APIClient.shared.submitTurn(
+                roundId: roundId, turnTxId: UUID().uuidString, actions: actions
+            )
+            matchState = updated
+            spliceMatch(updated)
+            return true
+        } catch {
+            self.error = error.localizedDescription
+            return false
         }
     }
 

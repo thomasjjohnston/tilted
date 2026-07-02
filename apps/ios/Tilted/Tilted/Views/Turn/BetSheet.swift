@@ -9,8 +9,13 @@ struct BetSheet: View {
     @State private var legalActions: LegalActionsResponse?
     @Environment(\.dismiss) private var dismiss
 
-    private var minBet: Int { legalActions?.minRaise ?? 10 }
-    private var maxBet: Int { legalActions?.maxBet ?? match.myAvailable }
+    // Clamp to the server-advertised legal range. Since the server now
+    // computes the advertised min-raise identically to what it enforces
+    // (S7-4), an amount inside this range is always accepted. Guard against
+    // an inverted range (e.g. legal-actions fetch failed) so the Slider
+    // never gets min > max.
+    private var minBet: Int { min(legalActions?.minRaise ?? 10, maxBet) }
+    private var maxBet: Int { max(legalActions?.maxBet ?? match.myAvailable, 10) }
     private var isFacingBet: Bool { hand.opponentReserved > hand.myReserved }
     private var actionLabel: String { isFacingBet ? "Raise" : "Bet" }
     private var actionType: String { isFacingBet ? "raise" : "bet" }

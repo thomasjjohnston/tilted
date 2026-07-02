@@ -118,40 +118,35 @@ struct HandDetailView: View {
                         }
                     }
 
-                    // Winner display
-                    if let winnerId = detail.winnerUserId {
-                        let iWon = winnerId == store.currentUserId
-                        let oppName = store.matchState?.opponent.displayName.components(separatedBy: " ").first ?? "Opponent"
-                        HStack {
-                            Text(iWon ? "You won" : "\(oppName) won")
-                                .font(.system(size: 14))
-                                .foregroundColor(iWon ? .gold500 : .claret)
-                            Spacer()
-                            Text(iWon ? "+\(detail.pot)" : "-\(detail.pot)")
+                    // Outcome + net — same viewer-scoped helper as the
+                    // history list, so list and detail always agree; shows
+                    // net chips, not the raw pot.
+                    let outcome = HandOutcome.make(
+                        terminalReason: detail.terminalReason,
+                        foldStreet: detail.foldStreet,
+                        winnerUserId: detail.winnerUserId,
+                        currentUserId: store.currentUserId,
+                        myResolvedNet: detail.myResolvedNet,
+                        status: detail.status
+                    )
+                    HStack {
+                        Text(outcome.label)
+                            .font(.system(size: 14))
+                            .foregroundColor(outcome.tint)
+                        Spacer()
+                        if let net = outcome.netText {
+                            Text(net)
                                 .font(.custom("Georgia", size: 22))
-                                .foregroundColor(iWon ? .gold500 : .claret)
+                                .foregroundColor(outcome.tint)
                         }
-                        .padding(10)
-                        .background(iWon ? Color.gold500.opacity(0.06) : Color.claret.opacity(0.06))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(iWon ? Color.gold500.opacity(0.2) : Color.claret.opacity(0.2), lineWidth: 1)
-                        )
-                        .cornerRadius(8)
-                    } else if detail.terminalReason == "showdown" {
-                        HStack {
-                            Text("Split pot")
-                                .font(.system(size: 14))
-                                .foregroundColor(.cream200)
-                            Spacer()
-                            Text("+\(detail.pot / 2)")
-                                .font(.custom("Georgia", size: 22))
-                                .foregroundColor(.cream200)
-                        }
-                        .padding(10)
-                        .background(Color.cream200.opacity(0.04))
-                        .cornerRadius(8)
                     }
+                    .padding(10)
+                    .background(outcome.tint.opacity(0.06))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(outcome.tint.opacity(0.2), lineWidth: 1)
+                    )
+                    .cornerRadius(8)
                 }
 
                 // Scrubber

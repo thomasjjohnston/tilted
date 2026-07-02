@@ -3,9 +3,21 @@ import Foundation
 actor APIClient {
     static let shared = APIClient()
 
-    private var baseURL = URL(string: "https://tilted-server.fly.dev")!
+    private var baseURL = APIClient.defaultBaseURL
 
     private var token: String?
+
+    init() {
+        #if DEBUG
+        // In DEBUG builds, honor a persisted server override so a device
+        // can point at a laptop running the local stack (docs/LOCAL-TESTING.md).
+        if let override = APIClient.debugServerURL {
+            baseURL = override
+        }
+        #endif
+    }
+
+    static let defaultBaseURL = URL(string: "https://tilted-server.fly.dev")!
 
     func setToken(_ token: String) {
         self.token = token
@@ -100,6 +112,30 @@ actor APIClient {
             }
         ]
         return try await post("/v1/batch-actions", body: body)
+    }
+
+    /// Submit a whole turn as one all-or-nothing batch (the cart, spec §6).
+    /// `clientTxId`s are caller-provided and stable so a network retry
+    /// dedupes server-side rather than double-applying.
+    func submitTurn(
+        roundId: String?,
+        turnTxId: String,
+        actions: [(handId: String, type: String, amount: Int?, clientTxId: String)]
+    ) async throws -> MatchState {
+        var body: [String: Any] = [
+            "turn_tx_id": turnTxId,
+            "actions": actions.map { a -> [String: Any] in
+                var d: [String: Any] = [
+                    "hand_id": a.handId,
+                    "type": a.type,
+                    "client_tx_id": a.clientTxId,
+                ]
+                if let amount = a.amount { d["amount"] = amount }
+                return d
+            },
+        ]
+        if let roundId { body["round_id"] = roundId }
+        return try await post("/v1/turn/submit", body: body)
     }
 
     func getLegalActions(handId: String) async throws -> LegalActionsResponse {
@@ -207,6 +243,15 @@ actor APIClient {
                     throw APIError.unauthorized
                 }
 
+                // 422 = illegal game action (below min-raise, over-committed,
+                // not your turn). Surface the server's message cleanly so the
+                // UI shows a real error instead of a raw dump (feedback S7-4).
+                if http.statusCode == 422 {
+                    let message = (try? JSONDecoder().decode(GameRuleErrorBody.self, from: data))?.message
+                        ?? "That move isn't allowed."
+                    throw APIError.gameRule(message: message)
+                }
+
                 guard (200...299).contains(http.statusCode) else {
                     let body = String(data: data, encoding: .utf8) ?? ""
                     throw APIError.serverError(status: http.statusCode, body: body)
@@ -235,10 +280,45 @@ struct DeleteResponse: Decodable {
     let ok: Bool
 }
 
+private struct GameRuleErrorBody: Decodable {
+    let message: String
+}
+
+#if DEBUG
+// DEBUG-only server override for local end-to-end testing on a device.
+// The value persists in UserDefaults and is applied at launch (APIClient.init)
+// and immediately when changed. See docs/LOCAL-TESTING.md.
+extension APIClient {
+    static let debugServerKey = "debug_server_url"
+
+    /// Current override as a URL, or nil when unset/blank (→ use Fly default).
+    static var debugServerURL: URL? {
+        guard let s = UserDefaults.standard.string(forKey: debugServerKey),
+              !s.trimmingCharacters(in: .whitespaces).isEmpty,
+              let url = URL(string: s) else { return nil }
+        return url
+    }
+
+    /// The string shown in the debug field (empty = Fly production default).
+    static var debugServerString: String {
+        UserDefaults.standard.string(forKey: debugServerKey) ?? ""
+    }
+
+    /// Persist + apply a new server URL. Empty string clears the override.
+    static func applyDebugServer(_ raw: String) {
+        let trimmed = raw.trimmingCharacters(in: .whitespaces)
+        UserDefaults.standard.set(trimmed, forKey: debugServerKey)
+        let url = (trimmed.isEmpty ? nil : URL(string: trimmed)) ?? defaultBaseURL
+        Task { await APIClient.shared.setBaseURL(url) }
+    }
+}
+#endif
+
 enum APIError: Error, LocalizedError {
     case invalidResponse
     case notFound
     case unauthorized
+    case gameRule(message: String)
     case serverError(status: Int, body: String)
     case unknown
 
@@ -247,6 +327,7 @@ enum APIError: Error, LocalizedError {
         case .invalidResponse: return "Invalid response from server"
         case .notFound: return "Resource not found"
         case .unauthorized: return "Session expired — sign in again"
+        case .gameRule(let message): return message
         case .serverError(let status, let body): return "Server error \(status): \(body)"
         case .unknown: return "Unknown error"
         }

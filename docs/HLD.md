@@ -147,7 +147,10 @@ create table hands (
   action_on_user_id uuid references users,            -- null once hand is terminal
   status            text not null check (status in ('in_progress','awaiting_runout','complete')),
   terminal_reason   text check (terminal_reason in ('fold','showdown') or terminal_reason is null),
+  fold_street       text check (fold_street in ('preflop','flop','turn','river') or fold_street is null),
   winner_user_id    uuid references users,
+  resolved_net_for_a int,                              -- per-user net chip change, snapshotted at resolution
+  resolved_net_for_b int,                              -- null until the hand completes; never recomputed from live reserved
   completed_at      timestamptz,
   unique (round_id, hand_index)
 );
@@ -195,6 +198,7 @@ Notes:
 
 - `user_a_id`/`user_b_id` is a stable labeling (a < b alphabetically); it's fine for two-player. We don't use "seat 0/1" semantics.
 - `hands.action_on_user_id` is a denormalized field, kept in sync inside the same transaction that advances the hand. It is the **primary index used by the turn view**.
+- `fold_street` records which street a fold resolved on (for summary/history detail like "folded the river"); it is null for showdowns. `resolved_net_for_a/b` snapshot each user's net chip change the moment the hand completes, so the round summary and history read a stored value rather than recomputing from `user_x_reserved` (which is zeroed at settlement and would otherwise render "+0 / −0"). Both endpoints (`/history`, `/hand/:id`) must serialize these; the summary/history UI shows net, not raw `pot`.
 - `user_a_reserved` + `user_b_reserved` on `hands` makes the chip ledger cheap to query. Invariant check: `Σ over active hands per user ≤ users.total - sum(winnings) + initial`.
 - The `client_tx_id` unique index gives us per-action idempotency: a retry from iOS with the same txid is a no-op and returns the prior result.
 - The `unique index where status='active'` on `matches` is how we enforce §4's "one match at a time for MVP" without app-layer races.
@@ -247,6 +251,17 @@ if aPending > 0 and bPending > 0   → impossible (invariant violation)
 
 This logic lives in `game/turn.ts` and is test-covered by (a) unit tests on the rule transitions and (b) integration tests that spin up a real ephemeral Postgres and walk a scripted match.
 
+**Applying a batch (a submitted turn).** A turn is submitted as one batch of per-hand actions (spec §6, "the cart"). The server:
+
+1. Opens one transaction, `SELECT ... FOR UPDATE` the match.
+2. Applies the queued actions **in order**, each through the same per-hand validation and mutation path above. Because they share one stack, each action's legality is checked against the *running* available balance, so the batch as a whole cannot over-commit `total_chips`.
+3. Runs the post-mutation ledger assertion (§8) once at the end.
+4. **All-or-nothing:** if any action is illegal (or the ledger assertion fails), the whole transaction rolls back and the endpoint returns the offending hand(s); nothing is applied. The client returns the player to the cart.
+5. Recomputes `aPending/bPending` once for the round and inserts **at most one** `turn_handoffs` row for the whole submitted turn.
+6. Commits, then dispatches **exactly one** APNS push for that handoff (see §12). Hands won on blinds within the batch never dispatch their own push.
+
+Idempotency is two-layered: each action keeps its `actions.client_tx_id` unique-constraint dedupe, and the batch carries a `turn_tx_id` so a retried submit returns the original result rather than re-applying. The min-raise advertised by the legal-actions preview and the min-raise enforced here are computed from the same rule — a divergence is the bug behind "an invalid raise bounces the hand back," and rejected actions must return a 4xx with a real error, not a 500.
+
 ## 8. Chip ledger invariant
 
 The money rule:
@@ -277,6 +292,9 @@ GET    /v1/match/:id/history         ?favorites=true&won=true&round=N  → Hand[
 
 POST   /v1/hand/:id/action           body: { type, amount?, client_tx_id }
                                      → ActionResult { hand, round_turn_state }
+POST   /v1/turn/submit               body: { round_id, turn_tx_id,
+                                             actions: [{ hand_id, type, amount?, client_tx_id }] }
+                                     → TurnResult { round_turn_state, hands[] }   # all-or-nothing batch (§7)
 POST   /v1/hand/:id/favorite         body: { favorite: boolean }
 GET    /v1/hand/:id                  → full hand detail incl. actions[]
 
@@ -352,7 +370,7 @@ The store is a simple `@Observable` class; for MVP we don't need Redux/TCA. We r
 
 - On install / accept-permission, iOS posts the device token to `POST /v1/me/apns-token`.
 - Server persists on `users.apns_token`.
-- On every `turn_handoffs` row insert, the notif module fires an APNS push with `alert: "{opponent} finished their turn. N hands are waiting for you."`, `category: TURN_HANDOFF`, deep-link payload `{match_id, round_id}`.
+- A submitted turn inserts **at most one** `turn_handoffs` row (§7), and the notif module fires exactly one APNS push per row: `alert: "{opponent} finished their turn. N hands are waiting for you."`, `category: TURN_HANDOFF`, deep-link payload `{match_id, round_id}`. Per-hand actions and blind-only auto-wins inside the batch do not each dispatch a push, and no push fires while the opponent is still mid-turn.
 - Tap → deep link to `TurnView`. If the app was backgrounded, it foreground-refreshes automatically.
 - Dedupe: APNS is best-effort, but Apple delivers once per push id. We generate the push id deterministically from `turn_handoffs.handoff_id`.
 

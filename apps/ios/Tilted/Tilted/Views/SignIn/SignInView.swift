@@ -5,6 +5,10 @@ struct SignInView: View {
     @Environment(AppStore.self) private var store
     @State private var error: String?
     @State private var isSigningIn = false
+    #if DEBUG
+    @State private var showServerSheet = false
+    @State private var debugServerDraft = ""
+    #endif
 
     var body: some View {
         ZStack {
@@ -48,6 +52,32 @@ struct SignInView: View {
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 32)
                     }
+
+                    #if DEBUG
+                    Button {
+                        debugServerDraft = APIClient.debugServerString
+                        showServerSheet = true
+                    } label: {
+                        Text("Server: \(APIClient.debugServerString.isEmpty ? "production" : APIClient.debugServerString)")
+                            .font(.system(size: 11))
+                            .foregroundColor(.cream400)
+                            .padding(.top, 8)
+                    }
+                    .alert("Local server URL", isPresented: $showServerSheet) {
+                        TextField("http://192.168.x.x:3000", text: $debugServerDraft)
+                            .autocorrectionDisabled()
+                            .textInputAutocapitalization(.never)
+                            .keyboardType(.URL)
+                        Button("Apply") { APIClient.applyDebugServer(debugServerDraft) }
+                        Button("Reset to production") {
+                            debugServerDraft = ""
+                            APIClient.applyDebugServer("")
+                        }
+                        Button("Cancel", role: .cancel) {}
+                    } message: {
+                        Text("DEBUG only. Point this build at your laptop's local stack, then sign in. See docs/LOCAL-TESTING.md.")
+                    }
+                    #endif
                 }
 
                 Spacer().frame(height: 48)

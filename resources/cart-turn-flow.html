@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tilted — Turn Flow: Board → Cart</title>
+<style>
+  :root{
+    --felt-900:#051c15; --felt-800:#082a21; --felt-700:#0e3b2e; --felt-600:#164a3a; --felt-500:#1a5a43;
+    --gold-500:#d4b368; --gold-600:#c9a961; --gold-700:#a88334; --gold-800:#7a5f2b;
+    --cream-50:#f6f1e1; --cream-100:#f3ecd6; --cream-200:#d9cfb2; --cream-300:#9eb7a4; --cream-400:#6a8a7a;
+    --claret:#c44d42; --card-red:#c92b2b; --card-black:#111;
+    --page-bg:#15161a; --page-fg:#e8e6df; --muted:#8a8a8a; --rule:#2a2a30;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--page-bg);color:var(--page-fg);
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;
+    padding:28px 20px 80px;}
+  h1{font-family:Georgia,serif;font-weight:400;color:var(--gold-500);font-size:26px;margin:0 0 6px;}
+  .sub{color:var(--muted);font-size:13px;line-height:1.6;max-width:760px;margin:0 0 4px;}
+  .sub b{color:var(--cream-200);}
+  .wrap{display:flex;gap:32px;align-items:flex-start;flex-wrap:wrap;margin-top:20px;}
+  .aside{width:300px;flex:0 0 300px;}
+  .panel{border:1px solid var(--rule);border-radius:12px;background:#1a1b20;padding:16px;margin-bottom:16px;}
+  .panel h3{margin:0 0 8px;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--gold-500);}
+  .panel ol,.panel ul{margin:0;padding-left:18px;color:var(--cream-200);font-size:12.5px;line-height:1.7;}
+  .panel b{color:var(--gold-500);}
+  .lock{display:flex;gap:8px;margin-bottom:8px;}
+  .lock .pill{flex:1;border:1px solid var(--gold-800);background:#211d16;border-radius:9px;padding:8px 10px;}
+  .lock .pill .k{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--cream-400);}
+  .lock .pill .v{font-size:12.5px;color:var(--gold-500);font-weight:600;margin-top:2px;}
+  .restart{width:100%;border:1px solid var(--rule);background:#212228;color:var(--cream-200);border-radius:9px;padding:10px;font-size:12.5px;cursor:pointer;}
+
+  .device{width:390px;flex:0 0 390px;border-radius:46px;background:#0a0a0b;padding:12px;
+    box-shadow:0 0 0 2px #1c1c20,0 30px 60px rgba(0,0,0,.6),inset 0 0 0 1.5px #2a2a2e;position:relative;}
+  .notch{position:absolute;top:12px;left:50%;transform:translateX(-50%);width:120px;height:26px;background:#0a0a0b;border-radius:0 0 16px 16px;z-index:20;}
+  .screen{border-radius:36px;overflow:hidden;height:820px;display:flex;flex-direction:column;position:relative;
+    background:radial-gradient(ellipse at 50% 0%,var(--felt-500) 0%,var(--felt-700) 52%,var(--felt-800) 100%);}
+
+  .nav{display:flex;align-items:center;justify-content:space-between;padding:46px 18px 8px;flex:0 0 auto;}
+  .nav .back{font-size:22px;color:var(--cream-100);cursor:pointer;width:60px;}
+  .nav .title{font-family:Georgia,serif;font-size:16px;color:var(--cream-50);}
+  .nav .right{font-size:12px;color:var(--gold-500);width:60px;text-align:right;}
+  .eyebrow{text-align:center;font-size:10.5px;letter-spacing:1.4px;text-transform:uppercase;color:var(--cream-300);}
+  .rule{height:1px;background:linear-gradient(90deg,transparent,rgba(212,179,104,.4),transparent);margin:10px 18px;}
+
+  /* board screen */
+  .board{flex:1 1 auto;overflow-y:auto;padding:6px 18px 12px;}
+  .community{display:flex;justify-content:center;gap:6px;margin:10px 0 4px;min-height:56px;align-items:center;}
+  .commlabel{text-align:center;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--cream-400);}
+  .bcard{width:38px;height:52px;border-radius:5px;background:var(--cream-50);color:var(--card-black);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;font-size:16px;line-height:1;box-shadow:0 2px 4px rgba(0,0,0,.4);}
+  .bcard.red{color:var(--card-red);} .bcard .s{font-size:13px;}
+  .bcard.ph{background:rgba(255,255,255,.06);box-shadow:none;color:var(--cream-400);font-size:10px;font-weight:500;width:auto;padding:0 14px;height:40px;}
+  .yours{text-align:center;margin-top:14px;}
+  .hole{display:flex;justify-content:center;gap:9px;margin-top:8px;}
+  .hcard{width:56px;height:76px;border-radius:7px;background:var(--cream-50);color:var(--card-black);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;font-size:24px;line-height:1;box-shadow:0 3px 8px rgba(0,0,0,.45);}
+  .hcard.red{color:var(--card-red);} .hcard .s{font-size:20px;}
+  .log{border:1px solid rgba(201,169,97,.22);border-radius:12px;padding:12px 14px;margin-top:16px;}
+  .log .l{font-size:11.5px;color:var(--cream-300);line-height:1.9;}
+  .log .l.gold{color:var(--gold-500);}
+  .avail{display:flex;justify-content:space-between;align-items:baseline;margin-top:16px;font-size:12px;}
+  .avail .k{color:var(--cream-300);}
+  .avail .v{font-family:Georgia,serif;font-size:22px;color:var(--gold-500);}
+  .avail .v.bad{color:#f0b3ad;}
+  .cur{margin-top:12px;padding:9px 12px;border-radius:10px;background:rgba(212,179,104,.1);border:1px solid rgba(212,179,104,.3);
+    text-align:center;font-size:12.5px;color:var(--gold-500);font-weight:600;display:none;}
+  .cur.show{display:block;}
+  .cur .lbl{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--cream-400);font-weight:500;display:block;margin-bottom:2px;}
+
+  .actions{flex:0 0 auto;padding:10px 18px calc(10px + env(safe-area-inset-bottom));border-top:1px solid rgba(212,179,104,.22);background:rgba(5,20,15,.6);}
+  .btnrow{display:flex;gap:8px;}
+  .btn{flex:1;border:none;border-radius:12px;padding:14px 6px;font-size:14px;font-weight:700;cursor:pointer;}
+  .btn.fold{background:#3a201d;color:#f0b3ad;border:1px solid var(--claret);}
+  .btn.sec{background:rgba(243,236,214,.1);color:var(--cream-50);border:1px solid rgba(243,236,214,.25);}
+  .btn.pri{background:linear-gradient(180deg,var(--gold-500),var(--gold-700));color:#241d0e;}
+  .btn.sel{outline:2px solid var(--gold-500);outline-offset:1px;}
+  .navbtns{display:flex;justify-content:space-between;align-items:center;margin-top:9px;}
+  .navbtns .g{font-size:12px;color:var(--cream-400);}
+  .navbtns button{border:1px solid var(--rule);background:#17241e;color:var(--cream-100);border-radius:9px;padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer;}
+  .navbtns button.review{border-color:var(--gold-600);color:var(--gold-500);}
+
+  /* bet sheet */
+  .dim{position:absolute;inset:0;background:rgba(0,0,0,.5);z-index:25;display:none;}
+  .dim.show{display:block;}
+  .sheet{position:absolute;left:0;right:0;bottom:0;z-index:26;background:linear-gradient(180deg,var(--felt-600),var(--felt-800));
+    border-top:1px solid var(--gold-700);border-radius:22px 22px 0 0;padding:14px 20px calc(20px + env(safe-area-inset-bottom));transform:translateY(100%);transition:.22s;}
+  .sheet.show{transform:translateY(0);}
+  .handle{width:40px;height:4px;border-radius:2px;background:rgba(243,236,214,.3);margin:0 auto 12px;}
+  .sheet .amt{text-align:center;font-family:Georgia,serif;color:var(--gold-500);font-size:46px;letter-spacing:-1px;line-height:1;}
+  .sheet .after{text-align:center;font-size:11.5px;color:var(--cream-300);margin-top:6px;}
+  .sheet .after.bad{color:#f0b3ad;}
+  .sheet input[type=range]{width:100%;accent-color:var(--gold-600);margin:16px 0 4px;}
+  .sheet .ends{display:flex;justify-content:space-between;font-size:10px;color:var(--cream-300);}
+  .sheet .quick{display:flex;gap:6px;margin:14px 0;}
+  .sheet .quick button{flex:1;border:1px solid var(--rule);background:#17241e;color:var(--cream-200);border-radius:8px;padding:8px 4px;font-size:11.5px;cursor:pointer;}
+  .sheet .confirm{width:100%;border:none;border-radius:12px;padding:15px;font-size:15px;font-weight:700;cursor:pointer;background:linear-gradient(180deg,var(--gold-500),var(--gold-700));color:#241d0e;}
+
+  /* cart screen */
+  .carthead{padding:46px 18px 6px;text-align:center;flex:0 0 auto;}
+  .carthead .t{font-family:Georgia,serif;font-size:22px;color:var(--cream-50);}
+  .carthead .s{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--cream-300);margin-top:3px;}
+  .chipbar{margin:10px 16px 6px;border:1px solid rgba(212,179,104,.28);border-radius:14px;background:rgba(5,20,15,.5);padding:11px 12px;display:flex;flex:0 0 auto;}
+  .chip{flex:1;text-align:center;}
+  .chip .k{font-size:9.5px;letter-spacing:.8px;text-transform:uppercase;color:var(--cream-400);}
+  .chip .v{font-family:Georgia,serif;font-size:20px;margin-top:2px;color:var(--cream-50);}
+  .chip.avail .v{color:var(--gold-500);} .chip.avail .v.bad{color:#f0b3ad;}
+  .chip.cart .v{color:#8fb9ff;}
+  .overbar{margin:2px 16px;border-radius:9px;background:rgba(196,77,66,.16);border:1px solid var(--claret);color:#f0b3ad;font-size:11.5px;padding:8px 10px;text-align:center;display:none;flex:0 0 auto;}
+  .overbar.show{display:block;}
+  .cartlist{flex:1 1 auto;overflow-y:auto;padding:6px 16px 12px;}
+  .crow{display:flex;align-items:center;gap:10px;border:1px solid rgba(255,255,255,.08);border-radius:12px;background:rgba(8,42,33,.55);padding:11px 12px;margin-bottom:8px;cursor:pointer;}
+  .crow.needs{border-color:rgba(224,168,58,.5);}
+  .crow.done{opacity:.5;}
+  .crow .mini{display:flex;gap:3px;flex:0 0 auto;}
+  .mcard{width:22px;height:30px;border-radius:4px;background:var(--cream-50);color:var(--card-black);display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;font-size:10px;line-height:1;}
+  .mcard.red{color:var(--card-red);} .mcard .s{font-size:8px;}
+  .crow .mid{flex:1;min-width:0;}
+  .crow .n{font-size:13px;font-weight:600;color:var(--cream-50);}
+  .crow .st{font-size:10.5px;color:var(--cream-300);}
+  .crow .d{font-size:13px;font-weight:700;margin-top:2px;}
+  .crow .d.fold{color:#c98a8a;} .crow .d.check,.crow .d.call{color:var(--cream-100);}
+  .crow .d.bet,.crow .d.raise,.crow .d.allin{color:var(--gold-500);}
+  .crow .d.none{color:#e0a83a;font-weight:600;}
+  .crow .chev{color:var(--cream-400);font-size:18px;}
+  .submitbar{flex:0 0 auto;padding:12px 16px calc(14px + env(safe-area-inset-bottom));border-top:1px solid rgba(212,179,104,.25);background:rgba(5,20,15,.85);}
+  .submitbar .summ{font-size:12px;color:var(--cream-200);text-align:center;margin-bottom:8px;}
+  .submit{width:100%;border:none;border-radius:12px;padding:15px;font-size:15px;font-weight:700;cursor:pointer;background:linear-gradient(180deg,var(--gold-500),var(--gold-700));color:#241d0e;}
+  .submit.warn{background:linear-gradient(180deg,#e0a83a,#a87c22);}
+  .submit:disabled{opacity:.4;cursor:not-allowed;}
+
+  .result{position:absolute;inset:0;background:rgba(5,20,15,.95);z-index:40;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px;}
+  .result.show{display:flex;}
+  .result h2{font-family:Georgia,serif;font-size:28px;margin:0 0 10px;}
+  .result h2.ok{color:var(--gold-500);} .result h2.err{color:#f0b3ad;}
+  .result p{color:var(--cream-200);font-size:13.5px;line-height:1.6;max-width:290px;}
+  .result button{margin-top:22px;border:1px solid var(--gold-600);background:transparent;color:var(--gold-500);border-radius:10px;padding:11px 22px;font-size:13px;cursor:pointer;}
+  .toast{position:absolute;left:50%;bottom:120px;transform:translateX(-50%) translateY(16px);opacity:0;background:#111;border:1px solid var(--gold-700);color:var(--cream-50);padding:9px 16px;border-radius:10px;font-size:12.5px;transition:.25s;z-index:30;pointer-events:none;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+  <h1>Tilted — Turn Flow: Board → Cart</h1>
+  <p class="sub"><b>Cart-is-the-turn</b> + <b>warn-only</b> budget. You click through your hands on the full board first; the cart is the checkout you reach at the end. Tapping any cart row drops you back onto that hand’s board to change your mind. Submit sends the whole turn atomically.</p>
+
+  <div class="wrap">
+    <div class="aside">
+      <div class="panel">
+        <h3>Locked decisions</h3>
+        <div class="lock">
+          <div class="pill"><div class="k">Turn structure</div><div class="v">Cart is the turn</div></div>
+        </div>
+        <div class="lock">
+          <div class="pill"><div class="k">Budget</div><div class="v">Warn only</div></div>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>The flow</h3>
+        <ol>
+          <li>Start on the <b>board</b>, Hand 1. See board cards, pot, opp action, your cards.</li>
+          <li>Act, then <b>Next ›</b> through all 8 hands.</li>
+          <li>Last hand → <b>Review turn</b> lands on the cart.</li>
+          <li>Tap any cart row → back to that hand’s <b>board</b> to change it.</li>
+          <li><b>Submit turn</b> sends all 8 at once.</li>
+        </ol>
+      </div>
+      <div class="panel">
+        <h3>Try the reallocation</h3>
+        <ul>
+          <li>On <b>Hand 3</b> raise big (~600).</li>
+          <li>On the cart, Available goes low / red.</li>
+          <li>Open <b>Hand 7</b>, All-in comes up short.</li>
+          <li>Tap Hand 3 in cart → change to <b>Check</b>.</li>
+          <li>Hand 7 All-in now funds. Submit.</li>
+        </ul>
+      </div>
+      <button class="restart" id="restart">↺ Restart turn from Hand 1</button>
+    </div>
+
+    <div class="device">
+      <div class="notch"></div>
+      <div class="screen" id="screen"></div>
+    </div>
+  </div>
+
+<script>
+const SUIT={S:{c:'♠',red:false},H:{c:'♥',red:true},D:{c:'♦',red:true},C:{c:'♣',red:false}};
+function face(str,cls){const r=str.slice(0,-1),s=str.slice(-1).toUpperCase(),su=SUIT[s];
+  return `<div class="${cls} ${su.red?'red':''}"><span>${r}</span><span class="s">${su.c}</span></div>`;}
+
+const START_AVAIL=900, RESERVED_ELSEWHERE=700;
+function fresh(){return [
+  {id:1,name:'Hand 1',street:'Flop',hole:['As','Kd'],board:['Kh','7c','3d'],pot:200,toCall:80,minRaise:160,
+   log:['You post BB 10','SB completes to 10','Flop dealt','SB bets 80']},
+  {id:2,name:'Hand 2',street:'Preflop',hole:['Qh','Qc'],board:[],pot:15,toCall:5,minRaise:20,
+   log:['You post SB 5','BB posts 10','Action on you']},
+  {id:3,name:'Hand 3',street:'Turn',hole:['Jd','Ts'],board:['9s','4d','2c','Jh'],pot:260,toCall:200,minRaise:400,
+   log:['Preflop: called','Flop: checked through','Turn dealt','Opp bets 200']},
+  {id:4,name:'Hand 4',street:'Flop',hole:['9c','9s'],board:['8h','6s','2d'],pot:40,toCall:0,minRaise:20,
+   log:['Preflop: called','Flop dealt','Opp checks']},
+  {id:5,name:'Hand 5',street:'Preflop',hole:['Ah','7h'],board:[],pot:15,toCall:5,minRaise:20,
+   log:['You post SB 5','BB posts 10','Action on you']},
+  {id:6,name:'Hand 6',street:'River',hole:['Ks','Qs'],board:['Kc','Qd','5s','2h','9d'],pot:300,toCall:150,minRaise:300,
+   log:['Two pair in play','River dealt','Opp bets 150']},
+  {id:7,name:'Hand 7',street:'Flop',hole:['Ts','Th'],board:['Td','6c','2s'],pot:120,toCall:60,minRaise:120,
+   log:['Preflop: called','Flop dealt — you flop a set','Opp bets 60']},
+  {id:8,name:'Hand 8',street:'Turn',hole:['5s','5d'],board:['Jc','8d','3h','Qs'],pot:80,toCall:0,minRaise:20,
+   log:['Preflop: called','Flop: checked','Turn dealt','Opp checks']},
+];}
+
+let state={screen:'board',idx:0,from:'flow',sheet:null,hands:fresh()};
+
+function cost(h){const d=h.decision;if(!d)return 0;if(d.type==='fold'||d.type==='check')return 0;if(d.type==='call')return h.toCall;return d.amount;}
+function cartCost(){return state.hands.reduce((s,h)=>s+cost(h),0);}
+function available(){return START_AVAIL-cartCost();}
+function freeFor(h){return available()+cost(h);}
+function decided(){return state.hands.filter(h=>h.decision).length;}
+function overBy(){return Math.max(0,-available());}
+function el(h){const t=document.createElement('template');t.innerHTML=h.trim();return t.content.firstChild;}
+
+function decLabel(h){const d=h.decision;if(!d)return'Needs action';
+  return {fold:'Fold',check:'Check',call:`Call ${h.toCall}`,bet:`Bet ${d.amount}`,raise:`Raise — commit ${d.amount}`,allin:`All-in ${d.amount}`}[d.type];}
+
+function render(){const s=document.getElementById('screen');s.innerHTML='';
+  if(state.screen==='board')renderBoard(s);else renderCart(s);
+  s.appendChild(el('<div class="toast" id="toast"></div>'));
+  s.appendChild(el('<div class="result" id="result"></div>'));
+}
+
+/* ---------------- BOARD ---------------- */
+function renderBoard(s){
+  const h=state.hands[state.idx];
+  const facing=h.toCall>0;
+  s.appendChild(el(`<div class="nav">
+    <span class="back" id="toCart">‹ Cart</span>
+    <span class="title">${h.name}</span>
+    <span class="right">Pot ${h.pot}</span>
+  </div>`));
+  s.appendChild(el(`<div class="eyebrow">Round 3 · ${h.street} · You are SB</div>`));
+  s.appendChild(el('<div class="rule"></div>'));
+
+  const b=el('<div class="board"></div>');
+  // community
+  b.appendChild(el('<div class="commlabel">Board</div>'));
+  const comm=el('<div class="community"></div>');
+  if(h.board.length===0)comm.appendChild(el('<div class="bcard ph">Preflop — no board yet</div>'));
+  else h.board.forEach(c=>comm.appendChild(el(face(c,'bcard'))));
+  b.appendChild(comm);
+  // your cards
+  const yc=el('<div class="yours"><div class="commlabel">Your hand</div></div>');
+  const hole=el('<div class="hole"></div>');
+  h.hole.forEach(c=>hole.appendChild(el(face(c,'hcard'))));
+  yc.appendChild(hole);b.appendChild(yc);
+  // log
+  const log=el('<div class="log"></div>');
+  h.log.forEach((l,i)=>log.appendChild(el(`<div class="l ${i===h.log.length-1?'gold':''}">• ${l}</div>`)));
+  b.appendChild(log);
+  // available
+  const av=available();
+  b.appendChild(el(`<div class="avail"><span class="k">Available across your stack</span><span class="v ${av<0?'bad':''}">${av}</span></div>`));
+  // current decision on THIS hand
+  if(h.decision){
+    b.appendChild(el(`<div class="cur show"><span class="lbl">Queued for this hand</span>${decLabel(h)}</div>`));
+  }
+  s.appendChild(b);
+
+  // actions
+  const act=el('<div class="actions"></div>');
+  const row=el('<div class="btnrow"></div>');
+  const d=h.decision;
+  if(facing){
+    const fold=el(`<button class="btn fold ${d&&d.type==='fold'?'sel':''}">Fold</button>`);
+    fold.onclick=()=>pick(h,{type:'fold'});
+    const call=el(`<button class="btn sec ${d&&d.type==='call'?'sel':''}">Call ${h.toCall}</button>`);
+    call.onclick=()=>pick(h,{type:'call'});
+    const raise=el(`<button class="btn pri ${d&&(d.type==='raise'||d.type==='allin')?'sel':''}">Raise ›</button>`);
+    raise.onclick=()=>openSheet(h,true);
+    row.append(fold,call,raise);
+  }else{
+    const chk=el(`<button class="btn sec ${d&&d.type==='check'?'sel':''}">Check</button>`);
+    chk.onclick=()=>pick(h,{type:'check'});
+    const bet=el(`<button class="btn pri ${d&&(d.type==='bet'||d.type==='allin')?'sel':''}">Bet ›</button>`);
+    bet.onclick=()=>openSheet(h,false);
+    row.append(chk,bet);
+  }
+  act.appendChild(row);
+
+  // nav row
+  const nav=el('<div class="navbtns"></div>');
+  const prev=el('<button>‹ Prev</button>');prev.disabled=state.idx===0;
+  prev.onclick=()=>{if(state.idx>0){state.idx--;state.from='flow';render();}};
+  const g=el(`<span class="g">Hand ${state.idx+1} of ${state.hands.length}</span>`);
+  const last=state.idx===state.hands.length-1;
+  const next=el(`<button class="${last?'review':''}">${last?'Review turn ›':'Next ›'}</button>`);
+  next.onclick=()=>{if(last){state.screen='cart';}else{state.idx++;state.from='flow';}render();};
+  nav.append(prev,g,next);
+  act.appendChild(nav);
+  s.appendChild(act);
+
+  s.querySelector('#toCart').onclick=()=>{state.screen='cart';render();};
+  if(state.sheet)renderSheet(s,h,facing);
+}
+
+function pick(h,dec){
+  h.decision=dec;
+  toast(`${h.name}: ${decLabel(h)}`);
+  advance();
+}
+function advance(){
+  if(state.from==='cart'){state.screen='cart';render();return;}
+  if(state.idx<state.hands.length-1){state.idx++;render();}
+  else{state.screen='cart';render();}
+}
+
+/* ---------------- BET SHEET ---------------- */
+function openSheet(h,facing){
+  const start=Math.max(h.minRaise,Math.min(h.minRaise,freeFor(h)));
+  state.sheet={amount:Math.max(h.minRaise,start),facing};
+  render();
+}
+function renderSheet(s,h,facing){
+  const cap=Math.max(1200,h.minRaise);           // warn-only: slider can exceed available
+  const amt=Math.min(Math.max(state.sheet.amount,h.minRaise),cap);
+  const afterAvail=START_AVAIL-(cartCost()-cost(h))-amt;
+  const bad=afterAvail<0;
+  s.appendChild(el('<div class="dim show" id="dim"></div>'));
+  const sheet=el(`<div class="sheet show">
+    <div class="handle"></div>
+    <div class="eyebrow">${h.name} · ${facing?'Raise — commit':'Bet'}</div>
+    <div class="amt">${amt}</div>
+    <div class="after ${bad?'bad':''}">After this — Available across remaining hands: <b>${afterAvail}</b>${bad?' · over budget (server will reject)':''}</div>
+    <input type="range" min="${h.minRaise}" max="${cap}" value="${amt}" id="rng">
+    <div class="ends"><span>Min ${h.minRaise}</span><span>All-in ${freeFor(h)}</span></div>
+    <div class="quick">
+      <button data-q="min">Min</button>
+      <button data-q="half">½ Pot</button>
+      <button data-q="pot">Pot</button>
+      <button data-q="allin">All-in</button>
+    </div>
+    <button class="confirm" id="confirm">Confirm ${facing?'raise':'bet'} — ${amt}</button>
+  </div>`);
+  s.appendChild(sheet);
+  s.querySelector('#dim').onclick=()=>{state.sheet=null;render();};
+  s.querySelector('#rng').oninput=e=>{state.sheet.amount=parseInt(e.target.value,10);render();};
+  sheet.querySelectorAll('.quick button').forEach(b=>b.onclick=()=>{
+    const q=b.dataset.q,fr=freeFor(h);let v;
+    if(q==='min')v=h.minRaise;else if(q==='half')v=Math.max(h.minRaise,Math.round(h.pot/2));
+    else if(q==='pot')v=Math.max(h.minRaise,h.pot);else v=fr;
+    state.sheet.amount=v;render();
+  });
+  s.querySelector('#confirm').onclick=()=>{
+    const fr=freeFor(h);
+    const type=(!facing? (amt>=fr?'allin':'bet') : (amt>=fr?'allin':'raise'));
+    h.decision={type,amount:amt};
+    state.sheet=null;
+    toast(`${h.name}: ${decLabel(h)}`);
+    advance();
+  };
+}
+
+/* ---------------- CART ---------------- */
+function renderCart(s){
+  s.appendChild(el(`<div class="carthead">
+    <div class="t">Review your turn</div>
+    <div class="s">Round 3 · vs. SL · ${decided()} of ${state.hands.length} decided</div>
+  </div>`));
+  const av=available();
+  s.appendChild(el(`<div class="chipbar">
+    <div class="chip avail"><div class="k">Available</div><div class="v ${av<0?'bad':''}">${av}</div></div>
+    <div class="chip"><div class="k">Reserved (live)</div><div class="v">${RESERVED_ELSEWHERE+cartCost()}</div></div>
+    <div class="chip cart"><div class="k">In cart</div><div class="v">${cartCost()}</div></div>
+  </div>`));
+  s.appendChild(el(`<div class="overbar ${overBy()>0?'show':''}">⚠ Over-committed by <b>${overBy()}</b> — you can still tap Submit, but the server will reject the whole turn.</div>`));
+
+  const list=el('<div class="cartlist"></div>');
+  state.hands.forEach((h,i)=>{
+    const d=h.decision;
+    const row=el(`<div class="crow ${!d?'needs':''}">
+      <div class="mini">${h.hole.map(c=>face(c,'mcard')).join('')}</div>
+      <div class="mid">
+        <div class="n">${h.name} <span class="st">· ${h.street} · pot ${h.pot}</span></div>
+        <div class="d ${d?(d.type):'none'}">${decLabel(h)}</div>
+      </div>
+      <span class="chev">›</span>
+    </div>`);
+    row.onclick=()=>{state.idx=i;state.from='cart';state.screen='board';render();};
+    list.appendChild(row);
+  });
+  s.appendChild(list);
+
+  const bar=el('<div class="submitbar"></div>');
+  const pend=state.hands.length-decided();
+  bar.appendChild(el(`<div class="summ">${pend>0?`${pend} hand${pend===1?'':'s'} still need an action`:'All hands decided · one submit sends the whole turn'}</div>`));
+  const warn=overBy()>0;
+  const btn=el(`<button class="submit ${warn?'warn':''}">${warn?'Submit anyway ⚠':'Submit turn — '+state.hands.length+' hands'}</button>`);
+  if(pend>0)btn.disabled=true;
+  btn.onclick=doSubmit;
+  bar.appendChild(btn);
+  s.appendChild(bar);
+}
+
+function doSubmit(){
+  if(overBy()>0){
+    showResult('err','Turn rejected',`The server refused the turn: you over-committed by <b>${overBy()}</b> chips (Σ reserved &gt; stack). All-or-nothing — <b>nothing was applied</b>. Free up chips on a hand and resubmit.`);
+    return;
+  }
+  showResult('ok','Turn submitted',`All ${state.hands.length} decisions committed atomically. Control passes to SL — you’ll get a single push when they finish their turn.`);
+}
+
+/* ---------------- shared ---------------- */
+function toast(msg){const t=document.getElementById('toast');if(!t)return;t.textContent=msg;t.className='toast show';setTimeout(()=>t.className='toast',1700);}
+function showResult(kind,title,body){const r=document.getElementById('result');
+  r.innerHTML=`<h2 class="${kind}">${title}</h2><p>${body}</p><button id="rb">${kind==='err'?'Back to cart':'Restart demo'}</button>`;
+  r.className='result show';
+  document.getElementById('rb').onclick=()=>{if(kind==='ok'){state.hands=fresh();state.idx=0;state.from='flow';state.screen='board';}r.className='result';render();};
+}
+document.getElementById('restart').onclick=()=>{state=({screen:'board',idx:0,from:'flow',sheet:null,hands:fresh()});render();};
+render();
+</script>
+</body>
+</html>

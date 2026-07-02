@@ -1,4 +1,5 @@
 import type { ActionType, BettingState, LegalActionsResult, PlayerState, Street, Action } from './types.js';
+import { GameRuleError } from '../errors.js';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -173,7 +174,7 @@ export function applyAction(state: BettingState, action: Action): BettingState {
   const legal = legalActions(state);
 
   if (!legal.actions.includes(action.type)) {
-    throw new Error(`Illegal action: ${action.type}. Legal: ${legal.actions.join(', ')}`);
+    throw new GameRuleError(`Illegal action: ${action.type}. Legal: ${legal.actions.join(', ')}`);
   }
 
   // Clone state
@@ -213,7 +214,7 @@ export function applyAction(state: BettingState, action: Action): BettingState {
     case 'call': {
       const toCall = state.currentBet - actor.reservedInHand;
       if (toCall > actor.available) {
-        throw new Error(`Cannot call ${toCall} with ${actor.available} available`);
+        throw new GameRuleError(`Cannot call ${toCall} with ${actor.available} available`);
       }
       newActor.available -= toCall;
       newActor.reservedInHand += toCall;
@@ -242,10 +243,10 @@ export function applyAction(state: BettingState, action: Action): BettingState {
     case 'bet': {
       const amount = action.amount;
       if (amount < Math.min(10, actor.available)) {
-        throw new Error(`Bet of ${amount} below minimum`);
+        throw new GameRuleError(`Bet of ${amount} below minimum`);
       }
       if (amount > actor.available) {
-        throw new Error(`Bet of ${amount} exceeds available ${actor.available}`);
+        throw new GameRuleError(`Bet of ${amount} exceeds available ${actor.available}`);
       }
 
       newActor.available -= amount;
@@ -264,10 +265,10 @@ export function applyAction(state: BettingState, action: Action): BettingState {
       const minRaiseSize = Math.max(state.lastRaiseSize, 10);
 
       if (raiseSize < minRaiseSize && amount < actor.available) {
-        throw new Error(`Raise of ${raiseSize} below min-raise of ${minRaiseSize}`);
+        throw new GameRuleError(`Raise of ${raiseSize} below min-raise of ${minRaiseSize}`);
       }
       if (amount > actor.available) {
-        throw new Error(`Raise amount ${amount} exceeds available ${actor.available}`);
+        throw new GameRuleError(`Raise amount ${amount} exceeds available ${actor.available}`);
       }
 
       newActor.available -= amount;
