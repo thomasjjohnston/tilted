@@ -13,8 +13,19 @@ struct TurnResultsView: View {
     let onDone: () -> Void
 
     @Environment(AppStore.self) private var store
-    @State private var frozen: [HandView] = []
+    @State private var frozen: [HandView]
     @State private var pageIndex = 0
+
+    init(hands: [HandView], match: MatchState, currentUserId: String?, onDone: @escaping () -> Void) {
+        self.hands = hands
+        self.match = match
+        self.currentUserId = currentUserId
+        self.onDone = onDone
+        // Freeze the set at init so the page list is never momentarily empty
+        // on first render (which would auto-fire finish() and close the
+        // screens instantly — beta feedback: results auto-closing).
+        _frozen = State(initialValue: hands)
+    }
 
     private func iWon(_ h: HandView) -> Bool {
         h.winnerUserId != nil && h.winnerUserId != match.opponent.userId
@@ -45,7 +56,6 @@ struct TurnResultsView: View {
             Color.felt900.ignoresSafeArea()
             content
         }
-        .onAppear { if frozen.isEmpty { frozen = hands } }
     }
 
     @ViewBuilder

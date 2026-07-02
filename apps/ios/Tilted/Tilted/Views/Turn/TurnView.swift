@@ -41,6 +41,7 @@ struct TurnView: View {
     @State private var showCart = false
     @State private var isSubmitting = false
     @State private var turnSent = false
+    @State private var continuationNote: String?
 
     // Cart lives in the store (survives leaving/returning to the turn) —
     // this is a proxy for readability. Scoped to the round in `.task`.
@@ -183,6 +184,25 @@ struct TurnView: View {
             }
 
             if turnSent { turnCompleteOverlay.zIndex(4) }
+
+            if let note = continuationNote {
+                VStack {
+                    Text(note)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.felt800)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 9)
+                        .background(LinearGradient(colors: [.gold500, .gold700], startPoint: .top, endPoint: .bottom))
+                        .clipShape(Capsule())
+                        .shadow(color: .black.opacity(0.3), radius: 6, y: 3)
+                        .padding(.top, 60)
+                        .padding(.horizontal, 24)
+                    Spacer()
+                }
+                .transition(.move(edge: .top).combined(with: .opacity))
+                .zIndex(5)
+            }
         }
         .sheet(item: $detailSheetHand) { hand in
             HandActionDetailSheet(
@@ -646,12 +666,34 @@ struct TurnView: View {
         isSubmitting = false
         if ok {
             store.clearTurnCart()
-            withAnimation {
-                showCart = false
-                turnSent = true
+            store.turnCartRoundId = liveRound.roundId
+            // A turn isn't necessarily over after one submit: streets can
+            // advance within your own turn (e.g. as BB you close preflop and
+            // the flop deals with action back on you). Only show "Turn sent"
+            // when nothing is on you; otherwise continue the turn seamlessly
+            // so you're not bounced home and immediately re-summoned (#2).
+            let stillPending = store.matchState?.currentRound?.hands.filter { $0.isPendingAction } ?? []
+            if stillPending.isEmpty {
+                withAnimation {
+                    showCart = false
+                    turnSent = true
+                }
+            } else {
+                let sorted = stillPending.sorted { ($0.streetOrder, $0.handIndex) < ($1.streetOrder, $1.handIndex) }
+                focusedHandId = sorted.first?.handId
+                withAnimation { showCart = false }
+                showContinuation("New cards dealt \u{2014} \(stillPending.count) hand\(stillPending.count == 1 ? "" : "s") still need you")
             }
         }
         // On failure store.error is set and shown in the cart; user can fix.
+    }
+
+    private func showContinuation(_ text: String) {
+        withAnimation { continuationNote = text }
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 2_600_000_000)
+            withAnimation { if continuationNote == text { continuationNote = nil } }
+        }
     }
 }
 
