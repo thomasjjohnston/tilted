@@ -74,6 +74,7 @@ def _cmd_run(args: argparse.Namespace) -> int:
         jobs=args.jobs,
         threads_per_job=args.threads_per_job,
         ev_iters=args.ev_iters,
+        chunk_minutes=args.chunk_minutes,
     )
     return run_training(settings)
 
@@ -146,6 +147,8 @@ def main(argv: list[str] | None = None) -> int:
     r.add_argument("--jobs", type=int, default=None, help="concurrent depth jobs (default: CPU cores)")
     r.add_argument("--threads-per-job", type=int, default=1)
     r.add_argument("--ev-iters", type=int, default=300_000)
+    r.add_argument("--chunk-minutes", type=float, default=None,
+                   help="length of each training chunk (default: 10 smoke, 20 otherwise)")
     r.set_defaults(fn=_cmd_run)
 
     st = sub.add_parser("status", help="show run progress")
