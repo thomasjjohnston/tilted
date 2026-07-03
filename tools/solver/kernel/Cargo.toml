@@ -1,0 +1,26 @@
+[package]
+name = "solver-kernel"
+version = "0.1.0"
+edition = "2021"
+description = "Tilted offline solver kernel: CFR training, card abstraction, artifact export"
+
+[[bin]]
+name = "solver-kernel"
+path = "src/main.rs"
+
+[dependencies]
+rand = "0.8"
+rand_chacha = "0.3"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+bincode = "1"
+clap = { version = "4", features = ["derive"] }
+rusqlite = { version = "0.31", features = ["bundled"] }
+rayon = "1"
+
+[profile.release]
+lto = true
+codegen-units = 1
+
+[profile.test]
+opt-level = 2
