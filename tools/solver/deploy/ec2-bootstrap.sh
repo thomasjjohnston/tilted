@@ -27,8 +27,13 @@ export PATH="$HOME/.local/bin:$PATH"
 if [ -n "$REPO_URL" ] && [ ! -d Tilted ]; then
   echo "==> cloning repo"
   git clone --depth 1 "$REPO_URL" Tilted
+  cd Tilted/tools/solver
+else
+  # tar-upload path: this script lives at <solver root>/deploy/, so the
+  # project root is one level up from the script itself.
+  cd "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 fi
-cd "${REPO_DIR:-Tilted}/tools/solver"
+[ -d kernel ] || { echo "ERROR: can't locate solver root (no kernel/ dir)"; exit 1; }
 
 echo "==> building kernel (release)"
 (cd kernel && cargo build --release)
