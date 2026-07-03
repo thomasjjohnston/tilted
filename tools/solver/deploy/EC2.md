@@ -21,13 +21,18 @@ Spot interruptions are a non-event: training checkpoints every chunk, and
 1. **Launch**: Amazon Linux 2023 or Ubuntu 22+, the instance type above,
    30 GB gp3 disk, spot pricing, your SSH key. No inbound ports needed
    beyond SSH.
-2. **Bootstrap** (5–10 minutes):
+2. **Bootstrap** (5–10 minutes). Don't `scp -r` the directory — that drags
+   ~500 MB of local build artifacts (kernel/target, .venv, runs/) that the
+   instance rebuilds anyway. Stream just the source (~76 files, <1 MB):
    ```sh
-   scp -r tools/solver <instance>:~/solver   # or git clone your repo
+   cd tools/solver
+   tar czf - --exclude=kernel/target --exclude=.venv --exclude=runs \
+       --exclude=__pycache__ --exclude=.pytest_cache . \
+     | ssh <instance> "mkdir -p solver && tar xzf - -C solver"
    ssh <instance>
-   cd solver && REPO_DIR=$PWD/.. bash deploy/ec2-bootstrap.sh
+   cd solver && bash deploy/ec2-bootstrap.sh
    ```
-   (If you cloned the full repo, just run the script from tools/solver.)
+   (Or git clone your repo and run the script from tools/solver.)
 3. **Run** inside tmux (survives disconnects):
    ```sh
    tmux new -s solver
