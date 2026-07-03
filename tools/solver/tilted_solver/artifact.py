@@ -30,7 +30,9 @@ class Artifact:
         self.path = Path(path)
         if not self.path.exists():
             raise FileNotFoundError(f"artifact not found: {self.path}")
-        self.db = sqlite3.connect(f"file:{self.path}?mode=ro", uri=True)
+        # check_same_thread=False: the Lab serves requests from a threadpool.
+        # Read-only connection, so cross-thread use is safe.
+        self.db = sqlite3.connect(f"file:{self.path}?mode=ro", uri=True, check_same_thread=False)
         self.config = json.loads(self._meta("config"))
         self.buckets = json.loads(self._meta("buckets"))
         self.depths: list[int] = json.loads(self._meta("depths"))

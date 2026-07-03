@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tilted Solver Lab</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --ink: #1a2130; --muted: #67718a;
+    --line: #e3e7ee; --accent: #2f6fed;
+    --c-fold: #b9c2d0; --c-call: #4aa564; --c-raise1: #e8a33d;
+    --c-raise2: #d96c2c; --c-raise3: #c14953; --c-allin: #7d4fc9;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.45 -apple-system, "Segoe UI", Helvetica, sans-serif;
+         background: var(--bg); color: var(--ink); }
+  header { display: flex; align-items: baseline; gap: 16px; padding: 14px 20px;
+           background: var(--panel); border-bottom: 1px solid var(--line); }
+  header h1 { font-size: 17px; margin: 0; }
+  header .meta { color: var(--muted); font-size: 12px; }
+  nav { display: flex; gap: 4px; padding: 8px 20px 0; }
+  nav button { border: 1px solid var(--line); border-bottom: none; background: #eef1f5;
+               padding: 8px 18px; border-radius: 8px 8px 0 0; cursor: pointer; font-size: 14px; }
+  nav button.active { background: var(--panel); font-weight: 600; }
+  main { padding: 16px 20px 60px; max-width: 1200px; }
+  section.tab { display: none; background: var(--panel); border: 1px solid var(--line);
+                border-radius: 0 10px 10px 10px; padding: 18px; }
+  section.tab.active { display: block; }
+  .controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
+  .controls label { color: var(--muted); font-size: 12px; }
+  select, input[type=number], input[type=text] { padding: 5px 8px; border: 1px solid var(--line);
+    border-radius: 6px; font-size: 13px; background: #fff; }
+  button.primary { background: var(--accent); border: none; color: #fff; padding: 7px 16px;
+                   border-radius: 7px; cursor: pointer; font-size: 13px; }
+  button.primary:disabled { opacity: 0.5; cursor: default; }
+  .legend { display: flex; gap: 12px; font-size: 12px; color: var(--muted); margin: 8px 0; flex-wrap: wrap; }
+  .legend span::before { content: ""; display: inline-block; width: 10px; height: 10px;
+                         border-radius: 2px; margin-right: 4px; background: var(--sw); }
+  /* 13x13 preflop grid */
+  #grid169 { display: grid; grid-template-columns: repeat(13, 1fr); gap: 2px; max-width: 760px; }
+  #grid169 .cell { position: relative; aspect-ratio: 1.35; border-radius: 3px; overflow: hidden;
+                   font-size: 10px; color: #fff; text-shadow: 0 0 2px rgba(0,0,0,.55);
+                   display: flex; align-items: flex-start; padding: 2px 3px; cursor: default; }
+  #grid169 .cell.empty { background: #edf0f4; color: var(--muted); text-shadow: none; }
+  /* bucket strip for postflop */
+  #strip { display: flex; align-items: flex-end; gap: 1px; height: 160px; overflow-x: auto;
+           border: 1px solid var(--line); padding: 6px; border-radius: 6px; }
+  #strip .bar { width: 7px; min-width: 7px; height: 100%; display: flex; flex-direction: column-reverse; }
+  #strip .seg { width: 100%; }
+  .tooltip { position: fixed; pointer-events: none; background: #101623; color: #fff; padding: 8px 10px;
+             font-size: 12px; border-radius: 6px; z-index: 50; max-width: 320px; display: none; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; }
+  .mixbar { display: flex; height: 12px; border-radius: 3px; overflow: hidden; min-width: 130px; }
+  .mixbar div { height: 100%; }
+  .note { color: var(--muted); font-size: 12px; }
+  .cards { font-size: 20px; letter-spacing: 2px; }
+  .cards .r { color: #c22; } .cards .b { color: #123; }
+  .quizpanel { border: 1px solid var(--line); border-radius: 10px; padding: 16px; max-width: 640px; }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .actions button { padding: 10px 18px; border-radius: 8px; border: 1px solid var(--line);
+                    background: #f4f6f9; cursor: pointer; font-size: 14px; }
+  .actions button:hover { background: #e8edf4; }
+  .reveal { margin-top: 14px; padding: 12px; border-radius: 8px; background: #f2f5fa; }
+  .reveal.good { background: #e9f6ec; } .reveal.bad { background: #faecec; }
+  .big { font-size: 18px; font-weight: 700; }
+  textarea { width: 100%; min-height: 220px; font: 12px/1.4 ui-monospace, Menlo, monospace;
+             border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
+  .row { display: flex; gap: 18px; flex-wrap: wrap; }
+  .row > div { flex: 1; min-width: 320px; }
+  .pill { display: inline-block; background: #eef1f5; color: var(--muted); border-radius: 20px;
+          padding: 1px 9px; font-size: 11px; margin-left: 6px; }
+  .budget { font-weight: 600; }
+  .over { color: #c14953; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Tilted Solver Lab</h1>
+  <span class="meta" id="metaline">loading…</span>
+</header>
+<nav>
+  <button data-tab="explore" class="active">Explore</button>
+  <button data-tab="compose">Turn composer</button>
+  <button data-tab="quiz">Quiz</button>
+  <button data-tab="stats">Stats</button>
+</nav>
+<main>
+
+<section class="tab active" id="tab-explore">
+  <div class="controls">
+    <label>Depth <select id="ex-depth"></select></label>
+    <label>Street <select id="ex-street">
+      <option value="0">preflop</option><option value="1">flop</option>
+      <option value="2">turn</option><option value="3">river</option></select></label>
+    <label>Line <select id="ex-seq"></select></label>
+    <span class="note" id="ex-count"></span>
+  </div>
+  <div class="legend">
+    <span style="--sw: var(--c-fold)">fold</span>
+    <span style="--sw: var(--c-call)">check / call</span>
+    <span style="--sw: var(--c-raise1)">raise (small)</span>
+    <span style="--sw: var(--c-raise2)">raise (big)</span>
+    <span style="--sw: var(--c-allin)">all-in</span>
+  </div>
+  <div id="grid169"></div>
+  <div id="strip" style="display:none"></div>
+  <p class="note" id="ex-hint"></p>
+</section>
+
+<section class="tab" id="tab-compose">
+  <div class="row">
+    <div>
+      <p class="note">Paste a round-state JSON (your hole cards, boards, actions, chip counts)
+        or <a href="#" id="load-example">load the example</a>.</p>
+      <textarea id="compose-state"></textarea>
+      <div class="controls" style="margin-top:10px">
+        <label>Shadow price <input type="number" id="compose-shadow" value="1.0" step="0.05" min="1" style="width:70px"></label>
+        <label>Temperature <input type="number" id="compose-temp" value="0" step="1" min="0" style="width:70px"></label>
+        <button class="primary" id="compose-go">Advise</button>
+      </div>
+    </div>
+    <div id="compose-out"><p class="note">Cart recommendation appears here.</p></div>
+  </div>
+</section>
+
+<section class="tab" id="tab-quiz">
+  <div class="controls">
+    <label>Mode <select id="quiz-mode">
+      <option value="single">single spot</option>
+      <option value="turn">full turn (allocation)</option></select></label>
+    <label>Street <select id="quiz-street">
+      <option value="">any</option><option value="0">preflop</option><option value="1">flop</option>
+      <option value="2">turn</option><option value="3">river</option></select></label>
+    <label>Sharpness <select id="quiz-sharp">
+      <option value="0">any</option><option value="10">clear-cut spots</option>
+      <option value="30">very clear-cut</option></select></label>
+    <button class="primary" id="quiz-next">Deal me a spot</button>
+  </div>
+  <div id="quiz-area"><p class="note">Hit “Deal me a spot”.</p></div>
+</section>
+
+<section class="tab" id="tab-stats">
+  <button class="primary" id="stats-refresh">Refresh</button>
+  <div id="stats-out" style="margin-top:12px"></div>
+</section>
+
+</main>
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const api = async (path, opts) => {
+  const r = await fetch(path, opts);
+  if (!r.ok) throw new Error((await r.json()).detail || r.statusText);
+  return r.json();
+};
+let META = null;
+
+// ---------- helpers ----------
+const SUITS = { c: ["♣","b"], d: ["♦","r"], h: ["♥","r"], s: ["♠","b"] };
+function cardsHtml(str) {
+  if (!str) return '<span class="note">—</span>';
+  return str.split(/\s+/).map(c => {
+    const [sym, color] = SUITS[c[1]] || ["?", "b"];
+    return `<span class="${color}">${c[0]}${sym}</span>`;
+  }).join(" ");
+}
+function tokenColor(tok, tokens) {
+  if (tok === "f") return "var(--c-fold)";
+  if (tok === "c") return "var(--c-call)";
+  if (tok === "a") return "var(--c-allin)";
+  const raises = tokens.filter(t => t.startsWith("r"));
+  const idx = raises.indexOf(tok);
+  return ["var(--c-raise1)", "var(--c-raise2)", "var(--c-raise3)"][Math.min(idx, 2)];
+}
+function mixbar(tokens, probs) {
+  const segs = tokens.map((t, i) =>
+    `<div style="width:${(probs[i]*100).toFixed(1)}%;background:${tokenColor(t, tokens)}"></div>`).join("");
+  return `<div class="mixbar">${segs}</div>`;
+}
+const tooltip = $("#tooltip");
+function showTip(e, html) {
+  tooltip.innerHTML = html; tooltip.style.display = "block";
+  tooltip.style.left = Math.min(e.clientX + 14, window.innerWidth - 340) + "px";
+  tooltip.style.top = (e.clientY + 12) + "px";
+}
+function hideTip() { tooltip.style.display = "none"; }
+
+// ---------- tabs ----------
+document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("nav button").forEach(x => x.classList.toggle("active", x === b));
+  document.querySelectorAll("section.tab").forEach(s =>
+    s.classList.toggle("active", s.id === "tab-" + b.dataset.tab));
+});
+
+// ---------- explore ----------
+async function loadSequences() {
+  const depth = $("#ex-depth").value, street = $("#ex-street").value;
+  const d = await api(`/api/sequences?depth_bb=${depth}&street=${street}`);
+  const sel = $("#ex-seq");
+  sel.innerHTML = d.sequences.map(s =>
+    `<option value="${s}">${s === "" ? "(root)" : s}</option>`).join("");
+  $("#ex-count").textContent = `${d.total} lines`;
+  await loadGrid();
+}
+async function loadGrid() {
+  const depth = $("#ex-depth").value, street = +$("#ex-street").value, seq = $("#ex-seq").value;
+  const grid = $("#grid169"), strip = $("#strip");
+  let d;
+  try { d = await api(`/api/grid?depth_bb=${depth}&street=${street}&seq=${encodeURIComponent(seq)}`); }
+  catch (e) { grid.innerHTML = `<p class="note">${e.message}</p>`; strip.style.display = "none"; return; }
+  const cellTip = (c) => {
+    const rows = c.tokens.map((t, i) => {
+      const ev = c.ev && c.ev[i] != null ? ` &nbsp; EV ${c.ev[i]}` : "";
+      return `${t} (${c.tos[i]}): ${(c.strategy[i]*100).toFixed(0)}%${ev}`;
+    }).join("<br>");
+    return rows + `<br><span style="opacity:.7">visits ${Math.round(c.visits)}</span>`;
+  };
+  if (street === 0) {
+    grid.style.display = "grid"; strip.style.display = "none";
+    const byBucket = Object.fromEntries(d.cells.map(c => [c.bucket, c]));
+    const RANKS = "23456789TJQKA";
+    let html = "";
+    for (let row = 12; row >= 0; row--) {
+      for (let col = 12; col >= 0; col--) {
+        const cls = row * 13 + col;
+        const name = row === col ? RANKS[row] + RANKS[col]
+          : row > col ? RANKS[row] + RANKS[col] + "s" : RANKS[col] + RANKS[row] + "o";
+        const c = byBucket[cls];
+        if (!c) { html += `<div class="cell empty">${name}</div>`; continue; }
+        let acc = 0;
+        const stops = c.tokens.map((t, i) => {
+          const from = acc; acc += c.strategy[i] * 100;
+          return `${tokenColor(t, c.tokens)} ${from.toFixed(1)}% ${acc.toFixed(1)}%`;
+        }).join(", ");
+        html += `<div class="cell" data-b="${cls}" style="background:linear-gradient(to right, ${stops})">${name}</div>`;
+      }
+    }
+    grid.innerHTML = html;
+    grid.querySelectorAll(".cell[data-b]").forEach(el => {
+      const c = byBucket[+el.dataset.b];
+      el.onmousemove = (e) => showTip(e, `<b>${c.name}</b><br>` + cellTip(c));
+      el.onmouseleave = hideTip;
+    });
+    $("#ex-hint").textContent = "Cell shading = action mix for that hand (left to right). Hover for EVs.";
+  } else {
+    grid.style.display = "none"; strip.style.display = "flex";
+    strip.innerHTML = d.cells.map(c => {
+      const segs = c.tokens.map((t, i) =>
+        `<div class="seg" style="height:${(c.strategy[i]*100).toFixed(1)}%;background:${tokenColor(t, c.tokens)}"></div>`).join("");
+      return `<div class="bar" data-b="${c.bucket}">${segs}</div>`;
+    }).join("");
+    const byBucket = Object.fromEntries(d.cells.map(c => [c.bucket, c]));
+    strip.querySelectorAll(".bar").forEach(el => {
+      const c = byBucket[+el.dataset.b];
+      el.onmousemove = (e) => showTip(e, `<b>bucket ${c.bucket}</b> (weak → strong)<br>` + cellTip(c));
+      el.onmouseleave = hideTip;
+    });
+    $("#ex-hint").textContent = "One bar per strength bucket, weakest left → strongest right. Hover for the mix.";
+  }
+}
+$("#ex-depth").onchange = loadSequences;
+$("#ex-street").onchange = loadSequences;
+$("#ex-seq").onchange = loadGrid;
+
+// ---------- compose ----------
+$("#load-example").onclick = async (e) => {
+  e.preventDefault();
+  $("#compose-state").value = JSON.stringify(await api("/api/example-state"), null, 2);
+};
+$("#compose-go").onclick = async () => {
+  const out = $("#compose-out");
+  let state;
+  try { state = JSON.parse($("#compose-state").value); }
+  catch { out.innerHTML = '<p class="note">Invalid JSON.</p>'; return; }
+  out.innerHTML = '<p class="note">thinking…</p>';
+  try {
+    const d = await api("/api/advise", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        round_state: state,
+        shadow_price: +$("#compose-shadow").value,
+        temperature: +$("#compose-temp").value,
+      }),
+    });
+    const rows = d.hands.map(h => {
+      const tokens = h.mix.map(m => m.token), probs = h.mix.map(m => m.freq);
+      const mixTip = h.mix.map(m =>
+        `${m.label}: ${(m.freq*100).toFixed(0)}%${m.ev != null ? " EV " + m.ev : ""}`).join("<br>");
+      const flag = h.recommended_token && h.solo_token && h.recommended_token !== h.solo_token
+        ? ' <span class="pill">budget-adjusted</span>' : "";
+      return `<tr>
+        <td>${h.hand_id}<br><span class="note">${h.depth_bb}bb · street ${h.street}</span></td>
+        <td><b>${h.recommended || "—"}</b>${flag}<br><span class="note">${h.note || ""}</span></td>
+        <td class="mixcell">${mixbar(tokens, probs)}</td></tr>`;
+    }).join("");
+    out.innerHTML = `
+      <p class="budget">Budget ${d.budget} · cart cost ${d.total_cost} · cart EV ${d.total_ev}
+        ${d.marginal_chip_value > 0 ? `· marginal chip value ${d.marginal_chip_value}` : ""}</p>
+      ${d.notes.map(n => `<p class="note">${n}</p>`).join("")}
+      <table><tr><th>Hand</th><th>Recommendation</th><th>GTO mix</th></tr>${rows}</table>`;
+    out.querySelectorAll(".mixcell").forEach((el, i) => {
+      const h = d.hands[i];
+      const tip = h.mix.map(m =>
+        `${m.label}: ${(m.freq*100).toFixed(0)}%${m.ev != null ? " &nbsp;EV " + m.ev : ""}`).join("<br>");
+      el.onmousemove = (e) => showTip(e, tip);
+      el.onmouseleave = hideTip;
+    });
+  } catch (e) { out.innerHTML = `<p class="note">${e.message}</p>`; }
+};
+
+// ---------- quiz ----------
+let QUIZ = null;
+$("#quiz-next").onclick = async () => {
+  const mode = $("#quiz-mode").value;
+  const street = $("#quiz-street").value;
+  const sharp = $("#quiz-sharp").value;
+  const area = $("#quiz-area");
+  area.innerHTML = '<p class="note">dealing…</p>';
+  try {
+    QUIZ = await api(`/api/quiz/next?mode=${mode}${street !== "" ? "&street=" + street : ""}&sharpness=${sharp}`);
+  } catch (e) { area.innerHTML = `<p class="note">${e.message}</p>`; return; }
+  if (QUIZ.mode === "single") renderSingle(); else renderTurn();
+};
+function renderSingle() {
+  const q = QUIZ;
+  const streetName = ["preflop", "flop", "turn", "river"][q.street];
+  $("#quiz-area").innerHTML = `
+    <div class="quizpanel">
+      <p>You are the <b>${q.hero_seat === 0 ? "SB (button)" : "BB"}</b> at
+         <b>${q.depth_bb}bb</b> · ${streetName}
+         <span class="pill">line: ${q.seq === "" ? "root" : q.seq}</span></p>
+      <p class="cards">Your hand: ${cardsHtml(q.hole)}</p>
+      <p class="cards">Board: ${cardsHtml(q.board)}</p>
+      <p>Pot <b>${q.pot}</b>${q.to_call > 0 ? ` · to call <b>${q.to_call}</b>` : ""}</p>
+      <div class="actions">${q.options.map(o =>
+        `<button data-tok="${o.token}">${o.label}</button>`).join("")}</div>
+      <div id="quiz-reveal"></div>
+    </div>`;
+  document.querySelectorAll(".actions button").forEach(b => b.onclick = () => answerSingle(b.dataset.tok));
+}
+async function answerSingle(tok) {
+  const r = await api("/api/quiz/answer", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ quiz_id: QUIZ.quiz_id, token: tok }),
+  });
+  const cls = r.ev_loss <= 1 ? "good" : (r.blunder ? "bad" : "");
+  const verdict = r.ev_loss <= 1 ? "Solver-approved."
+    : r.blunder ? `Blunder: −${r.ev_loss} chips vs best line.` : `−${r.ev_loss} chips vs best line (mixed spot).`;
+  $("#quiz-reveal").innerHTML = `
+    <div class="reveal ${cls}">
+      <div class="big">${verdict}</div>
+      <p class="note">Your EV ${r.your_ev} · best ${r.best_ev}</p>
+      <table><tr><th>Action</th><th>GTO freq</th><th>EV</th></tr>
+      ${r.mix.map(m => `<tr><td>${m.token}</td><td>${(m.freq*100).toFixed(0)}%</td><td>${m.ev}</td></tr>`).join("")}
+      </table>
+    </div>`;
+  document.querySelectorAll(".actions button").forEach(b => b.disabled = true);
+}
+function renderTurn() {
+  const q = QUIZ;
+  $("#quiz-area").innerHTML = `
+    <div class="quizpanel" style="max-width:820px">
+      <p>Round start, you are the <b>SB</b> in every hand at <b>${q.depth_bb}bb</b>.
+        Build your cart. Budget: <b id="qt-budget">${q.budget}</b> ·
+        queued cost: <b id="qt-cost">0</b> <span id="qt-over" class="over"></span></p>
+      <table><tr><th>Hand</th><th>Your action</th></tr>
+      ${q.hands.map(h => `<tr>
+        <td class="cards">${cardsHtml(h.hole)}</td>
+        <td>${h.options.map((o, i) =>
+          `<label style="margin-right:12px"><input type="radio" name="${h.hand_id}" value="${o.token}"
+             data-cost="${o.cost}" ${i === 0 ? "checked" : ""}> ${o.label}
+             <span class="note">(${o.cost})</span></label>`).join("")}</td></tr>`).join("")}
+      </table>
+      <div class="actions"><button class="primary" id="qt-submit">Submit cart</button></div>
+      <div id="quiz-reveal"></div>
+    </div>`;
+  const updateCost = () => {
+    let cost = 0;
+    document.querySelectorAll("#quiz-area input:checked").forEach(i => cost += +i.dataset.cost);
+    $("#qt-cost").textContent = cost;
+    $("#qt-over").textContent = cost > QUIZ.budget ? "over budget — the server would reject this" : "";
+  };
+  document.querySelectorAll("#quiz-area input").forEach(i => i.onchange = updateCost);
+  updateCost();
+  $("#qt-submit").onclick = async () => {
+    const picks = {};
+    QUIZ.hands.forEach(h => {
+      picks[h.hand_id] = document.querySelector(`input[name="${h.hand_id}"]:checked`).value;
+    });
+    const r = await api("/api/quiz/answer", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ quiz_id: QUIZ.quiz_id, picks }),
+    });
+    const cls = r.ev_loss <= 2 && !r.over_budget ? "good" : (r.blunder ? "bad" : "");
+    $("#quiz-reveal").innerHTML = `
+      <div class="reveal ${cls}">
+        <div class="big">${r.over_budget ? "Over budget!" :
+          r.ev_loss <= 2 ? "Near-perfect allocation." : `Allocation cost you ${r.ev_loss} chips of EV.`}</div>
+        <p class="note">Your cart EV ${r.your_ev} (cost ${r.your_cost} / ${r.budget}) · optimal ${r.optimal_ev}</p>
+        <table><tr><th>Hand</th><th>Yours</th><th>Engine</th><th>Δ EV</th></tr>
+        ${r.per_hand.map(p => `<tr><td>${p.hand_id}</td><td>${p.yours} (${p.your_ev})</td>
+          <td>${p.optimal} (${p.optimal_ev})</td><td>${p.delta > 0 ? "−" + p.delta : "✓"}</td></tr>`).join("")}
+        </table>
+      </div>`;
+    $("#qt-submit").disabled = true;
+  };
+}
+
+// ---------- stats ----------
+$("#stats-refresh").onclick = async () => {
+  const d = await api("/api/quiz/stats");
+  $("#stats-out").innerHTML = d.total_answered === 0
+    ? '<p class="note">No quiz answers yet.</p>'
+    : `<p><b>${d.total_answered}</b> answered · average EV loss <b>${d.avg_ev_loss}</b> chips</p>
+       <table><tr><th>Mode</th><th>Street</th><th>Answered</th><th>Avg EV loss</th><th>Blunders</th></tr>
+       ${d.by_bucket.map(b => `<tr><td>${b.mode}</td>
+         <td>${["preflop","flop","turn","river"][b.street]}</td>
+         <td>${b.answered}</td><td>${b.avg_ev_loss}</td><td>${b.blunders}</td></tr>`).join("")}
+       </table>`;
+};
+
+// ---------- init ----------
+(async () => {
+  META = await api("/api/meta");
+  $("#metaline").textContent =
+    `${META.artifact.split("/").slice(-2).join("/")} · depths: ${META.depths.join(", ")}bb`;
+  $("#ex-depth").innerHTML = META.depths.map(d => `<option>${d}</option>`).join("");
+  await loadSequences();
+})();
+</script>
+</body>
+</html>
