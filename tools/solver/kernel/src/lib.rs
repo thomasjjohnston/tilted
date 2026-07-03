@@ -1,5 +1,12 @@
+pub mod artifact;
 pub mod br;
+pub mod cards;
 pub mod cfr;
+pub mod equity;
+pub mod eval;
 pub mod game;
+pub mod jamfold;
 pub mod kuhn;
 pub mod leduc;
+pub mod mccfr;
+pub mod nlhe;
