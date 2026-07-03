@@ -351,7 +351,11 @@ fn main() {
                         q["hole"].as_str().expect("hole"),
                         q["board"].as_str().unwrap_or(""),
                     );
-                    jsonl(result);
+                    // Flush per line: batch mode is consumed over a pipe by a
+                    // persistent client (stdout is block-buffered when piped).
+                    use std::io::Write;
+                    println!("{result}");
+                    std::io::stdout().flush().expect("flush stdout");
                 }
             } else {
                 let result = assign(

@@ -202,6 +202,20 @@ class BetState:
     def seq_str(self) -> str:
         return "".join(self.seq)
 
+    def utility_p0(self, showdown_cmp) -> float:
+        """Net utility for player 0 at a terminal state (mirrors nlhe.rs).
+
+        showdown_cmp: callable returning >0 if player 0's hand wins, 0 tie.
+        """
+        assert self.terminal is not None, "utility at non-terminal"
+        pot_each = float(min(self.committed[0], self.committed[1]))
+        if self.terminal == "fold0":
+            return -pot_each
+        if self.terminal == "fold1":
+            return pot_each
+        cmp = showdown_cmp()
+        return pot_each if cmp > 0 else (-pot_each if cmp < 0 else 0.0)
+
 
 def tokenize_seq(seq: str) -> list[str]:
     """Split a seq string like 'r0c/cr1c/' into tokens."""

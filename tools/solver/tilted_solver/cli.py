@@ -91,6 +91,7 @@ def _cmd_selfplay(args: argparse.Namespace) -> int:
         artifact_path=args.artifact,
         rounds=args.rounds,
         seed=args.seed,
+        total_chips=args.total_chips,
         advisor_kwargs={"shadow_price": args.shadow_price, "temperature": args.temperature},
         baseline=args.baseline,
     )
@@ -155,6 +156,8 @@ def main(argv: list[str] | None = None) -> int:
     sp.add_argument("--artifact", default=str(SOLVER_ROOT / "runs/pilot/artifact.sqlite"))
     sp.add_argument("--rounds", type=int, default=2000)
     sp.add_argument("--seed", type=int, default=1)
+    sp.add_argument("--total-chips", type=int, default=400,
+                    help="per-player bankroll for the round (small = budget binds = portfolio matters)")
     sp.add_argument("--shadow-price", type=float, default=1.0)
     sp.add_argument("--temperature", type=float, default=0.0)
     sp.add_argument("--baseline", choices=["solo", "always-call", "fold-happy"], default="solo")
