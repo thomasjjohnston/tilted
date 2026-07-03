@@ -84,6 +84,7 @@
   <button data-tab="explore" class="active">Explore</button>
   <button data-tab="compose">Turn composer</button>
   <button data-tab="quiz">Quiz</button>
+  <button data-tab="play">Play vs solver</button>
   <button data-tab="stats">Stats</button>
 </nav>
 <main>
@@ -139,6 +140,35 @@
     <button class="primary" id="quiz-next">Deal me a spot</button>
   </div>
   <div id="quiz-area"><p class="note">Hit “Deal me a spot”.</p></div>
+</section>
+
+<section class="tab" id="tab-play">
+  <div class="row">
+    <div style="max-width:560px">
+      <div class="controls">
+        <button class="primary" id="play-new">New match</button>
+        <span class="note" id="play-score"></span>
+      </div>
+      <div class="quizpanel" id="play-table" style="display:none">
+        <p><span id="play-pos"></span> · <b id="play-street"></b>
+           <span class="pill" id="play-depth"></span></p>
+        <p class="cards">You: <span id="play-hole"></span></p>
+        <p class="cards">Board: <span id="play-board"></span></p>
+        <p class="cards" id="play-bot-row" style="display:none">Solver: <span id="play-bot"></span></p>
+        <p>Pot <b id="play-pot"></b> · you've committed <span id="play-mycommit"></span>
+           · solver <span id="play-botcommit"></span>
+           <span id="play-tocall"></span></p>
+      <div class="actions" id="play-actions"></div>
+      <div id="play-result"></div>
+      </div>
+    </div>
+    <div>
+      <p class="note">Hand log</p>
+      <div id="play-log" style="font: 12px/1.6 ui-monospace, Menlo, monospace;
+           border:1px solid var(--line); border-radius:8px; padding:10px;
+           max-height:420px; overflow-y:auto; min-width:280px"></div>
+    </div>
+  </div>
 </section>
 
 <section class="tab" id="tab-stats">
@@ -407,6 +437,61 @@ function renderTurn() {
       </div>`;
     $("#qt-submit").disabled = true;
   };
+}
+
+// ---------- play vs solver ----------
+let GAME = null;
+$("#play-new").onclick = async () => {
+  const d = await api("/api/play/new", { method: "POST" });
+  GAME = d.game_id;
+  renderPlay(d);
+};
+function renderPlay(d) {
+  $("#play-table").style.display = "block";
+  $("#play-pos").textContent = "You are the " + d.you_are;
+  $("#play-street").textContent = d.street;
+  $("#play-depth").textContent = d.depth_bb + "bb · stack " + d.stack;
+  $("#play-hole").innerHTML = cardsHtml(d.your_hole);
+  $("#play-board").innerHTML = cardsHtml(d.board);
+  $("#play-pot").textContent = d.pot;
+  $("#play-mycommit").textContent = d.your_committed;
+  $("#play-botcommit").textContent = d.bot_committed;
+  $("#play-tocall").innerHTML = d.to_call > 0 ? ` · <b>to call ${d.to_call}</b>` : "";
+  const botRow = $("#play-bot-row");
+  if (d.bot_hole) { botRow.style.display = "block"; $("#play-bot").innerHTML = cardsHtml(d.bot_hole); }
+  else botRow.style.display = "none";
+  $("#play-score").textContent =
+    `score: ${d.score.net >= 0 ? "+" : ""}${d.score.net} chips over ${d.score.hands} hands` +
+    (d.score.hands > 0 ? ` (${d.score.bb_per_hand >= 0 ? "+" : ""}${d.score.bb_per_hand} bb/hand)` : "");
+  $("#play-log").innerHTML = d.log.map(l => `<div>${l}</div>`).join("");
+  $("#play-log").scrollTop = $("#play-log").scrollHeight;
+  const actions = $("#play-actions");
+  if (d.terminal) {
+    actions.innerHTML = `<button class="primary" id="play-next-hand">Next hand</button>`;
+    $("#play-result").innerHTML =
+      `<div class="reveal ${d.hand_net > 0 ? "good" : d.hand_net < 0 ? "bad" : ""}">
+         <div class="big">${d.result}</div></div>`;
+    $("#play-next-hand").onclick = async () => {
+      renderPlay(await api("/api/play/next", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ game_id: GAME, token: "-" }),
+      }));
+    };
+  } else if (d.your_turn) {
+    $("#play-result").innerHTML = "";
+    actions.innerHTML = d.actions.map(a =>
+      `<button data-tok="${a.token}">${a.label}${a.cost > 0 ? ` <span class="note">(${a.cost})</span>` : ""}</button>`
+    ).join("");
+    actions.querySelectorAll("button").forEach(b => b.onclick = async () => {
+      renderPlay(await api("/api/play/act", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ game_id: GAME, token: b.dataset.tok }),
+      }));
+    });
+  } else {
+    $("#play-result").innerHTML = "";
+    actions.innerHTML = '<p class="note">solver thinking…</p>';
+  }
 }
 
 // ---------- stats ----------

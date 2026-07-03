@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from ..advisor import advice_to_dict, advise
 from ..artifact import Artifact
 from ..cards import preflop_class_name
+from .play import PlayEngine
 from .quiz import QuizEngine
 
 STATIC = Path(__file__).parent / "static"
@@ -30,11 +31,17 @@ class QuizAnswer(BaseModel):
     picks: dict[str, str] | None = None  # turn mode
 
 
+class PlayAction(BaseModel):
+    game_id: str
+    token: str
+
+
 def create_app(artifact_path: str, runs_dir: str) -> FastAPI:
     artifact = Artifact(artifact_path)
     runs = Path(runs_dir)
     runs.mkdir(parents=True, exist_ok=True)
     quiz = QuizEngine(artifact, runs / "lab.db")
+    play = PlayEngine(artifact, start_depth_bb=200)
 
     app = FastAPI(title="Tilted Solver Lab")
 
@@ -119,6 +126,31 @@ def create_app(artifact_path: str, runs_dir: str) -> FastAPI:
     @app.get("/api/quiz/stats")
     def quiz_stats():
         return quiz.stats()
+
+    @app.post("/api/play/new")
+    def play_new():
+        sid = play.new_session()
+        return {"game_id": sid, **play.view(sid)}
+
+    @app.post("/api/play/act")
+    def play_act(req: PlayAction):
+        try:
+            play.act(req.game_id, req.token)
+        except KeyError:
+            raise HTTPException(404, "unknown game id")
+        except ValueError as e:
+            raise HTTPException(422, str(e))
+        return play.view(req.game_id)
+
+    @app.post("/api/play/next")
+    def play_next(req: PlayAction):  # token ignored; reuse the model
+        try:
+            play.next_hand(req.game_id)
+        except KeyError:
+            raise HTTPException(404, "unknown game id")
+        except ValueError as e:
+            raise HTTPException(422, str(e))
+        return play.view(req.game_id)
 
     @app.get("/api/example-state")
     def example_state():
