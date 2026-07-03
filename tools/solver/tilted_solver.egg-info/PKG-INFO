@@ -1,0 +1,8 @@
+Metadata-Version: 2.4
+Name: tilted-solver
+Version: 0.1.0
+Summary: Tilted recommendation engine: advisor, Solver Lab, self-play, training runner
+Requires-Python: >=3.11
+Requires-Dist: fastapi>=0.110
+Requires-Dist: uvicorn>=0.29
+Requires-Dist: rich>=13.7
