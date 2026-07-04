@@ -1,0 +1,8 @@
+kernel/target/
+runs/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+uv.lock
+tilted_solver.egg-info/

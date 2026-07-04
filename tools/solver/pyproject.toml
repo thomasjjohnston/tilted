@@ -1,0 +1,36 @@
+[project]
+name = "tilted-solver"
+version = "0.1.0"
+description = "Tilted recommendation engine: advisor, Solver Lab, self-play, training runner"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn>=0.29",
+    "rich>=13.7",
+]
+
+[project.scripts]
+solver = "tilted_solver.cli:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "httpx>=0.27",
+]
+
+# setuptools rather than hatchling: hatchling's editable install writes a
+# plain-path .pth that this machine's Python 3.14 site.py loads unreliably;
+# setuptools' finder-based editable install works. (Symptom if this recurs:
+# `uv run pytest` fails with ModuleNotFoundError while `python -m pytest`
+# from tools/solver works.)
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["tilted_solver*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Belt and braces: never depend on install mechanics to import the package.
+pythonpath = ["."]

@@ -1,0 +1,23 @@
+{
+  "blind_small": 5,
+  "blind_big": 10,
+  "bet_menus": {
+    "preflop_opens": [2.5],
+    "preflop_raises": [3.0],
+    "flop": [0.33, 0.75],
+    "turn": [0.75, 1.25],
+    "river": [0.75, 1.25],
+    "overbet": [2.0],
+    "overbet_min_depth_bb": 100,
+    "overbet_streets": ["turn", "river"],
+    "near_allin_prune": 0.25,
+    "raise_cap": 3
+  },
+  "buckets": {
+    "flop": 200,
+    "turn": 200,
+    "river": 200,
+    "ehs_samples": 96,
+    "boundary_samples": 100000
+  }
+}

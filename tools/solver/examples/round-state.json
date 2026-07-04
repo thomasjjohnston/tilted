@@ -1,0 +1,47 @@
+{
+  "viewer_is_sb": true,
+  "my_available": 300,
+  "opp_available": 1400,
+  "hands": [
+    {
+      "hand_id": "hand-1",
+      "my_hole": "Ah As",
+      "board": "",
+      "my_reserved": 5,
+      "opp_reserved": 10,
+      "pending": true,
+      "actions": []
+    },
+    {
+      "hand_id": "hand-2",
+      "my_hole": "Kd Kc",
+      "board": "",
+      "my_reserved": 5,
+      "opp_reserved": 10,
+      "pending": true,
+      "actions": []
+    },
+    {
+      "hand_id": "hand-3",
+      "my_hole": "7c 2d",
+      "board": "",
+      "my_reserved": 5,
+      "opp_reserved": 10,
+      "pending": true,
+      "actions": []
+    },
+    {
+      "hand_id": "hand-4",
+      "my_hole": "8h 8d",
+      "board": "8s 5c 2h",
+      "my_reserved": 25,
+      "opp_reserved": 25,
+      "pending": true,
+      "actions": [
+        {"player": 0, "kind": "raise", "to": 25},
+        {"player": 1, "kind": "call"},
+        {"player": 1, "kind": "check"}
+      ]
+    }
+  ]
+}
