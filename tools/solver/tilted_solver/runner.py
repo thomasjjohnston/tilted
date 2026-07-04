@@ -277,6 +277,16 @@ def run_training(s: RunSettings) -> int:
         write_status()
 
     # 3. Export an artifact from whatever is trained.
+    errored = [d for d in depths if states[d].state == "error"]
+    if errored:
+        console.print(
+            f"[red]depths {errored} failed — skipping export.[/] "
+            "Most common cause: disk full (check `df -h`). Checkpoint saves are "
+            "atomic, so the last successful checkpoints are intact; free space "
+            "(or grow the volume) and rerun the same command to resume."
+        )
+        write_status()
+        return 1
     trained = [d for d in depths if (s.run_dir / f"depth-{d}" / "checkpoint.bin").exists()]
     if trained and not interrupted:
         artifact = s.run_dir / "artifact.sqlite"

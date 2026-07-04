@@ -19,8 +19,12 @@ Spot interruptions are a non-event: training checkpoints every chunk, and
 ## Runbook
 
 1. **Launch**: Amazon Linux 2023 or Ubuntu 22+, the instance type above,
-   30 GB gp3 disk, spot pricing, your SSH key. No inbound ports needed
-   beyond SSH.
+   spot pricing, your SSH key. No inbound ports needed beyond SSH.
+   **Disk: size for the abstraction.** 30 GB gp3 is fine for the default
+   config; fine-bucket configs (600+/street) need **150 GB** — checkpoints
+   reach several GB per depth, atomic saves transiently double that, and
+   the exported artifact adds 5–10 GB. Volumes can also be grown online
+   later (console → Volumes → Modify, then `growpart` + `xfs_growfs`).
 2. **Bootstrap** (5–10 minutes). Don't `scp -r` the directory — that drags
    ~500 MB of local build artifacts (kernel/target, .venv, runs/) that the
    instance rebuilds anyway. Stream just the source (~76 files, <1 MB):
