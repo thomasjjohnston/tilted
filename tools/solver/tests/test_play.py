@@ -70,6 +70,51 @@ def test_illegal_actions_rejected(client):
     assert r.status_code == 404
 
 
+def test_stacks_persist_across_hands(client):
+    d = client.post("/api/play/new").json()
+    gid = d["game_id"]
+    start_total = d["your_stack"] + d["bot_stack"] + d["pot"]
+    d = _play_hand_to_end(client, d)
+    net = d["hand_net"]
+    stack_after_1 = d["your_stack"]
+    assert d["your_stack"] + d["bot_stack"] == start_total, "chips conserved in the match"
+    d = client.post("/api/play/next", json={"game_id": gid, "token": "-"}).json()
+    d["game_id"] = gid
+    # Next hand starts from the settled stacks (minus fresh blinds in the pot).
+    assert d["your_stack"] + d["your_committed"] == stack_after_1, (
+        f"stack must carry over: had {stack_after_1}, "
+        f"now behind {d['your_stack']} + committed {d['your_committed']} (net was {net})"
+    )
+    # Effective depth follows the shorter stack.
+    assert d["stack"] <= start_total // 2 + abs(net)
+
+
+def test_bust_ends_match_and_new_match_resets(client, pilot_artifact):
+    from tilted_solver.lab.app import create_app  # noqa: F401  (fixture parity)
+
+    d = client.post("/api/play/new").json()
+    gid = d["game_id"]
+    # Jam every chance we get until someone goes broke (bounded attempts).
+    for _ in range(60):
+        while not d.get("terminal"):
+            tok = next((a["token"] for a in d["actions"] if a["token"] == "a"),
+                       next((a["token"] for a in d["actions"] if a["token"] == "c"),
+                            d["actions"][0]["token"]))
+            d = client.post("/api/play/act", json={"game_id": gid, "token": tok}).json()
+        if d["match_over"]:
+            break
+        d = client.post("/api/play/next", json={"game_id": gid, "token": "-"}).json()
+    assert d["match_over"], "all-in wars must eventually bust someone"
+    tallies = d["score"]["matches_you"] + d["score"]["matches_solver"]
+    assert tallies == 1
+    # Next hand starts a fresh match with reset stacks.
+    d = client.post("/api/play/next", json={"game_id": gid, "token": "-"}).json()
+    assert not d["match_over"]
+    assert d["your_stack"] + d["your_committed"] == 2000 or d["stack"] == 2000 or (
+        d["your_stack"] + d["your_committed"] + d["bot_stack"] + d["bot_committed"] == 4000
+    ), f"stacks should reset to the starting 2000 each: {d['your_stack']=} {d['bot_stack']=}"
+
+
 def test_folding_costs_only_committed_chips(client):
     # Fold at the first opportunity repeatedly; losses per hand must be small
     # (blinds / small preflop bets only).

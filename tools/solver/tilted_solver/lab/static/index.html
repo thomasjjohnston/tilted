@@ -546,8 +546,8 @@ function renderPlay(d) {
   const table = $("#play-table");
   table.style.display = "flex";
   const boardDealt = d.board ? d.board.split(/\s+/).length : 0;
-  const behindYou = d.stack - d.your_committed;
-  const behindBot = d.stack - d.bot_committed;
+  const behindYou = d.your_stack;
+  const behindBot = d.bot_stack;
   const won = d.hand_net > 0, lost = d.hand_net < 0;
 
   // Solver's cards: backs mid-hand, faces at showdown, nothing extra on fold.
@@ -558,10 +558,10 @@ function renderPlay(d) {
   let bottom = "";
   if (d.terminal) {
     bottom = `
-      <div class="t-banner ${won ? "win" : lost ? "loss" : ""}">
+      <div class="t-banner ${d.match_over ? (behindYou > behindBot ? "win" : "loss") : won ? "win" : lost ? "loss" : ""}">
         <div class="headline t-serif">${d.result}</div>
       </div>
-      <button class="t-next" id="play-next-hand">Next hand</button>`;
+      <button class="t-next" id="play-next-hand">${d.match_over ? "New match" : "Next hand"}</button>`;
   } else if (d.your_turn) {
     bottom = `
       <div class="t-facing">${d.to_call > 0 ? `${d.to_call} to call` : "&nbsp;"}</div>
@@ -600,7 +600,9 @@ function renderPlay(d) {
 
   $("#play-score").textContent =
     `score: ${d.score.net >= 0 ? "+" : ""}${d.score.net} chips over ${d.score.hands} hands` +
-    (d.score.hands > 0 ? ` (${d.score.bb_per_hand >= 0 ? "+" : ""}${d.score.bb_per_hand} bb/hand)` : "");
+    (d.score.hands > 0 ? ` (${d.score.bb_per_hand >= 0 ? "+" : ""}${d.score.bb_per_hand} bb/hand)` : "") +
+    ((d.score.matches_you || d.score.matches_solver)
+      ? ` · matches ${d.score.matches_you}–${d.score.matches_solver}` : "");
   $("#play-log").innerHTML = d.log.map(l =>
     `<div class="${l.startsWith("—") ? "street-line" : ""}">${l}</div>`).join("");
   $("#play-log").scrollTop = $("#play-log").scrollHeight;

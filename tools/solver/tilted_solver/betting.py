@@ -42,6 +42,10 @@ class LegalAction:
 class BetState:
     config: dict
     depth_bb: int
+    # Optional exact stack in chips (e.g. match play at 1,735 chips); when
+    # None, the stack is depth_bb * BB. depth_bb still drives menu gating
+    # (overbet thresholds), so pass the effective depth alongside.
+    stack_chips: int | None = None
     stack: int = 0
     street: int = 0
     committed: list[int] = field(default_factory=list)
@@ -56,7 +60,7 @@ class BetState:
     def __post_init__(self) -> None:
         bb = self.config["blind_big"]
         sb = self.config["blind_small"]
-        self.stack = self.depth_bb * bb
+        self.stack = self.stack_chips if self.stack_chips is not None else self.depth_bb * bb
         self.committed = [sb, bb]
         self.street_to = [sb, bb]
         self.last_raise = bb - sb
