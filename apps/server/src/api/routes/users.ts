@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { ne, asc } from 'drizzle-orm';
 import { getDb } from '../context.js';
 import { users } from '../../db/schema.js';
+import { userMayAccessBot } from '../../game/bot.js';
 
 function initials(name: string): string {
   return name
@@ -26,10 +27,16 @@ export async function usersRoutes(app: FastifyInstance) {
       where: ne(users.userId, req.userId),
       orderBy: asc(users.displayName),
     });
-    return rows.map(u => ({
-      user_id: u.userId,
-      display_name: u.displayName,
-      initials: initials(u.displayName),
-    }));
+    // Untilted (bot) rows are gated behind the tester allowlist while in
+    // limited release; server-side gate, mirrored in createMatch.
+    const canSeeBot = userMayAccessBot(req.userId);
+    return rows
+      .filter(u => !u.isBot || canSeeBot)
+      .map(u => ({
+        user_id: u.userId,
+        display_name: u.displayName,
+        initials: initials(u.displayName),
+        is_bot: u.isBot,
+      }));
   });
 }

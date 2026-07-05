@@ -3,6 +3,7 @@ import {
   uuid,
   text,
   integer,
+  boolean,
   timestamp,
   jsonb,
   unique,
@@ -19,6 +20,7 @@ export const users = pgTable('users', {
   email: text('email'),
   fullName: text('full_name'),
   displayName: text('display_name').notNull(),
+  isBot: boolean('is_bot').notNull().default(false),
   apnsToken: text('apns_token'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });

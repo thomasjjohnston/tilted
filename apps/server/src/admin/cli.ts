@@ -37,6 +37,23 @@ async function main() {
       break;
     }
 
+    case 'seed-untilted': {
+      const { users } = await import('../db/schema.js');
+      const { eq } = await import('drizzle-orm');
+      const existing = await db.query.users.findFirst({ where: eq(users.isBot, true) });
+      if (existing) {
+        console.log(`Bot already seeded: ${existing.userId} (${existing.displayName})`);
+        break;
+      }
+      const [bot] = await db.insert(users).values({
+        displayName: 'Untilted',
+        isBot: true,
+      }).returning();
+      console.log(`Seeded bot user: ${bot.userId} (Untilted)`);
+      console.log('Gate access with TILTED_BOT_TESTERS=<user_id,...> (or "*" for everyone).');
+      break;
+    }
+
     case 'list-users': {
       const rows = await db.query.users.findMany();
       for (const u of rows) {

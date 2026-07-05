@@ -228,5 +228,19 @@ export async function advanceRound(
     }
   }
 
+  // Untilted: a freshly opened round may put the bot first to act (SB
+  // alternates); take its turn post-commit and hand back updated state.
+  {
+    const { findBotUserId, runBotTurnIfPending } = await import('./bot.js');
+    const botId = await findBotUserId(db);
+    if (botId && userId !== botId) {
+      const roundRow = await db.query.rounds.findFirst({ where: eq(rounds.roundId, roundId) });
+      if (roundRow) {
+        const botActed = await runBotTurnIfPending(db, roundRow.matchId, botId);
+        if (botActed) return getMatchState(db, roundRow.matchId, userId);
+      }
+    }
+  }
+
   return result;
 }
