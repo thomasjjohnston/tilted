@@ -30,6 +30,20 @@ export async function createMatch(
     });
     if (!opponent) throw new Error('Opponent not found');
 
+    // Untilted gating: the bot never initiates, and only allowlisted
+    // testers may challenge it (server-side authority; the /users roster
+    // filter is UX, this is the gate).
+    const requester = await tx.query.users.findFirst({
+      where: eq(users.userId, requestingUserId),
+    });
+    if (requester?.isBot) throw new Error('Bot cannot initiate matches');
+    if (opponent.isBot) {
+      const { userMayAccessBot } = await import('./bot.js');
+      if (!userMayAccessBot(requestingUserId)) {
+        throw new Error('Opponent not found');
+      }
+    }
+
     // Reject if this pair already has an active match (either direction)
     const existingPairMatch = await tx.query.matches.findFirst({
       where: and(
@@ -74,6 +88,13 @@ export async function createMatch(
   await enqueueReminder(db, 'match_started', opponentUserId, result.match.matchId, result.roundId, {
     fromUserId: requestingUserId,
   });
+
+  // Untilted: if the coin flip made the bot the SB of round 1, it opens
+  // immediately (post-commit, same pattern as notifications).
+  {
+    const { runBotTurnIfPending } = await import('./bot.js');
+    await runBotTurnIfPending(db, result.match.matchId);
+  }
 
   return result.match;
 }

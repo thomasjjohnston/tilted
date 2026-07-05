@@ -402,3 +402,33 @@ Offered as a starting point for the implementing engineer.
 ---
 
 *End of document. Open items and rule ambiguities should be raised against this document so v0.2 can capture them before implementation begins.*
+
+---
+
+## 22. Addendum (post-MVP): Untilted, the solver bot
+
+**Status:** Limited release — gated to allowlisted testers.
+
+- **Untilted** is a server-driven bot player backed by the offline solver
+  (`tools/solver`): near-GTO blueprints at 8 stack depths, sampled as mixed
+  strategies. It exists as an ordinary user row (`is_bot = true`) and plays
+  by the exact same rules as humans — standard matches (2,000 chips, 10
+  hands, 5/10), same ledger, same turn machinery. No special-cased game
+  logic.
+- **Turns are instant.** When control passes to Untilted, the server takes
+  its whole turn immediately after the human's turn commits (post-commit,
+  own transaction). The human's submit response already reflects the bot's
+  reply.
+- **No oracle:** the bot's decisions are computed from its own user-scoped
+  match view — it sees exactly what a human in its seat would see (§4.6
+  redaction applies to its inputs by construction).
+- **Gating:** the `TILTED_BOT_TESTERS` env var (comma-separated user ids, or
+  `*`) controls who sees Untilted in the roster and may challenge it.
+  Enforced server-side in match creation, mirrored in the roster listing.
+  Untilted never initiates matches.
+- **Off-book play:** on betting lines the blueprint never reached, the bot
+  plays a fixed passive fallback (check when free; call small, fold big) and
+  logs the event — it never guesses silently.
+- **Known limitation:** strategies are within-abstraction near-GTO (bet-menu
+  + bucketed cards); the bot plays each hand independently and does not
+  balance its chip allocation across the 10 hands game-theoretically.
