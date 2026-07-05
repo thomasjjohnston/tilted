@@ -164,3 +164,25 @@ export const appEvents = pgTable('app_events', {
   payload: jsonb('payload').notNull().default({}),
   occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+// ── Solver strategies (Untilted bot; imported from the offline artifact) ─────
+// Frequencies only — the bot samples mixed strategies; EVs stay offline.
+// Populated by `tools/solver: uv run solver.py import-pg`, never by the app.
+
+export const solverMeta = pgTable('solver_meta', {
+  key: text('key').primaryKey(),
+  value: jsonb('value').notNull(),
+});
+
+export const solverStrategies = pgTable('solver_strategies', {
+  depthBb: integer('depth_bb').notNull(),
+  street: integer('street').notNull(),
+  seq: text('seq').notNull(),
+  bucket: integer('bucket').notNull(),
+  /** Legal action tokens at this infoset, e.g. ["f","c","r1","a"] */
+  tokens: jsonb('tokens').notNull().$type<string[]>(),
+  /** Average-strategy probabilities aligned with tokens; sums to ~1. */
+  strategy: jsonb('strategy').notNull().$type<number[]>(),
+}, (table) => [
+  primaryKey({ columns: [table.depthBb, table.street, table.seq, table.bucket] }),
+]);

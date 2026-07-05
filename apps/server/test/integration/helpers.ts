@@ -17,6 +17,8 @@ export interface TestEnv {
 
 const TABLES = [
   // Order matters — children first, then parents.
+  'solver_strategies',
+  'solver_meta',
   'app_events',
   'pending_reminders',
   'turn_handoffs',
