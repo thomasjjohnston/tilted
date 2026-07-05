@@ -7,6 +7,7 @@ dependencies = [
     "fastapi>=0.110",
     "uvicorn>=0.29",
     "rich>=13.7",
+    "psycopg[binary]>=3.3.4",
 ]
 
 [project.scripts]

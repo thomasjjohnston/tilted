@@ -98,6 +98,17 @@ def _cmd_selfplay(args: argparse.Namespace) -> int:
     )
 
 
+def _cmd_import_pg(args: argparse.Namespace) -> int:
+    from .import_pg import import_artifact
+
+    stats = import_artifact(args.artifact, args.database_url, args.min_visits)
+    print(
+        f"imported {stats['imported']:,} of {stats['total_rows']:,} rows "
+        f"(pruned {stats['pruned']:,} below {args.min_visits} visits)"
+    )
+    return 0
+
+
 def _cmd_bench(args: argparse.Namespace) -> int:
     import subprocess
 
@@ -165,6 +176,12 @@ def main(argv: list[str] | None = None) -> int:
     sp.add_argument("--temperature", type=float, default=0.0)
     sp.add_argument("--baseline", choices=["solo", "always-call", "fold-happy"], default="solo")
     sp.set_defaults(fn=_cmd_selfplay)
+
+    ip = sub.add_parser("import-pg", help="import artifact strategies into Tilted's Postgres")
+    ip.add_argument("--artifact", default=str(SOLVER_ROOT / "runs/best/artifact.sqlite"))
+    ip.add_argument("--database-url", required=True)
+    ip.add_argument("--min-visits", type=float, default=20.0)
+    ip.set_defaults(fn=_cmd_import_pg)
 
     b = sub.add_parser("bench", help="kernel throughput benchmark")
     b.add_argument("--seconds", type=float, default=20)
