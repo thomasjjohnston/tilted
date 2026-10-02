@@ -18,6 +18,7 @@ import { historyRoutes } from './api/routes/history.js';
 import { matchupRoutes } from './api/routes/matchup.js';
 import { usersRoutes } from './api/routes/users.js';
 import { inviteRoutes } from './api/routes/invites.js';
+import { webInviteRoutes } from './api/routes/web-invite.js';
 
 function getGitSha(): string {
   try {
@@ -70,6 +71,9 @@ export async function buildApp(
     ok: true,
     commit: getGitSha(),
   }));
+
+  // Public web pages and the iOS universal-link association (no auth, no /v1).
+  await app.register(webInviteRoutes);
 
   // Unauthenticated sign-in routes. Apple auth is rate-limited per IP
   // (5/minute) since it's DoS-adjacent — attacker hitting it costs us

@@ -10,6 +10,9 @@ const envSchema = z.object({
   APNS_BUNDLE_ID: z.string().default('com.thomasjjohnston.tilted'),
   // Public origin used in share links (invites). No trailing slash.
   PUBLIC_BASE_URL: z.string().url().default('https://tilted-server.fly.dev'),
+  // App Store listing URL for web pages' install button. Unset until the
+  // app is live; pages then say "coming soon".
+  APP_STORE_URL: z.string().url().optional(),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   // Opens POST /v1/auth/debug/select, which mints a bearer for any user_id
   // with no proof of identity. Local dev stack only — never set in production.

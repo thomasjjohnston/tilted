@@ -497,6 +497,10 @@ list of players.
 - **Refused, with nothing created:** unknown code; expired; already used by
   someone else; your own invite; the pair already has an active match (the
   invite stays valid for later); the inviter's account was deleted.
+- **The link's web page** (shown only to someone without the app) is public
+  and shows the inviter's first name, the code, the expiry date and how to
+  install. It reveals nothing for an invalid, used or expired code, and
+  viewing it never redeems the invite.
 - A player may create any number of invites. Deleting an account removes its
   unused invites.
 

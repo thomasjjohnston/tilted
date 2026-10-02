@@ -158,3 +158,33 @@ export async function redeemInvite(
   }
   return { matchId: outcome.matchId };
 }
+
+export type InvitePreview =
+  | { status: 'open'; inviterFirstName: string; expiresOn: string }
+  | { status: 'expired' | 'used' | 'not_found' };
+
+/**
+ * What the public landing page may show for a code: the inviter's first
+ * name and the expiry date, nothing else. Read-only.
+ */
+export async function getInvitePreview(
+  db: Database,
+  rawCode: string,
+  now: Date = new Date(),
+): Promise<InvitePreview> {
+  const code = normalizeInviteCode(rawCode);
+  if (!code) return { status: 'not_found' };
+  const invite = await db.query.invites.findFirst({ where: eq(invites.code, code) });
+  if (!invite) return { status: 'not_found' };
+  if (invite.redeemedByUserId) return { status: 'used' };
+  if (invite.expiresAt.getTime() <= now.getTime()) return { status: 'expired' };
+  const inviter = await db.query.users.findFirst({ where: eq(users.userId, invite.inviterUserId) });
+  if (!inviter || inviter.deletedAt) return { status: 'not_found' };
+  return {
+    status: 'open',
+    inviterFirstName: inviter.displayName.split(' ')[0] || inviter.displayName,
+    expiresOn: invite.expiresAt.toLocaleDateString('en-US', {
+      month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC',
+    }),
+  };
+}
