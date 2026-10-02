@@ -32,6 +32,7 @@ and anything skipped. Newest entries at the bottom.
 | 2026-10-02 | E16 Privacy manifest + label answer sheet | #42 | `PrivacyInfo.xcprivacy`; `docs/APP-STORE-PRIVACY-LABELS.md`. |
 | 2026-10-02 | F22 One Fly machine always on | #41 | Verified: machine started, reminder loop logged at boot. |
 | 2026-10-02 | D13 How-to-play explainer | #43 | Four cards; last card starts a bot match or an invite. Shown once per device; again from Settings. |
+| 2026-10-02 | E20/E21 Listing text, review notes, TestFlight copy; docs refresh | #44 | `docs/APP-STORE-LISTING.md`; HLD §5/§9/§11 and PROJECT-STATE updated. |
 
 ## Decisions made without asking
 
