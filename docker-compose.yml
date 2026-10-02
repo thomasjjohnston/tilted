@@ -31,6 +31,9 @@ services:
       PORT: '3000'
       NODE_ENV: production
       ENABLE_DEBUG_AUTH: 'true'
+      # Lets every local user play Untilted (the solver bot) once it is seeded
+      # and strategies are imported; see docs/LOCAL-TESTING.md.
+      TILTED_BOT_TESTERS: '*'
     # Migrate + seed (idempotent), then start.
     command: ['sh', '-c', 'node apps/server/dist/db/bootstrap.js && node apps/server/dist/http.js']
     ports:

@@ -49,7 +49,7 @@ export async function debugToolRoutes(app: FastifyInstance) {
   app.get('/debug/users', async (req) => {
     const rows = await getDb().query.users.findMany();
     return rows
-      .filter(u => u.userId !== req.userId && !u.deletedAt)
+      .filter(u => u.userId !== req.userId && !u.deletedAt && !u.isBot)
       .map(u => ({ user_id: u.userId, display_name: u.displayName }));
   });
 

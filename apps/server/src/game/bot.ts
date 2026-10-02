@@ -12,6 +12,10 @@ import type { Database } from '../db/connection.js';
 import { actions, users } from '../db/schema.js';
 import type { Card } from '../engine/types.js';
 import { decideBotHand, type BotHandInput, type RecordedAction } from '../engine/solver/bot.js';
+import {
+  fitTurnToStack, passiveTurn, type BudgetInput, type BudgetedAction,
+} from '../engine/solver/budget.js';
+import { GameRuleError } from '../errors.js';
 import { getMatchState } from './match.js';
 import { getSolverMeta, lookupStrategy } from './solver-strategies.js';
 
@@ -196,7 +200,10 @@ async function runOneBotCycle(
     rowsByHand.set(r.handId, list);
   }
 
-  const batch: { handId: string; actionType: RecordedAction['actionType']; amount: number; clientTxId: string }[] = [];
+  // Decide every hand independently, then fit the whole turn to the one
+  // shared stack before submitting (see engine/solver/budget.ts).
+  const wishes: BudgetInput[] = [];
+  const seqByHand = new Map<string, string>();
   for (const hand of pending) {
     const input: BotHandInput = {
       handId: hand.hand_id,
@@ -222,18 +229,39 @@ async function runOneBotCycle(
         `[untilted] off-book at hand ${hand.hand_id} seq "${decision.meta.seq}" — passive fallback`,
       );
     }
-    batch.push({
+    seqByHand.set(hand.hand_id, decision.meta.seq);
+    wishes.push({
       handId: hand.hand_id,
       actionType: decision.actionType,
       amount: decision.amount,
-      // Deterministic per decision point: a retried bot turn dedupes cleanly.
-      clientTxId: `untilted-${hand.hand_id.slice(0, 8)}-${decision.meta.seq || 'root'}`,
+      toCall: Math.max(0, hand.opponent_reserved - hand.my_reserved),
     });
   }
+
+  // Deterministic per decision point: a retried bot turn dedupes cleanly.
+  const toBatch = (turn: BudgetedAction[]) => turn.map(a => ({
+    handId: a.handId,
+    actionType: a.actionType,
+    amount: a.amount,
+    clientTxId: `untilted-${a.handId.slice(0, 8)}-${seqByHand.get(a.handId) || 'root'}`,
+  }));
 
   // Dynamic import to break the turn.ts <-> bot.ts cycle (same pattern as
   // the admin CLI's deferred imports).
   const { applyTurnBatch } = await import('./turn.js');
-  await applyTurnBatch(db, botUserId, { actions: batch }, { isBotTurn: true });
+  try {
+    await applyTurnBatch(
+      db, botUserId, { actions: toBatch(fitTurnToStack(wishes, state.my_available)) }, { isBotTurn: true },
+    );
+  } catch (err) {
+    if (!(err instanceof GameRuleError)) throw err;
+    // The budgeted turn should always be legal. If the server still refuses
+    // it, play the turn passively rather than leave the match stuck: the
+    // whole batch rolled back, so nothing was applied.
+    console.error(`[untilted] budgeted turn rejected for match ${matchId} (${err.message}) — playing passive turn`);
+    await applyTurnBatch(
+      db, botUserId, { actions: toBatch(passiveTurn(wishes, state.my_available)) }, { isBotTurn: true },
+    );
+  }
   return true;
 }

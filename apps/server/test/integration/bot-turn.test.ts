@@ -5,10 +5,10 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { asc, eq } from 'drizzle-orm';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { actions, hands, matches, solverMeta, solverStrategies, users } from '../../src/db/schema.js';
 import { runBotTurnIfPending, sweepPendingBotTurns, userMayAccessBot } from '../../src/game/bot.js';
-import { createMatch, sendPing } from '../../src/game/match.js';
+import { createMatch, getMatchState, sendPing } from '../../src/game/match.js';
 import { applyTurnBatch } from '../../src/game/turn.js';
 import { freshDb, seedHand, seedMatch, seedRound, seedUser, type TestEnv } from './helpers.js';
 
@@ -152,6 +152,62 @@ describe('untilted bot turns', () => {
     const hand = await env.db.query.hands.findFirst({ where: eq(hands.handId, handId) });
     expect(hand!.status).toBe('in_progress');
     expect(hand!.actionOnUserId).toBe(botId);
+  });
+});
+
+describe('untilted shares one stack across the round', () => {
+  let env: TestEnv;
+
+  beforeEach(async () => {
+    env = await freshDb();
+  });
+
+  /** A real round-1 deal (10 hands) with the bot as small blind, first to act. */
+  async function dealWithBotAsSb(strategy: number[]) {
+    const alice = await seedUser(env.db, { displayName: 'Alice' });
+    const botId = await seedBot(env.db);
+    await seedSolverMeta(env.db);
+    // Opening spot (seq ""): tokens fold / call / small open / big open / all-in.
+    await seedPreflopStrategy(env.db, '', ['f', 'c', 'r0', 'r1', 'a'], strategy);
+    process.env.TILTED_BOT_TESTERS = '*';
+    const coin = vi.spyOn(Math, 'random').mockReturnValue(0.9); // opponent (bot) is SB
+    let match;
+    try {
+      match = await createMatch(env.db, alice.userId, botId);
+    } finally {
+      coin.mockRestore();
+    }
+    return { alice, botId, matchId: match.matchId };
+  }
+
+  it('wanting to shove all ten hands yields one legal turn: one all-in, nine folds', async () => {
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { botId, matchId } = await dealWithBotAsSb([0, 0, 0, 0, 1]);
+
+    // The bot acted (no hand is waiting on it) and nothing was rejected.
+    const state = await getMatchState(env.db, matchId, botId);
+    expect(state.current_round!.hands_pending_me).toBe(0);
+    expect(errors).not.toHaveBeenCalled();
+    errors.mockRestore();
+
+    const botActions = await env.db.query.actions.findMany({ where: eq(actions.actingUserId, botId) });
+    expect(botActions).toHaveLength(10);
+    expect(botActions.filter(a => a.actionType === 'all_in')).toHaveLength(1);
+    expect(botActions.filter(a => a.actionType === 'fold')).toHaveLength(9);
+
+    // Ledger: the bot never has more reserved than it owns.
+    expect(state.my_reserved).toBeLessThanOrEqual(state.my_total);
+    expect(state.my_available).toBe(0);
+  });
+
+  it('opening every hand stays within the stack and keeps all ten hands live', async () => {
+    const { botId, matchId } = await dealWithBotAsSb([0, 0, 1, 0, 0]);
+    const state = await getMatchState(env.db, matchId, botId);
+    expect(state.current_round!.hands_pending_me).toBe(0);
+    const botActions = await env.db.query.actions.findMany({ where: eq(actions.actingUserId, botId) });
+    expect(botActions).toHaveLength(10);
+    expect(botActions.every(a => a.actionType === 'raise')).toBe(true);
+    expect(state.my_available).toBeGreaterThan(0);
   });
 });
 
