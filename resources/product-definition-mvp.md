@@ -440,6 +440,10 @@ Offered as a starting point for the implementing engineer.
 - **Known limitation:** strategies are within-abstraction near-GTO (bet-menu
   + bucketed cards); the bot plays each hand independently and does not
   balance its chip allocation across the 10 hands game-theoretically.
+  It does respect the shared stack: after choosing each hand's action it
+  fits the whole turn to its available chips (raises that no longer fit
+  become calls, at most one all-in per turn, taken last), so its turn is
+  always a legal batch.
 
 ---
 

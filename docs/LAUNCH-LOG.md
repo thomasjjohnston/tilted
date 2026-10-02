@@ -26,6 +26,7 @@ and anything skipped. Newest entries at the bottom.
 | 2026-10-02 | C11 Invite landing page + universal-link file | #35 | `GET /i/:code`, `GET /.well-known/apple-app-site-association`. |
 | 2026-10-02 | C12 Rematch-only challenges; global roster removed | #36 | `GET /v1/opponents`; `POST /v1/match` needs a prior match. |
 | 2026-10-02 | C14 Block a player (server) | #37 | Migration 0010 (new table). TJ chose: blocking ends the active match as abandoned. |
+| 2026-10-02 | B10 Bot turn fitted to the shared stack (bug fix) | #38 | Found by playing the bot on a local stack with the pilot strategies. |
 
 ## Decisions made without asking
 
@@ -92,6 +93,12 @@ and anything skipped. Newest entries at the bottom.
     alternative (keep showing them, fail on tap) seemed more confusing.
 25. **Block has no `client_tx_id`**: it is keyed on the pair, so a retry is
     naturally a no-op.
+26. **When the bot's ten choices exceed its stack**, hands that keep chips
+    behind are played first in order, a raise that no longer fits becomes a
+    call (never an accidental shove), and at most one all-in goes last with
+    whatever is left; anything still unaffordable checks or folds.
+27. **With zero chips left and facing a bet, the bot folds** rather than
+    going "all-in for nothing", matching the app's auto check/fold for humans.
 
 ## Open items for TJ
 
