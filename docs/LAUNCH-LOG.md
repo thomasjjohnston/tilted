@@ -24,6 +24,7 @@ and anything skipped. Newest entries at the bottom.
 | 2026-10-02 | B9 Bot retry sweep | #33 | Every 60s and at startup; pinging the bot also triggers its turn. |
 | 2026-10-02 | C10 Invites: create and redeem | #34 | Migration 0009 (new table). |
 | 2026-10-02 | C11 Invite landing page + universal-link file | #35 | `GET /i/:code`, `GET /.well-known/apple-app-site-association`. |
+| 2026-10-02 | C12 Rematch-only challenges; global roster removed | #36 | `GET /v1/opponents`; `POST /v1/match` needs a prior match. |
 
 ## Decisions made without asking
 
@@ -77,6 +78,12 @@ and anything skipped. Newest entries at the bottom.
     no name. No scripts, cookies or external assets.
 20. **The install button needs `APP_STORE_URL`** (Fly secret) once the app is
     live; until then the page says the app is coming soon.
+21. **`GET /v1/users` is kept as a deprecated alias of the rematch list**
+    rather than deleted, so the 0.1.7 TestFlight build's opponent picker
+    still works for people you have already played. It no longer shows
+    strangers.
+22. **A stranger and a non-existent user get the same 404** from
+    `POST /v1/match`, so user ids cannot be probed.
 
 ## Open items for TJ
 

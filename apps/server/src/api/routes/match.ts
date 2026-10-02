@@ -4,7 +4,10 @@ import { getDb } from '../context.js';
 import { BotUnavailableError, getPlayableBot } from '../../game/bot.js';
 import {
   MatchAlreadyActiveError,
+  OpponentNotFoundError,
   createMatch,
+  createRematch,
+  listOpponents,
   getCurrentMatch,
   getMatchState,
   listActiveMatches,
@@ -26,16 +29,30 @@ export async function matchRoutes(app: FastifyInstance) {
     return listActiveMatches(db, req.userId);
   });
 
-  // Start a new match. Body: { opponent_user_id }
+  // Rematch someone you have played before. Body: { opponent_user_id }.
+  // New opponents come through invites; the bot through /match/bot.
   app.post('/match', async (req, reply) => {
     const parsed = createBody.safeParse(req.body);
     if (!parsed.success) {
       return reply.status(400).send({ error: 'Invalid body', issues: parsed.error.issues });
     }
     const db = getDb();
-    const match = await createMatch(db, req.userId, parsed.data.opponent_user_id);
-    return getMatchState(db, match.matchId, req.userId);
+    try {
+      const match = await createRematch(db, req.userId, parsed.data.opponent_user_id);
+      return await getMatchState(db, match.matchId, req.userId);
+    } catch (e) {
+      if (e instanceof OpponentNotFoundError) {
+        return reply.status(404).send({ error: e.message });
+      }
+      if (e instanceof MatchAlreadyActiveError) {
+        return reply.status(409).send({ error: e.message });
+      }
+      throw e;
+    }
   });
+
+  // People you have played before: the rematch list.
+  app.get('/opponents', async (req) => listOpponents(getDb(), req.userId));
 
   // Whether "Play Untilted" should be offered to this user right now.
   app.get('/bot', async (req) => {

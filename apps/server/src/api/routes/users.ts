@@ -1,42 +1,22 @@
 import type { FastifyInstance } from 'fastify';
-import { and, ne, asc, isNull } from 'drizzle-orm';
 import { getDb } from '../context.js';
-import { users } from '../../db/schema.js';
-import { userMayAccessBot } from '../../game/bot.js';
-
-function initials(name: string): string {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .map(s => s[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
-}
+import { listOpponents } from '../../game/match.js';
 
 export async function usersRoutes(app: FastifyInstance) {
   /**
-   * Public roster for the opponent picker. Excludes the requesting user.
-   * Only returns fields that are safe for every user to see about every
-   * other user: id, display name, initials. No email, no apple_sub, no
-   * APNS token.
+   * Deprecated: kept so app builds from before invites (≤ 0.1.7) can still
+   * open their opponent picker. It used to return every user; it now
+   * returns the same list as GET /v1/opponents — people the caller has
+   * already played — so strangers are never exposed. Remove once no old
+   * build is in use.
    */
   app.get('/users', async (req) => {
-    const db = getDb();
-    const rows = await db.query.users.findMany({
-      where: and(ne(users.userId, req.userId), isNull(users.deletedAt)),
-      orderBy: asc(users.displayName),
-    });
-    // Untilted (bot) rows are gated behind the tester allowlist while in
-    // limited release; server-side gate, mirrored in createMatch.
-    const canSeeBot = userMayAccessBot(req.userId);
-    return rows
-      .filter(u => !u.isBot || canSeeBot)
-      .map(u => ({
-        user_id: u.userId,
-        display_name: u.displayName,
-        initials: initials(u.displayName),
-        is_bot: u.isBot,
-      }));
+    const opponents = await listOpponents(getDb(), req.userId);
+    return opponents.map(o => ({
+      user_id: o.user_id,
+      display_name: o.display_name,
+      initials: o.initials,
+      is_bot: false,
+    }));
   });
 }

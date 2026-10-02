@@ -4,8 +4,9 @@
 // and the requesting user passes the access gate.
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { freshDb, seedUser, skipIfNoDb, type TestEnv } from '../integration/helpers.js';
-import { solverMeta, users } from '../../src/db/schema.js';
+import { eq } from 'drizzle-orm';
+import { freshDb, seedMatch, seedUser, skipIfNoDb, type TestEnv } from '../integration/helpers.js';
+import { matches, solverMeta, users } from '../../src/db/schema.js';
 
 process.env.DATABASE_URL ??= 'postgresql://unused:unused@localhost:5432/unused';
 
@@ -128,6 +129,10 @@ describe.skipIf(skipIfNoDb)('play the bot', () => {
 
   it('flags a human opponent as not a bot', async () => {
     const bob = await seedUser(env.db, { displayName: 'Bob' });
+    // Rematches need a previous match on record (spec §25).
+    const prior = await seedMatch(env.db, aliceId, bob.userId);
+    await env.db.update(matches).set({ status: 'ended', winnerUserId: aliceId, endedAt: new Date() })
+      .where(eq(matches.matchId, prior.matchId));
     const app = await buildApp();
     const res = await app.inject({
       method: 'POST', url: '/v1/match',

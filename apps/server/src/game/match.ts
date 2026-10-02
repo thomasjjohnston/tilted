@@ -19,6 +19,89 @@ export class MatchAlreadyActiveError extends Error {
 }
 
 /**
+ * The opponent can't be challenged by this user: unknown, deleted, or (for
+ * a rematch) someone they have never played. One error for all of them so
+ * the API never confirms whether a given user id exists.
+ */
+export class OpponentNotFoundError extends Error {
+  constructor() {
+    super('Opponent not found');
+    this.name = 'OpponentNotFoundError';
+  }
+}
+
+/**
+ * Start a new match with someone the user has played before. New opponents
+ * come only through invites (spec §25), so a pair with no match on record
+ * is refused.
+ */
+export async function createRematch(
+  db: Database,
+  requestingUserId: string,
+  opponentUserId: string,
+) {
+  const result = await db.transaction(async (tx) => {
+    const prior = await tx.query.matches.findFirst({
+      where: or(
+        and(eq(matches.userAId, requestingUserId), eq(matches.userBId, opponentUserId)),
+        and(eq(matches.userAId, opponentUserId), eq(matches.userBId, requestingUserId)),
+      ),
+    });
+    if (!prior) throw new OpponentNotFoundError();
+    return createMatchTx(tx, requestingUserId, opponentUserId);
+  });
+  await announceNewMatch(db, result, requestingUserId, opponentUserId);
+  return result.match;
+}
+
+/**
+ * People this user has played, most recent first: the rematch list.
+ * Excludes deleted accounts and the bot (which has its own entry point).
+ * Only fields every opponent may see: id, display name, initials.
+ */
+export async function listOpponents(db: Database, userId: string): Promise<OpponentView[]> {
+  const rows = await db.execute<{
+    user_id: string; display_name: string; last_played_at: string | Date; has_active_match: boolean;
+  }>(sql`
+    SELECT u.user_id, u.display_name,
+           max(m.started_at) AS last_played_at,
+           bool_or(m.status = 'active') AS has_active_match
+    FROM matches m
+    JOIN users u ON u.user_id = CASE WHEN m.user_a_id = ${userId} THEN m.user_b_id ELSE m.user_a_id END
+    WHERE (m.user_a_id = ${userId} OR m.user_b_id = ${userId})
+      AND u.deleted_at IS NULL
+      AND u.is_bot = false
+    GROUP BY u.user_id, u.display_name
+    ORDER BY max(m.started_at) DESC
+  `);
+  return rows.map(r => ({
+    user_id: r.user_id,
+    display_name: r.display_name,
+    initials: initialsOf(r.display_name),
+    has_active_match: r.has_active_match,
+    last_played_at: new Date(r.last_played_at).toISOString(),
+  }));
+}
+
+export function initialsOf(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .map(s => s[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+}
+
+export interface OpponentView {
+  user_id: string;
+  display_name: string;
+  initials: string;
+  has_active_match: boolean;
+  last_played_at: string;
+}
+
+/**
  * Create a new match between `requestingUserId` and `opponentUserId`.
  * Coin flip determines who is SB in round 1. Fires a `match_started`
  * push to the opponent on commit.
@@ -53,7 +136,7 @@ export async function createMatchTx(
     const opponent = await tx.query.users.findFirst({
       where: eq(users.userId, opponentUserId),
     });
-    if (!opponent || opponent.deletedAt) throw new Error('Opponent not found');
+    if (!opponent || opponent.deletedAt) throw new OpponentNotFoundError();
 
     // Untilted gating: the bot never initiates, and only allowlisted
     // testers may challenge it (server-side authority; the /users roster
@@ -65,7 +148,7 @@ export async function createMatchTx(
     if (opponent.isBot) {
       const { userMayAccessBot, BotUnavailableError } = await import('./bot.js');
       if (!userMayAccessBot(requestingUserId)) {
-        throw new Error('Opponent not found');
+        throw new OpponentNotFoundError();
       }
       // No strategies imported → the bot could never take a turn, and the
       // match would be stuck from its first handoff.
