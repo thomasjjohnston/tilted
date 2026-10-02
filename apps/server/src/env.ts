@@ -8,6 +8,8 @@ const envSchema = z.object({
   APNS_KEY_ID: z.string().default(''),
   APNS_TEAM_ID: z.string().default(''),
   APNS_BUNDLE_ID: z.string().default('com.thomasjjohnston.tilted'),
+  // Public origin used in share links (invites). No trailing slash.
+  PUBLIC_BASE_URL: z.string().url().default('https://tilted-server.fly.dev'),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   // Opens POST /v1/auth/debug/select, which mints a bearer for any user_id
   // with no proof of identity. Local dev stack only — never set in production.

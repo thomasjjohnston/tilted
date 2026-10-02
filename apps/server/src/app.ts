@@ -17,6 +17,7 @@ import { meRoutes } from './api/routes/me.js';
 import { historyRoutes } from './api/routes/history.js';
 import { matchupRoutes } from './api/routes/matchup.js';
 import { usersRoutes } from './api/routes/users.js';
+import { inviteRoutes } from './api/routes/invites.js';
 
 function getGitSha(): string {
   try {
@@ -105,6 +106,7 @@ export async function buildApp(
     await authenticated.register(historyRoutes);
     await authenticated.register(matchupRoutes);
     await authenticated.register(usersRoutes);
+    await authenticated.register(inviteRoutes);
   }, { prefix: '/v1' });
 
   return app;

@@ -1,6 +1,6 @@
-import { eq, inArray, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 import type { Database } from '../db/connection.js';
-import { users, matches, favorites, pendingReminders, debugTokens } from '../db/schema.js';
+import { users, matches, favorites, invites, pendingReminders, debugTokens } from '../db/schema.js';
 import { logEvent } from '../events/logger.js';
 
 /** What opponents see in place of a deleted player's name. */
@@ -46,6 +46,8 @@ export async function deleteAccount(
 
     await tx.delete(pendingReminders).where(eq(pendingReminders.userId, userId));
     await tx.delete(favorites).where(eq(favorites.userId, userId));
+    // Unredeemed invites die with the account; redeemed ones are history.
+    await tx.delete(invites).where(and(eq(invites.inviterUserId, userId), isNull(invites.redeemedByUserId)));
     await tx.delete(debugTokens).where(eq(debugTokens.userId, userId));
 
     await tx.update(users).set({

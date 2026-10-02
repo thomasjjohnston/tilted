@@ -28,11 +28,27 @@ export async function createMatch(
   requestingUserId: string,
   opponentUserId: string,
 ) {
+  const result = await db.transaction(tx => createMatchTx(tx, requestingUserId, opponentUserId));
+  await announceNewMatch(db, result, requestingUserId, opponentUserId);
+  return result.match;
+}
+
+/**
+ * The transactional half of match creation: validate the pair, insert the
+ * match and open round 1. Exposed so callers that must do more in the same
+ * transaction (invite redemption) can. Follow a commit with
+ * `announceNewMatch`.
+ */
+export async function createMatchTx(
+  tx: Transaction,
+  requestingUserId: string,
+  opponentUserId: string,
+) {
   if (requestingUserId === opponentUserId) {
     throw new Error('Cannot challenge yourself');
   }
 
-  const result = await db.transaction(async (tx) => {
+  {
     // Validate opponent exists
     const opponent = await tx.query.users.findFirst({
       where: eq(users.userId, opponentUserId),
@@ -87,9 +103,20 @@ export async function createMatch(
 
     const roundId = await openRound(tx, match.matchId, 1);
     return { match, roundId };
-  });
+  }
+}
 
-  // Post-commit: tell the opponent a new match is live.
+/**
+ * The post-commit half of match creation: tell the opponent a new match is
+ * live, and let the bot open if it is first to act. Never call inside the
+ * creating transaction — a rollback would leave a phantom push.
+ */
+export async function announceNewMatch(
+  db: Database,
+  result: { match: { matchId: string }; roundId: string },
+  requestingUserId: string,
+  opponentUserId: string,
+): Promise<void> {
   await dispatch(db, {
     kind: 'match_started',
     toUserId: opponentUserId,
@@ -108,8 +135,6 @@ export async function createMatch(
     const { runBotTurnSafely } = await import('./bot.js');
     await runBotTurnSafely(db, result.match.matchId);
   }
-
-  return result.match;
 }
 
 /**

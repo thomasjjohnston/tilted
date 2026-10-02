@@ -20,6 +20,7 @@ const TABLES = [
   'solver_strategies',
   'solver_meta',
   'app_events',
+  'invites',
   'pending_reminders',
   'turn_handoffs',
   'favorites',
