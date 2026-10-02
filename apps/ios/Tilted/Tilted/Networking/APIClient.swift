@@ -40,6 +40,17 @@ actor APIClient {
         return try await post("/v1/auth/apple", body: body, authenticated: false)
     }
 
+    /// Best-effort server-side revocation of a bearer at sign-out, so a
+    /// signed-out token can't be replayed. Failures are ignored: the local
+    /// session is already gone, and the server expires idle tokens anyway.
+    func revokeSession(token old: String) async {
+        if token == old { token = nil }
+        var request = URLRequest(url: makeURL(path: "/v1/auth/logout"))
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(old)", forHTTPHeaderField: "Authorization")
+        let _: EmptyResponse? = try? await execute(request, retries: 1)
+    }
+
     // MARK: - Me
 
     func getMe() async throws -> UserResponse {

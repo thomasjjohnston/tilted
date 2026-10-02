@@ -1,11 +1,11 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { randomBytes, createHash } from 'node:crypto';
 import { eq } from 'drizzle-orm';
 import { getDb } from '../context.js';
-import { users, debugTokens } from '../../db/schema.js';
+import { users } from '../../db/schema.js';
 import { env } from '../../env.js';
 import { verifyAppleIdentityToken } from '../../auth/apple-jwt.js';
+import { mintToken } from '../../auth/tokens.js';
 import { logEvent } from '../../events/logger.js';
 
 const bodySchema = z.object({
@@ -70,13 +70,7 @@ export async function authAppleRoutes(app: FastifyInstance) {
       await logEvent(db, user.userId, 'user_signed_in', { via: 'apple' });
     }
 
-    // Mint a bearer token
-    const token = randomBytes(32).toString('hex');
-    const hash = createHash('sha256').update(token).digest('hex');
-    await db.insert(debugTokens).values({
-      tokenHash: hash,
-      userId: user.userId,
-    });
+    const token = await mintToken(db, user.userId);
 
     return {
       token,
