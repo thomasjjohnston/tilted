@@ -100,6 +100,24 @@ describe.skipIf(skipIfNoDb)('play the bot', () => {
     }
   });
 
+  it('still succeeds when the bot fails on its opening turn', async () => {
+    await seedBot(env.db);
+    await seedSolverMeta(env.db); // config {} makes the bot's decision throw
+    // Force the coin flip so the bot is SB and must act first.
+    const coin = vi.spyOn(Math, 'random').mockReturnValue(0.9);
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const res = await call('POST', '/v1/match/bot');
+      expect(res.statusCode).toBe(200);
+      expect(res.json().current_round.my_role).toBe('bb');
+      expect(errors).toHaveBeenCalled();
+    } finally {
+      coin.mockRestore();
+      errors.mockRestore();
+    }
+    expect(await env.db.query.matches.findMany()).toHaveLength(1);
+  });
+
   it('returns 409 when a bot match is already in progress', async () => {
     await seedBot(env.db);
     await seedSolverMeta(env.db);

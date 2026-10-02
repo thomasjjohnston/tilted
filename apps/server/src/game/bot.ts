@@ -71,10 +71,24 @@ export async function maybeRunBotTurn(
   if (!botId) return false;
   const handoff = handoffs.find(h => h.toUserId === botId);
   if (!handoff) return false;
+  return runBotTurnSafely(db, handoff.matchId, botId);
+}
+
+/**
+ * runBotTurnIfPending for post-commit call sites (turn submit, match
+ * creation, round advance): the human's request has already committed, so a
+ * bot failure is logged and the turn left pending for the retry sweep — it
+ * must never turn a successful request into a 500.
+ */
+export async function runBotTurnSafely(
+  db: Database,
+  matchId: string,
+  botId?: string,
+): Promise<boolean> {
   try {
-    return await runBotTurnIfPending(db, handoff.matchId, botId);
+    return await runBotTurnIfPending(db, matchId, botId);
   } catch (err) {
-    console.error(`[untilted] bot turn failed for match ${handoff.matchId}:`, err);
+    console.error(`[untilted] bot turn failed for match ${matchId}:`, err);
     return false;
   }
 }

@@ -105,8 +105,8 @@ export async function createMatch(
   // Untilted: if the coin flip made the bot the SB of round 1, it opens
   // immediately (post-commit, same pattern as notifications).
   {
-    const { runBotTurnIfPending } = await import('./bot.js');
-    await runBotTurnIfPending(db, result.match.matchId);
+    const { runBotTurnSafely } = await import('./bot.js');
+    await runBotTurnSafely(db, result.match.matchId);
   }
 
   return result.match;
