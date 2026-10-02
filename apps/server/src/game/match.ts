@@ -391,6 +391,15 @@ export async function sendPing(
     return opp;
   });
 
+  // Pinging the bot: there is no phone to push to. If it owes a turn (its
+  // post-commit turn failed), take it now instead.
+  const toUser = await db.query.users.findFirst({ where: eq(users.userId, toUserId) });
+  if (toUser?.isBot) {
+    const { runBotTurnSafely } = await import('./bot.js');
+    await runBotTurnSafely(db, matchId, toUserId);
+    return { sent_at: sentAt.toISOString(), quip };
+  }
+
   // Post-commit dispatch — does not block on push success/failure.
   await dispatch(db, {
     kind: 'ping',

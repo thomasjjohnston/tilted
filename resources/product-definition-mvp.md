@@ -419,6 +419,9 @@ Offered as a starting point for the implementing engineer.
   its whole turn immediately after the human's turn commits (post-commit,
   own transaction). The human's submit response already reflects the bot's
   reply.
+- **Recovery:** if the bot's turn fails to run (server restart, error), the
+  turn stays pending and a server sweep retries it within about a minute.
+  Pinging the bot also makes it take a pending turn.
 - **No oracle:** the bot's decisions are computed from its own user-scoped
   match view — it sees exactly what a human in its seat would see (§4.6
   redaction applies to its inputs by construction).

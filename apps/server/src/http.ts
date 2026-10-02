@@ -2,6 +2,7 @@ import { env } from './env.js';
 import { buildApp } from './app.js';
 import { getDb } from './api/context.js';
 import { startReminderLoop } from './notif/reminder-cron.js';
+import { startBotSweepLoop } from './game/bot.js';
 
 const app = await buildApp();
 
@@ -16,6 +17,10 @@ try {
     startReminderLoop(getDb());
     app.log.info('Reminder loop started (5 min interval)');
   }
+
+  // Retry any bot turn that didn't run after its handoff. A no-op (one
+  // indexed lookup) when there is no bot user.
+  startBotSweepLoop(getDb());
 } catch (err) {
   app.log.error(err);
   process.exit(1);

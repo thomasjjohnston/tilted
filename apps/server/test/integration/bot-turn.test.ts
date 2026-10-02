@@ -6,9 +6,9 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { asc, eq } from 'drizzle-orm';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { actions, hands, solverMeta, solverStrategies, users } from '../../src/db/schema.js';
-import { runBotTurnIfPending, userMayAccessBot } from '../../src/game/bot.js';
-import { createMatch } from '../../src/game/match.js';
+import { actions, hands, matches, solverMeta, solverStrategies, users } from '../../src/db/schema.js';
+import { runBotTurnIfPending, sweepPendingBotTurns, userMayAccessBot } from '../../src/game/bot.js';
+import { createMatch, sendPing } from '../../src/game/match.js';
 import { applyTurnBatch } from '../../src/game/turn.js';
 import { freshDb, seedHand, seedMatch, seedRound, seedUser, type TestEnv } from './helpers.js';
 
@@ -152,6 +152,68 @@ describe('untilted bot turns', () => {
     const hand = await env.db.query.hands.findFirst({ where: eq(hands.handId, handId) });
     expect(hand!.status).toBe('in_progress');
     expect(hand!.actionOnUserId).toBe(botId);
+  });
+});
+
+describe('untilted stuck-turn recovery', () => {
+  let env: TestEnv;
+
+  beforeEach(async () => {
+    env = await freshDb();
+  });
+
+  /** Alice opens; the bot can't answer because nothing is imported yet. */
+  async function seedStuckBotTurn() {
+    const alice = await seedUser(env.db, { displayName: 'Alice' });
+    const botId = await seedBot(env.db);
+    const { matchId } = await seedMatch(env.db, alice.userId, botId);
+    const { roundId } = await seedRound(env.db, matchId, { sbUserId: alice.userId, bbUserId: botId });
+    const { handId } = await seedHand(env.db, roundId, { actionOnUserId: alice.userId });
+    await applyTurnBatch(env.db, alice.userId, {
+      actions: [{ handId, actionType: 'raise', amount: 95, clientTxId: 'alice-big' }],
+    });
+    const stuck = await env.db.query.hands.findFirst({ where: eq(hands.handId, handId) });
+    expect(stuck!.actionOnUserId).toBe(botId);
+    return { alice, botId, matchId, handId };
+  }
+
+  it('the sweep does nothing while the bot still cannot act', async () => {
+    const { botId, handId } = await seedStuckBotTurn();
+    expect(await sweepPendingBotTurns(env.db)).toBe(0);
+    const hand = await env.db.query.hands.findFirst({ where: eq(hands.handId, handId) });
+    expect(hand!.actionOnUserId).toBe(botId);
+  });
+
+  it('the sweep takes the pending turn once the bot can act, exactly once', async () => {
+    const { alice, botId, handId } = await seedStuckBotTurn();
+    await seedSolverMeta(env.db); // off-book passive fallback: folds to the big raise
+
+    expect(await sweepPendingBotTurns(env.db)).toBe(1);
+    const hand = await env.db.query.hands.findFirst({ where: eq(hands.handId, handId) });
+    expect(hand!.status).toBe('complete');
+    expect(hand!.winnerUserId).toBe(alice.userId);
+
+    // Nothing left to do; a second sweep is a no-op and adds no actions.
+    expect(await sweepPendingBotTurns(env.db)).toBe(0);
+    const botActions = await env.db.query.actions.findMany({ where: eq(actions.actingUserId, botId) });
+    expect(botActions).toHaveLength(1);
+  });
+
+  it('the sweep ignores matches that are not active', async () => {
+    const { matchId } = await seedStuckBotTurn();
+    await seedSolverMeta(env.db);
+    await env.db.update(matches).set({ status: 'abandoned' }).where(eq(matches.matchId, matchId));
+    expect(await sweepPendingBotTurns(env.db)).toBe(0);
+  });
+
+  it('pinging the bot makes it take its pending turn', async () => {
+    const { alice, matchId, handId } = await seedStuckBotTurn();
+    await seedSolverMeta(env.db);
+
+    const result = await sendPing(env.db, matchId, alice.userId);
+    expect(typeof result.quip).toBe('string');
+    const hand = await env.db.query.hands.findFirst({ where: eq(hands.handId, handId) });
+    expect(hand!.status).toBe('complete');
   });
 });
 
