@@ -86,7 +86,7 @@ xcrun simctl launch booted com.thomasjjohnston.tilted \
   -debugUserId a1b2c3d4-e5f6-7890-abcd-ef1234567890   # seeded "Thomas Johnston"
 ```
 
-Add `-debugScreen newGame` to open the New game sheet at launch (useful for
+Add `-debugScreen <home|turn|matchUp|newGame|howToPlay|blocked>` to open a screen at launch, `-tilted.hasSeenHowToPlay 1` to skip the explainer, and `-matchup.selectedOpponentId <uuid>` to pick the Match-up opponent (useful for
 screenshots, since `simctl` cannot tap). These arguments are compiled out of
 Release builds (`App/DebugLaunch.swift`).
 

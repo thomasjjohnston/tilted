@@ -159,6 +159,17 @@ struct HomeView: View {
             .onAppear {
                 if DebugLaunch.screen == "newGame" { showNewGame = true }
                 if DebugLaunch.screen == "howToPlay" { showHowToPlay = true }
+                if DebugLaunch.screen == "matchUp" { store.selectedTab = .matchUp }
+            }
+            // "home"/"turn": skip the completed-hand covers, then (for "turn")
+            // open the first match that is waiting on us, once loaded.
+            .onChange(of: store.hasInitiallyLoaded) { _, loaded in
+                guard loaded, DebugLaunch.screen == "home" || DebugLaunch.screen == "turn" else { return }
+                store.acknowledgeCompletions(store.unseenCompletions.map(\.handId))
+                guard DebugLaunch.screen == "turn",
+                      let m = activeMatches.first(where: { ($0.currentRound?.handsPendingMe ?? 0) > 0 })
+                else { return }
+                openMatch(m)
             }
             #endif
             .fullScreenCover(isPresented: showTurn) {
