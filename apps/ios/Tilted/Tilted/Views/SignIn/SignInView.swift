@@ -45,6 +45,11 @@ struct SignInView: View {
                     .disabled(isSigningIn)
                     .opacity(isSigningIn ? 0.5 : 1)
 
+                    Link("Privacy policy", destination: SupportContact.privacyPolicyURL)
+                        .font(.system(size: 11))
+                        .foregroundColor(.cream300)
+                        .padding(.top, 4)
+
                     if let error {
                         Text(error)
                             .font(.caption)

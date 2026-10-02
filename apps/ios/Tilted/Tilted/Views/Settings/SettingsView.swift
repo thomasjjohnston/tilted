@@ -48,10 +48,30 @@ struct SettingsView: View {
                         .listRowBackground(Color.felt600)
 
                         Section {
+                            Link(destination: SupportContact.supportURL) {
+                                HStack {
+                                    Text("Help & how to play")
+                                        .foregroundColor(.cream100)
+                                    Spacer()
+                                    Image(systemName: "arrow.up.right")
+                                        .foregroundColor(.cream300)
+                                        .font(.caption)
+                                }
+                            }
                             Button("Send Feedback") {
                                 sendFeedback()
                             }
                             .foregroundColor(.gold500)
+                            Link(destination: SupportContact.privacyPolicyURL) {
+                                HStack {
+                                    Text("Privacy Policy")
+                                        .foregroundColor(.cream100)
+                                    Spacer()
+                                    Image(systemName: "arrow.up.right")
+                                        .foregroundColor(.cream300)
+                                        .font(.caption)
+                                }
+                            }
                         } header: {
                             Text("Support")
                                 .foregroundColor(.cream300)

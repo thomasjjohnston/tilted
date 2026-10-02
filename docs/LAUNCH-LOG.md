@@ -28,6 +28,7 @@ and anything skipped. Newest entries at the bottom.
 | 2026-10-02 | C14 Block a player (server) | #37 | Migration 0010 (new table). TJ chose: blocking ends the active match as abandoned. |
 | 2026-10-02 | B10 Bot turn fitted to the shared stack (bug fix) | #38 | Found by playing the bot on a local stack with the pilot strategies. |
 | 2026-10-02 | C13 iOS: new-game screen, invite links, block/unblock | #39 | Replaces the opponent picker. Needs the Associated Domains capability on the App ID. |
+| 2026-10-02 | E15 Privacy policy and support pages | #40 | `/privacy`, `/support`; linked from Settings and the sign-in screen. **TJ to review the policy text before App Store submission.** |
 
 ## Decisions made without asking
 
@@ -110,8 +111,17 @@ and anything skipped. Newest entries at the bottom.
 30. **Debug builds accept launch arguments** (`-debugUserId`, `-debugScreen`)
     so the simulator can be driven without an Apple ID; compiled out of
     Release.
+31. **The privacy policy is written in plain language as a first draft** and
+    states: Sign in with Apple identifiers/name/email, gameplay data, push
+    token, invites/blocks, usage events; no selling, ads or analytics SDKs;
+    US hosting on Fly.io and Neon; deletion in app; hands kept under
+    "Deleted Player"; rated for adults. TJ must read it before it is cited
+    on the App Store listing.
 
 ## Open items for TJ
+
+- **Read `https://tilted-server.fly.dev/privacy`** and tell me any changes.
+  It is cited in the listing and shown in the app.
 
 - **Associated Domains capability**: the app now declares
   `applinks:tilted-server.fly.dev`. Xcode's automatic signing usually adds
