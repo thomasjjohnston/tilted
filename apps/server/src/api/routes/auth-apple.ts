@@ -7,6 +7,7 @@ import { env } from '../../env.js';
 import { verifyAppleIdentityToken } from '../../auth/apple-jwt.js';
 import { mintToken } from '../../auth/tokens.js';
 import { logEvent } from '../../events/logger.js';
+import { generateDisplayName } from '../../lib/player-names.js';
 
 const bodySchema = z.object({
   identity_token: z.string().min(10),
@@ -43,9 +44,9 @@ export async function authAppleRoutes(app: FastifyInstance) {
     });
 
     if (!user) {
-      const displayName = effectiveFullName
-        || (effectiveEmail ? effectiveEmail.split('@')[0] : null)
-        || 'User';
+      // Shared Apple name if we got one; otherwise a generated nickname.
+      // Never derive it from the email — that leaks the address to opponents.
+      const displayName = effectiveFullName || generateDisplayName();
 
       const [inserted] = await db.insert(users).values({
         appleSub: identity.sub,

@@ -18,6 +18,7 @@ and anything skipped. Newest entries at the bottom.
 | 2026-10-02 | B5 Bot branches merged | #23–#26 | Migrations 0005/0006 applied. Bot is still gated (`TILTED_BOT_TESTERS` unset) and has no strategies in production yet. |
 | 2026-10-02 | A2 Account deletion keeps opponent history | #28 | Migration 0007. Verified: production rows unchanged after deploy. |
 | 2026-10-02 | A3 Sign-out revokes the bearer; idle tokens expire | (this PR) | Migration 0008. |
+| 2026-10-02 | A5 Generated names for hidden Apple names | (this PR) | Word lists in `apps/server/src/lib/player-names.ts`. |
 
 ## Decisions made without asking
 
@@ -42,6 +43,9 @@ and anything skipped. Newest entries at the bottom.
    Existing tokens start their clock at the migration.
 9. **Sign-out revokes only the token on that device**, not the user's other
    sessions.
+11. **Generated names look like "Lucky Gutshot 7" or "River Rat 42"**, are
+    assigned once at sign-up, and are not unique. The email-prefix fallback
+    is gone, since it showed part of the user's address to opponents.
 
 ## Open items for TJ
 
