@@ -86,8 +86,9 @@ docker compose down -v         # stop and wipe all local data
 - The server binds `0.0.0.0` and ATS allows plain `http`, so the device reaches
   it directly — no tunnel needed.
 - The bot uses the `POST /v1/auth/debug/select` route to get a bearer. That
-  route is currently open in production too — a follow-up should gate it to
-  non-prod (`NODE_ENV !== 'production'`).
+  route only exists when `ENABLE_DEBUG_AUTH=true` (set in `docker-compose.yml`,
+  and in your `.env` if you run the server natively). It is never set on Fly,
+  so production returns 404 for it.
 - The seeded "Thomas Johnston" / "Stephen Layton" users are separate from the
   Apple account you sign in with; the bot will challenge them too, but those
   matches just sit idle. Harmless.

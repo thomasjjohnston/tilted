@@ -62,7 +62,7 @@ Stephen Layton (SL)
   user_id: b2c3d4e5-f6a7-8901-bcde-f12345678901
   PIN:     1234
 ```
-Only accessible when `#if DEBUG` in `RootView` (Xcode Run, not Archive/TestFlight). These user rows in prod DB will be orphaned once everyone logs in via SIWA — harmless, can be cleaned up later.
+Only accessible when `#if DEBUG` in `RootView` (Xcode Run, not Archive/TestFlight), and only against a server started with `ENABLE_DEBUG_AUTH=true` (the local stack — see `docs/LOCAL-TESTING.md`). Production does not register the debug login route, and as of 2026-10-02 these two user rows do not exist in the production DB: every production user is a SIWA account.
 
 **Account deletion.** `DELETE /v1/me` + a Settings → Delete Account button are in place (App Store guideline 5.1.1(v)). Server-to-server revocation webhook at `POST /v1/auth/apple/notifications` — functional but requires a Service ID configured in Apple Developer before Apple actually POSTs to it.
 
@@ -141,7 +141,6 @@ These are NOT up for debate without explicit user revisit:
 - No analytics dashboard — `app_events` table is populated but never queried in UI.
 - CI on iOS side fails (`.xcodeproj` gitignored, `xcodegen` in CI needs tweaking).
 - Apple revocation webhook: code is live but Apple won't POST until a Service ID is created in the Developer portal and configured to call our endpoint.
-- Legacy TJ/SL user rows exist in prod DB without `apple_sub`. They'll be orphaned once both users sign in via SIWA. Safe to leave or clean up later.
 
 ---
 
@@ -187,17 +186,18 @@ These are NOT up for debate without explicit user revisit:
 curl -s https://tilted-server.fly.dev/healthz
 # → {"ok":true,"commit":"..."}
 
-# 2. Auth + match state (uses TJ's user_id)
-TOKEN=$(curl -s -X POST https://tilted-server.fly.dev/v1/auth/debug/select \
+# 2. Debug login must be closed in production
+curl -s -o /dev/null -w '%{http_code}\n' -X POST \
+  https://tilted-server.fly.dev/v1/auth/debug/select \
   -H 'Content-Type: application/json' \
-  -d '{"user_id":"a1b2c3d4-e5f6-7890-abcd-ef1234567890"}' | jq -r .token)
-
-curl -s https://tilted-server.fly.dev/v1/match/current \
-  -H "Authorization: Bearer $TOKEN" | jq '.my_total + .opponent_total'
-# → 4000 (chip conservation invariant)
+  -d '{"user_id":"a1b2c3d4-e5f6-7890-abcd-ef1234567890"}'
+# → 404
 ```
 
-If that chip sum is NOT 4000, the chip ledger is broken. Reset the match and investigate.
+The debug login route only exists when `ENABLE_DEBUG_AUTH=true`, which is set
+for the local docker-compose stack and never on Fly. To check chip
+conservation (`my_total + opponent_total` = 4000 per match), run the
+`/v1/match/current` query against a local stack with a debug-login token.
 
 ---
 
