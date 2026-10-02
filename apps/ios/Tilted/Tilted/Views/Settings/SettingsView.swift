@@ -139,7 +139,7 @@ struct SettingsView: View {
                     }
                 }
             } message: {
-                Text("This removes your match history, pinned hands, and Apple sign-in binding. You can sign back in later, but nothing will be restored.")
+                Text("This removes your name, email, pinned hands, and Apple sign-in binding, and ends any matches in progress. Hands you played stay in your opponents' history under \"Deleted Player\". You can sign back in later, but nothing will be restored.")
             }
             .alert("Delete failed", isPresented: Binding(
                 get: { deleteError != nil },

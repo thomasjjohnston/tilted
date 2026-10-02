@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { ne, asc } from 'drizzle-orm';
+import { and, ne, asc, isNull } from 'drizzle-orm';
 import { getDb } from '../context.js';
 import { users } from '../../db/schema.js';
 import { userMayAccessBot } from '../../game/bot.js';
@@ -24,7 +24,7 @@ export async function usersRoutes(app: FastifyInstance) {
   app.get('/users', async (req) => {
     const db = getDb();
     const rows = await db.query.users.findMany({
-      where: ne(users.userId, req.userId),
+      where: and(ne(users.userId, req.userId), isNull(users.deletedAt)),
       orderBy: asc(users.displayName),
     });
     // Untilted (bot) rows are gated behind the tester allowlist while in

@@ -11,7 +11,7 @@ import { resolveShowdown } from '../engine/showdown.js';
 import { dealFromSeed, boardForStreet } from '../engine/deck.js';
 import { getAvailableChips, assertLedgerInvariant } from './ledger.js';
 import type { ActionType, Card, Street, BettingState, PlayerState } from '../engine/types.js';
-import { getMatchState } from './match.js';
+import { assertMatchActive, getMatchState } from './match.js';
 import { logEvent } from '../events/logger.js';
 import { dispatch } from '../notif/dispatchers.js';
 import { enqueueReminder } from '../notif/reminder-cron.js';
@@ -349,6 +349,7 @@ export async function applyAction(db: Database, input: ApplyActionInput) {
     await tx.execute(sql`SELECT * FROM matches WHERE match_id = ${round.matchId} FOR UPDATE`);
     const match = await tx.query.matches.findFirst({ where: eq(matches.matchId, round.matchId) });
     if (!match) throw new Error('Match not found');
+    assertMatchActive(match);
 
     const opponentId = match.userAId === input.userId ? match.userBId : match.userAId;
 
@@ -411,6 +412,7 @@ export async function applyTurnBatch(
     await tx.execute(sql`SELECT * FROM matches WHERE match_id = ${round.matchId} FOR UPDATE`);
     const match = await tx.query.matches.findFirst({ where: eq(matches.matchId, round.matchId) });
     if (!match) throw new Error('Match not found');
+    assertMatchActive(match);
 
     const opponentId = match.userAId === userId ? match.userBId : match.userAId;
 
@@ -511,6 +513,7 @@ export async function applyBatchActions(
     await tx.execute(sql`SELECT 1 FROM matches WHERE match_id = ${round.matchId} FOR UPDATE`);
     const match = await tx.query.matches.findFirst({ where: eq(matches.matchId, round.matchId) });
     if (!match) throw new Error('Match not found');
+    assertMatchActive(match);
 
     const isUserA = match.userAId === userId;
     const opponentId = isUserA ? match.userBId : match.userAId;

@@ -320,6 +320,8 @@ DEBUG builds fall through to `DebugPickerView` (existing PIN login). Release/Arc
 
 ### A6: In-app account deletion
 
+> **Superseded (LAUNCH-A2).** Deletion no longer removes matches. It scrubs the user row and keeps all game data so the opponent's history survives; see `resources/product-definition-mvp.md` §23 and `apps/server/src/game/account.ts`. The code below is historical.
+
 Required by App Store Review Guideline 5.1.1(v) for any app offering SIWA.
 
 **Server:** new `DELETE /v1/me` route in `me.ts`.
