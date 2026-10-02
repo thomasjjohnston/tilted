@@ -6,6 +6,7 @@ final class AppStore {
     init() {
         loadSeenCompletions()
         pendingInviteCode = UserDefaults.standard.string(forKey: pendingInviteKey)
+        hasSeenHowToPlay = UserDefaults.standard.bool(forKey: hasSeenHowToPlayKey)
     }
 
     // MARK: - Auth State
@@ -43,6 +44,19 @@ final class AppStore {
     func consumePendingInvite() {
         pendingInviteCode = nil
         UserDefaults.standard.removeObject(forKey: pendingInviteKey)
+    }
+
+    // MARK: - Onboarding
+
+    /// Whether the how-to-play explainer has been shown on this device.
+    /// Per device rather than per account: it is about the game, and a
+    /// returning player on a new phone can skip it in one tap.
+    private(set) var hasSeenHowToPlay = false
+    private let hasSeenHowToPlayKey = "tilted.hasSeenHowToPlay"
+
+    func markHowToPlaySeen() {
+        hasSeenHowToPlay = true
+        UserDefaults.standard.set(true, forKey: hasSeenHowToPlayKey)
     }
 
     // MARK: - Navigation

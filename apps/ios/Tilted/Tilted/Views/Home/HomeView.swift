@@ -5,6 +5,8 @@ struct HomeView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var showCoinFlip = false
     @State private var showNewGame = false
+    @State private var newGameIntent: NewGameSheet.Intent = .none
+    @State private var showHowToPlay = false
     @State private var blockCandidate: MatchState?
     @State private var inviteError: String?
     @State private var revealMatch: MatchState?
@@ -100,13 +102,32 @@ struct HomeView: View {
                         .foregroundColor(.cream300)
                 }
             }
-            .sheet(isPresented: $showNewGame) {
-                NewGameSheet { match in
+            .sheet(isPresented: $showNewGame, onDismiss: { newGameIntent = .none }) {
+                NewGameSheet(intent: newGameIntent) { match in
                     store.matchState = match
                     showNewGame = false
                     showCoinFlip = true
                 }
                 .environment(store)
+            }
+            // First launch: explain ten-hands-one-stack before anything else.
+            .fullScreenCover(isPresented: $showHowToPlay) {
+                HowToPlayView { outcome in
+                    store.markHowToPlaySeen()
+                    showHowToPlay = false
+                    switch outcome {
+                    case .playBot:
+                        Task { await playBotFromOnboarding() }
+                    case .inviteFriend:
+                        newGameIntent = .invite
+                        showNewGame = true
+                    case .later:
+                        break
+                    }
+                }
+            }
+            .onAppear {
+                if !store.hasSeenHowToPlay && store.pendingInviteCode == nil { showHowToPlay = true }
             }
             .alert(
                 "Block \(blockCandidate?.opponent.displayName ?? "this player")?",
@@ -135,7 +156,10 @@ struct HomeView: View {
             // redeem it and go straight into the new match.
             .task(id: store.pendingInviteCode) { await redeemPendingInvite() }
             #if DEBUG
-            .onAppear { if DebugLaunch.screen == "newGame" { showNewGame = true } }
+            .onAppear {
+                if DebugLaunch.screen == "newGame" { showNewGame = true }
+                if DebugLaunch.screen == "howToPlay" { showHowToPlay = true }
+            }
             #endif
             .fullScreenCover(isPresented: showTurn) {
                 if let match = store.matchState, let round = match.currentRound {
@@ -258,6 +282,22 @@ struct HomeView: View {
             showCoinFlip = true
         } catch {
             inviteError = error.localizedDescription
+        }
+    }
+
+    /// "Play Untilted" from the last how-to-play card: start the bot match
+    /// directly rather than making a new player find it in the sheet.
+    @MainActor
+    private func playBotFromOnboarding() async {
+        do {
+            let match = try await APIClient.shared.createBotMatch()
+            await store.refresh()
+            store.matchState = match
+            showCoinFlip = true
+        } catch {
+            // Bot unavailable (or any failure): fall back to the full sheet.
+            newGameIntent = .none
+            showNewGame = true
         }
     }
 

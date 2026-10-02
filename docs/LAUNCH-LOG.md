@@ -29,6 +29,9 @@ and anything skipped. Newest entries at the bottom.
 | 2026-10-02 | B10 Bot turn fitted to the shared stack (bug fix) | #38 | Found by playing the bot on a local stack with the pilot strategies. |
 | 2026-10-02 | C13 iOS: new-game screen, invite links, block/unblock | #39 | Replaces the opponent picker. Needs the Associated Domains capability on the App ID. |
 | 2026-10-02 | E15 Privacy policy and support pages | #40 | `/privacy`, `/support`; linked from Settings and the sign-in screen. **TJ to review the policy text before App Store submission.** |
+| 2026-10-02 | E16 Privacy manifest + label answer sheet | #42 | `PrivacyInfo.xcprivacy`; `docs/APP-STORE-PRIVACY-LABELS.md`. |
+| 2026-10-02 | F22 One Fly machine always on | #41 | Verified: machine started, reminder loop logged at boot. |
+| 2026-10-02 | D13 How-to-play explainer | #43 | Four cards; last card starts a bot match or an invite. Shown once per device; again from Settings. |
 
 ## Decisions made without asking
 
@@ -117,6 +120,11 @@ and anything skipped. Newest entries at the bottom.
     US hosting on Fly.io and Neon; deletion in app; hands kept under
     "Deleted Player"; rated for adults. TJ must read it before it is cited
     on the App Store listing.
+32. **The explainer is shown once per device, not per account**, and is
+    skipped when the app was opened from an invite link (the invite takes
+    precedence; they can read it later from Settings → How to play).
+33. **"Play Untilted" on the last card starts the bot match directly**; if
+    the bot is unavailable it falls back to the New game sheet.
 
 ## Open items for TJ
 
