@@ -95,3 +95,23 @@ final class PendingInviteTests: XCTestCase {
         XCTAssertNil(store.pendingInviteCode)
     }
 }
+
+@MainActor
+final class HowToPlayFlagTests: XCTestCase {
+    override func setUp() {
+        super.setUp()
+        UserDefaults.standard.removeObject(forKey: "tilted.seenCompletions")
+        UserDefaults.standard.removeObject(forKey: "tilted.hasSeenHowToPlay")
+    }
+
+    func testFirstLaunchHasNotSeenHowToPlay() {
+        XCTAssertFalse(AppStore().hasSeenHowToPlay)
+    }
+
+    func testMarkingSeenPersistsAcrossRelaunch() {
+        let store = AppStore()
+        store.markHowToPlaySeen()
+        XCTAssertTrue(store.hasSeenHowToPlay)
+        XCTAssertTrue(AppStore().hasSeenHowToPlay)
+    }
+}

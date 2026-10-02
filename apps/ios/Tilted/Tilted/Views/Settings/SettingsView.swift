@@ -3,6 +3,7 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(AppStore.self) private var store
     @State private var showDeleteConfirm = false
+    @State private var showHowToPlay = false
     @State private var deleteError: String?
     #if DEBUG
     @State private var debugServer: String = APIClient.debugServerString
@@ -48,6 +49,18 @@ struct SettingsView: View {
                         .listRowBackground(Color.felt600)
 
                         Section {
+                            Button {
+                                showHowToPlay = true
+                            } label: {
+                                HStack {
+                                    Text("How to play")
+                                        .foregroundColor(.cream100)
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .foregroundColor(.cream300)
+                                        .font(.caption)
+                                }
+                            }
                             Link(destination: SupportContact.supportURL) {
                                 HStack {
                                     Text("Help & how to play")
@@ -164,6 +177,9 @@ struct SettingsView: View {
                         .fontDesign(.serif)
                         .foregroundColor(.cream100)
                 }
+            }
+            .fullScreenCover(isPresented: $showHowToPlay) {
+                HowToPlayView { _ in showHowToPlay = false }
             }
             .alert("Delete your account?", isPresented: $showDeleteConfirm) {
                 Button("Cancel", role: .cancel) {}

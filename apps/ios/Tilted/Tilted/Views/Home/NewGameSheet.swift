@@ -6,6 +6,15 @@ struct NewGameSheet: View {
     @Environment(AppStore.self) private var store
     @Environment(\.dismiss) private var dismiss
 
+    /// What the caller wants the sheet to do as soon as it opens.
+    enum Intent {
+        case none
+        /// Create and show an invite straight away (from the how-to-play card).
+        case invite
+    }
+
+    var intent: Intent = .none
+
     /// Called when a match has been successfully created.
     var onMatchCreated: (MatchState) -> Void
 
@@ -255,6 +264,7 @@ struct NewGameSheet: View {
     private func load() async {
         isLoading = true
         defer { isLoading = false }
+        if intent == .invite, invite == nil { await createInvite() }
         // Independent lookups: a failure of one (e.g. bot check) must not
         // hide the other ways to start a game.
         async let botResult = try? APIClient.shared.getBot()
