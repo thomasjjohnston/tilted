@@ -4,6 +4,7 @@ import { matches, rounds, hands } from '../db/schema.js';
 import { HANDS_PER_ROUND, BLIND_SMALL, BLIND_BIG, MIN_CHIPS_FOR_ROUND } from './constants.js';
 import { generateSeed, dealFromSeed } from '../engine/deck.js';
 import { endMatch, getMatchState } from './match.js';
+import { GameRuleError } from '../errors.js';
 import { assertLedgerInvariant } from './ledger.js';
 import { resolveShowdown } from '../engine/showdown.js';
 import type { Card } from '../engine/types.js';
@@ -104,6 +105,9 @@ export async function advanceRound(
       where: eq(matches.matchId, round.matchId),
     });
     if (!m) throw new Error(`Match not found`);
+    // An abandoned match is frozen. ('ended' is not rejected here: a retried
+    // advance after the match-ending round must stay idempotent.)
+    if (m.status === 'abandoned') throw new GameRuleError('Match is not active');
 
     // If round is already complete and next round exists, return current state
     if (round.status === 'complete') {

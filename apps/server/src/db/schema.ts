@@ -23,6 +23,9 @@ export const users = pgTable('users', {
   isBot: boolean('is_bot').notNull().default(false),
   apnsToken: text('apns_token'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  // Set when the account is deleted. The row is scrubbed of personal data
+  // and kept so opponents' match history stays intact (spec §23).
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
 });
 
 // ── Debug tokens (MVP auth) ──────────────────────────────────────────────────
@@ -42,7 +45,7 @@ export const matches = pgTable('matches', {
   startingStack: integer('starting_stack').notNull().default(2000),
   blindSmall: integer('blind_small').notNull().default(5),
   blindBig: integer('blind_big').notNull().default(10),
-  status: text('status').notNull().$type<'active' | 'ended'>(),
+  status: text('status').notNull().$type<'active' | 'ended' | 'abandoned'>(),
   winnerUserId: uuid('winner_user_id').references(() => users.userId),
   sbOfRound1: uuid('sb_of_round_1').notNull().references(() => users.userId),
   startedAt: timestamp('started_at', { withTimezone: true }).notNull().defaultNow(),
@@ -50,7 +53,7 @@ export const matches = pgTable('matches', {
   userATotal: integer('user_a_total').notNull(),
   userBTotal: integer('user_b_total').notNull(),
 }, (table) => [
-  check('matches_status_check', sql`${table.status} in ('active', 'ended')`),
+  check('matches_status_check', sql`${table.status} in ('active', 'ended', 'abandoned')`),
 ]);
 
 // ── Rounds ───────────────────────────────────────────────────────────────────

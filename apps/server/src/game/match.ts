@@ -8,6 +8,7 @@ import { dispatch } from '../notif/dispatchers.js';
 import { enqueueReminder } from '../notif/reminder-cron.js';
 import { logEvent } from '../events/logger.js';
 import { randomQuip } from '../lib/poker-quips.js';
+import { GameRuleError } from '../errors.js';
 
 /**
  * Create a new match between `requestingUserId` and `opponentUserId`.
@@ -28,7 +29,7 @@ export async function createMatch(
     const opponent = await tx.query.users.findFirst({
       where: eq(users.userId, opponentUserId),
     });
-    if (!opponent) throw new Error('Opponent not found');
+    if (!opponent || opponent.deletedAt) throw new Error('Opponent not found');
 
     // Untilted gating: the bot never initiates, and only allowlisted
     // testers may challenge it (server-side authority; the /users roster
@@ -312,6 +313,14 @@ function buildHandView(
     my_resolved_net: myResolvedNet,
     last_action: lastAction,
   };
+}
+
+/**
+ * Guard for every mutation path: once a match is ended or abandoned its
+ * hands are frozen, even if some were still in progress.
+ */
+export function assertMatchActive(match: { status: string }): void {
+  if (match.status !== 'active') throw new GameRuleError('Match is not active');
 }
 
 /**

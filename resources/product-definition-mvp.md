@@ -432,3 +432,25 @@ Offered as a starting point for the implementing engineer.
 - **Known limitation:** strategies are within-abstraction near-GTO (bet-menu
   + bucketed cards); the bot plays each hand independently and does not
   balance its chip allocation across the 10 hands game-theoretically.
+
+---
+
+## 23. Addendum (launch): account deletion and abandoned matches
+
+- **Deleting an account removes the person, not the games.** The user's
+  Apple binding, email, name, push token, sign-in tokens and pinned hands are
+  removed. Their user row is kept with the display name "Deleted Player", and
+  every match, round, hand and action they played stays, so the other
+  player's history, stats and pinned hands are unaffected.
+- **Active matches end as `abandoned`.** A match in progress when either
+  player deletes their account ends immediately with status `abandoned` and
+  no winner. Chips are not moved. Its hands are frozen: no further action is
+  accepted, and no reminder fires for it.
+- **Abandoned matches do not count** towards the head-to-head match score
+  (which counts `ended` matches only). Hands completed before abandonment
+  remain in history like any other.
+- **A deleted user cannot be challenged**, and signing in again with the same
+  Apple ID creates a brand-new account; nothing is restored.
+- `abandoned` is also the outcome when a player blocks their opponent
+  mid-match (see the blocking addendum when it lands).
+

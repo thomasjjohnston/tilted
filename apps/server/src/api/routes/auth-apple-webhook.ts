@@ -1,14 +1,11 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { eq, or } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { getDb } from '../context.js';
-import {
-  users, matches, rounds, hands, actions, favorites,
-  turnHandoffs, pendingReminders, debugTokens,
-} from '../../db/schema.js';
+import { users } from '../../db/schema.js';
 import { env } from '../../env.js';
 import { verifyAppleIdentityToken } from '../../auth/apple-jwt.js';
-import { logEvent } from '../../events/logger.js';
+import { deleteAccount } from '../../game/account.js';
 
 const bodySchema = z.object({
   payload: z.string().min(10),
@@ -62,36 +59,7 @@ export async function authAppleWebhookRoutes(app: FastifyInstance) {
     if (eventType === 'account-delete' || eventType === 'consent-revoked') {
       const user = await db.query.users.findFirst({ where: eq(users.appleSub, eventSub) });
       if (user) {
-        await db.transaction(async (tx) => {
-          const userMatches = await tx.query.matches.findMany({
-            where: or(eq(matches.userAId, user.userId), eq(matches.userBId, user.userId)),
-          });
-          for (const m of userMatches) {
-            const matchRounds = await tx.query.rounds.findMany({
-              where: eq(rounds.matchId, m.matchId),
-            });
-            for (const r of matchRounds) {
-              const roundHands = await tx.query.hands.findMany({
-                where: eq(hands.roundId, r.roundId),
-              });
-              for (const h of roundHands) {
-                await tx.delete(actions).where(eq(actions.handId, h.handId));
-                await tx.delete(favorites).where(eq(favorites.handId, h.handId));
-              }
-              await tx.delete(turnHandoffs).where(eq(turnHandoffs.roundId, r.roundId));
-              await tx.delete(pendingReminders).where(eq(pendingReminders.roundId, r.roundId));
-              await tx.delete(hands).where(eq(hands.roundId, r.roundId));
-            }
-            await tx.delete(pendingReminders).where(eq(pendingReminders.matchId, m.matchId));
-            await tx.delete(rounds).where(eq(rounds.matchId, m.matchId));
-          }
-          await tx.delete(matches).where(
-            or(eq(matches.userAId, user.userId), eq(matches.userBId, user.userId))
-          );
-          await tx.delete(debugTokens).where(eq(debugTokens.userId, user.userId));
-          await logEvent(tx, user.userId, 'user_deleted_by_apple', { type: eventType });
-          await tx.delete(users).where(eq(users.userId, user.userId));
-        });
+        await deleteAccount(db, user.userId, 'user_deleted_by_apple', { type: eventType });
       }
     }
 

@@ -64,7 +64,7 @@ Stephen Layton (SL)
 ```
 Only accessible when `#if DEBUG` in `RootView` (Xcode Run, not Archive/TestFlight), and only against a server started with `ENABLE_DEBUG_AUTH=true` (the local stack — see `docs/LOCAL-TESTING.md`). Production does not register the debug login route, and as of 2026-10-02 these two user rows do not exist in the production DB: every production user is a SIWA account.
 
-**Account deletion.** `DELETE /v1/me` + a Settings → Delete Account button are in place (App Store guideline 5.1.1(v)). Server-to-server revocation webhook at `POST /v1/auth/apple/notifications` — functional but requires a Service ID configured in Apple Developer before Apple actually POSTs to it.
+**Account deletion.** `DELETE /v1/me` + a Settings → Delete Account button are in place (App Store guideline 5.1.1(v)). Deletion scrubs the user row (name becomes "Deleted Player") and keeps every match so the opponent's history is untouched; active matches end as `abandoned` (spec §23). Server-to-server revocation webhook at `POST /v1/auth/apple/notifications` — functional but requires a Service ID configured in Apple Developer before Apple actually POSTs to it.
 
 **Sarah Flint was renamed to Stephen Layton** mid-session. Don't bring her back.
 
