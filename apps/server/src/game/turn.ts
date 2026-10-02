@@ -388,7 +388,12 @@ export interface TurnSubmitInput {
  * whole turn back (nothing is applied) so the client can return the
  * player to the cart. Idempotent via per-action client_tx_id.
  */
-export async function applyTurnBatch(db: Database, userId: string, input: TurnSubmitInput) {
+export async function applyTurnBatch(
+  db: Database,
+  userId: string,
+  input: TurnSubmitInput,
+  opts: { isBotTurn?: boolean } = {},
+) {
   if (input.actions.length === 0) throw new GameRuleError('No actions in turn submission');
 
   const notif: PendingNotifState = { handoffs: [] };
@@ -434,6 +439,18 @@ export async function applyTurnBatch(db: Database, userId: string, input: TurnSu
   });
 
   await fireNotifications(db, notif);
+
+  // Untilted: if this turn handed control to the bot, it acts immediately
+  // (post-commit, own transaction) and the caller gets the post-bot state —
+  // mirrors the fire-after-commit notification pattern. isBotTurn guards
+  // recursion; a bot failure never breaks the human's submit (see bot.ts).
+  if (!opts.isBotTurn && notif.handoffs.length > 0) {
+    const { maybeRunBotTurn } = await import('./bot.js');
+    const botActed = await maybeRunBotTurn(db, notif.handoffs);
+    if (botActed) {
+      return getMatchState(db, notif.handoffs[0].matchId, userId);
+    }
+  }
   return result;
 }
 
