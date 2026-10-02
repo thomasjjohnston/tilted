@@ -65,7 +65,7 @@ struct SettingsView: View {
                                 Text("Version")
                                     .foregroundColor(.cream100)
                                 Spacer()
-                                Text("0.1.0")
+                                Text(Self.appVersion)
                                     .foregroundColor(.cream300)
                             }
 
@@ -152,6 +152,14 @@ struct SettingsView: View {
         }
     }
 
+    /// "1.0.0 (12)" from the bundle, so it never drifts from project.yml.
+    static var appVersion: String {
+        let info = Bundle.main.infoDictionary
+        let version = info?["CFBundleShortVersionString"] as? String ?? "?"
+        let build = info?["CFBundleVersion"] as? String ?? "?"
+        return "\(version) (\(build))"
+    }
+
     private func openNotificationSettings() {
         if let url = URL(string: UIApplication.openNotificationSettingsURLString) {
             UIApplication.shared.open(url)
@@ -159,7 +167,7 @@ struct SettingsView: View {
     }
 
     private func sendFeedback() {
-        if let url = URL(string: "mailto:tj@tilted.app?subject=Tilted%20Feedback") {
+        if let url = URL(string: "mailto:\(SupportContact.email)?subject=Tilted%20Feedback") {
             UIApplication.shared.open(url)
         }
     }
