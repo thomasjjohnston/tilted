@@ -88,12 +88,17 @@ apps/server/
 The spec's §14 sketch is close. Refinements:
 
 ```sql
--- users (2 rows, ever, for MVP)
+-- users (one per Sign in with Apple account, plus the bot)
 create table users (
   user_id       uuid primary key,
-  display_name  text not null,
+  apple_sub     text unique,          -- null for the bot and for deleted users
+  email         text,
+  full_name     text,
+  display_name  text not null,        -- Apple name, or a generated nickname; "Deleted Player" after deletion
+  is_bot        boolean not null default false,
   apns_token    text,
-  created_at    timestamptz not null default now()
+  created_at    timestamptz not null default now(),
+  deleted_at    timestamptz           -- row is scrubbed and kept so opponents' history survives (spec §23)
 );
 
 -- matches: "current" is expressed via status='active'; invariant enforced in app layer
@@ -104,7 +109,7 @@ create table matches (
   starting_stack  int  not null default 2000,
   blind_small     int  not null default 5,
   blind_big       int  not null default 10,
-  status          text not null check (status in ('active','ended')),
+  status          text not null check (status in ('active','ended','abandoned')),  -- abandoned: deletion or block, no winner (spec §23, §27)
   winner_user_id  uuid references users,
   sb_of_round_1   uuid not null references users,
   started_at      timestamptz not null default now(),
@@ -113,6 +118,32 @@ create table matches (
   user_a_total    int  not null,
   user_b_total    int  not null
 );
+-- invites: single-use code/link that starts a match (spec §25)
+create table invites (
+  invite_id            uuid primary key,
+  code                 text not null unique,
+  inviter_user_id      uuid not null references users,
+  client_tx_id         text not null,          -- unique with inviter_user_id (idempotent create)
+  created_at           timestamptz not null default now(),
+  expires_at           timestamptz not null,
+  redeemed_by_user_id  uuid references users,
+  redeemed_at          timestamptz,
+  match_id             uuid references matches
+);
+
+-- blocks: one row per direction; either direction stops the pair playing (spec §27)
+create table blocks (
+  blocker_user_id uuid not null references users,
+  blocked_user_id uuid not null references users,
+  created_at      timestamptz not null default now(),
+  primary key (blocker_user_id, blocked_user_id)
+);
+
+-- debug_tokens (name is historical): bearer tokens, sliding 90-day idle expiry
+--   token_hash text primary key, user_id, created_at, last_used_at
+
+-- solver_meta / solver_strategies: the bot's imported strategy set (spec §22)
+
 -- NOTE: The original MVP had `create unique index on matches (status) where
 -- status = 'active'` to enforce "exactly one active match globally." That
 -- index was dropped in migration 0003 when the app expanded to N users;
@@ -281,11 +312,30 @@ We enforce it three ways:
 REST, JSON, bearer-token auth. All responses are user-scoped — the server redacts the opponent's hole cards before serializing.
 
 ```
-POST   /v1/auth/debug/select        body: { user_id }  → { token }   # debug picker
+POST   /v1/auth/apple                body: { identity_token, full_name?, email? } → { token, user_id, display_name }
+POST   /v1/auth/debug/select        body: { user_id }  → { token }   # only when ENABLE_DEBUG_AUTH=true (local stack)
+POST   /v1/auth/logout               → 204                            # revokes the presented bearer
 GET    /v1/me                        → user
+DELETE /v1/me                        → { ok }                         # scrub account, keep matches (spec §23)
 
-GET    /v1/match/current             → MatchState | null
-POST   /v1/match                     → MatchState                     # start new match (if neither has active)
+GET    /v1/matches                   → MatchState[]                   # active matches
+GET    /v1/match/current             → MatchState | null              # legacy single-match
+POST   /v1/match                     body: { opponent_user_id } → MatchState   # rematch only (spec §26): 404 stranger, 409 active
+POST   /v1/match/bot                 → MatchState                     # play Untilted: 503 unavailable, 409 active
+GET    /v1/bot                       → { available, user_id?, display_name? }
+GET    /v1/opponents                 → OpponentEntry[]                # previous opponents (rematch list)
+GET    /v1/users                     → deprecated alias of /v1/opponents (for builds ≤ 0.1.7)
+
+POST   /v1/invites                   body: { client_tx_id } → { code, url, expires_at }
+POST   /v1/invites/:code/redeem      → MatchState                     # 404/409/410 with { error, message }
+GET    /i/:code                      → public HTML landing page (no auth, no /v1)
+GET    /.well-known/apple-app-site-association                        # universal links for /i/*
+
+GET    /v1/blocks                    → BlockedPlayer[]
+POST   /v1/blocks                    body: { user_id } → 204          # ends the pair's active match as abandoned
+DELETE /v1/blocks/:userId            → 204
+
+GET    /privacy, GET /support        → public HTML pages (no auth)
 
 GET    /v1/match/:id/round/current   → RoundState + hands[] (filtered per user)
 GET    /v1/match/:id/history         ?favorites=true&won=true&round=N  → Hand[]
@@ -305,7 +355,7 @@ POST   /v1/round/:id/advance         → RoundState                    # "Next r
 
 ```ts
 {
-  match_id, opponent: { user_id, display_name },
+  match_id, status, winner_user_id, opponent: { user_id, display_name, is_bot },
   my_total, opponent_total,
   my_reserved, opponent_reserved,
   my_available, opponent_available,
@@ -359,12 +409,12 @@ TiltedApp/
 
 The store is a simple `@Observable` class; for MVP we don't need Redux/TCA. We re-fetch on: app foreground, app launch, after any action, on APNS arrival, and pull-to-refresh.
 
-## 11. Authentication (MVP)
+## 11. Authentication
 
-- On first launch, show a 2-item debug picker ("TJ" / "Friend"). Selection persists.
-- Client calls `POST /v1/auth/debug/select` with the selected user_id. Server returns a long-lived bearer token, stored in Keychain. Server side, the token is a random 256-bit string indexed in a `debug_tokens` table (`token_hash, user_id, created_at`).
-- All subsequent requests carry `Authorization: Bearer <token>`.
-- **Not secure** — it's explicitly throwaway per §15. Replace with Sign in with Apple post-MVP.
+- Production: Sign in with Apple. The client sends Apple's identity token to `POST /v1/auth/apple`; the server verifies it against Apple's JWKS, upserts the user by `apple_sub`, and returns a bearer. Display name is the shared Apple name or a generated nickname (spec §24).
+- Bearers are random 256-bit strings; only the SHA-256 hash is stored (`debug_tokens`, historical name). They expire after 90 idle days (sliding, `last_used_at` refreshed at most daily) and are revoked by `POST /v1/auth/logout`, which the app calls best-effort on sign-out.
+- Local development only: `POST /v1/auth/debug/select` mints a bearer for any user id, registered only when `ENABLE_DEBUG_AUTH=true` (the docker-compose stack). Production never sets it.
+- Account deletion (`DELETE /v1/me`, and Apple's server-to-server revocation webhook) scrubs the user row and keeps all game data; see spec §23.
 
 ## 12. Notifications
 

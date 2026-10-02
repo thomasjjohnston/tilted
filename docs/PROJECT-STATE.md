@@ -4,7 +4,7 @@
 
 Pair this with `CLAUDE.md` (golden rules), `docs/HLD.md` (architecture), `docs/SPRINT-PLAN.md` (original plan), and `resources/product-definition-mvp.md` (spec).
 
-Latest feature spec: **`docs/BETA-FEEDBACK-IMPLEMENTATION-SPEC.md`** — read this for the next batch of work.
+Latest work: the **App Store launch** (2026-10). `docs/LAUNCH-LOG.md` is the running record of what shipped and the decisions taken; spec addenda §22–§27 describe the bot, deletion, display names, invites, rematches and blocking.
 
 ---
 
@@ -130,16 +130,19 @@ These are NOT up for debate without explicit user revisit:
 - Apple revocation webhook endpoint (functional; Apple Dev Service ID config pending)
 - Fly + Neon deployment, TestFlight 0.1.4+
 
+- App Store launch work (2026-10-02, see `LAUNCH-LOG.md`): debug login closed in production; account deletion keeps opponents' history; bearer revocation + 90-day idle expiry; ATS debug-only, iPhone-only; generated nicknames for hidden Apple names; solver bot merged with a play-the-bot endpoint, a retry sweep and shared-stack budgeting; invites (link + code, landing page, universal links); rematch-only challenges, global roster removed; blocking; iOS New game sheet + how-to-play explainer; privacy policy, support page, privacy manifest; one Fly machine always on.
+
 ### 📋 Specified but NOT implemented
 - iOS filter pill for "history vs. specific opponent" — server supports it
   (`/v1/history?opponent_user_id=...`), the UI segmented control doesn't
   yet add the pill. One-hour job when desired.
 
 ### 🕳 Known gaps / deferred
+- **Bot strategies are not in production** (needs the storage decision in `LAUNCH-LOG.md`): `GET /v1/bot` reports unavailable, so "Play Untilted" is hidden.
+- No turn deadline, resign or report (deliberately out of scope for launch).
 - No offline UI (we gracefully degrade but don't show a banner).
 - No accessibility pass (default iOS only).
 - No analytics dashboard — `app_events` table is populated but never queried in UI.
-- CI on iOS side fails (`.xcodeproj` gitignored, `xcodegen` in CI needs tweaking).
 - Apple revocation webhook: code is live but Apple won't POST until a Service ID is created in the Developer portal and configured to call our endpoint.
 
 ---
