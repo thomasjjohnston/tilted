@@ -20,7 +20,8 @@ and anything skipped. Newest entries at the bottom.
 | 2026-10-02 | A3 Sign-out revokes the bearer; idle tokens expire | #29 | Migration 0008. Verified in production. |
 | 2026-10-02 | A4 Release build config | #30 | ATS debug-only, iPhone only, real version in Settings, Gmail feedback address. |
 | 2026-10-02 | A5 Generated names for hidden Apple names | #31 | Word lists in `apps/server/src/lib/player-names.ts`. |
-| 2026-10-02 | B6 Play-the-bot endpoint | (pending) | `GET /v1/bot`, `POST /v1/match/bot`, `opponent.is_bot`. Server only; the iOS button comes with the new-game screen in section C. |
+| 2026-10-02 | B6 Play-the-bot endpoint | #32 | `GET /v1/bot`, `POST /v1/match/bot`, `opponent.is_bot`. Server only; the iOS button comes with the new-game screen in section C. |
+| 2026-10-02 | B9 Bot retry sweep | #33 | Every 60s and at startup; pinging the bot also triggers its turn. |
 
 ## Decisions made without asking
 
@@ -57,6 +58,10 @@ and anything skipped. Newest entries at the bottom.
     `TILTED_BOT_TESTERS=*`, set when strategies are in production.
 13. **`POST /v1/match/bot` takes no body**; the server picks the bot user, so
     the client never needs a bot id.
+14. **Bot retry is a 60-second in-process sweep plus ping-to-retry**, not a
+    queue. It only runs while the Fly machine is awake, which is fine: any
+    request from the waiting player wakes it, and the sweep also runs at
+    startup.
 
 ## Open items for TJ
 

@@ -7,13 +7,16 @@
 // pending hand via the trained strategies, and submits one normal turn
 // batch through applyTurnBatch. No special-cased game rules anywhere.
 
-import { asc, eq, inArray } from 'drizzle-orm';
+import { asc, eq, inArray, sql } from 'drizzle-orm';
 import type { Database } from '../db/connection.js';
 import { actions, users } from '../db/schema.js';
 import type { Card } from '../engine/types.js';
 import { decideBotHand, type BotHandInput, type RecordedAction } from '../engine/solver/bot.js';
 import { getMatchState } from './match.js';
 import { getSolverMeta, lookupStrategy } from './solver-strategies.js';
+
+/** How often the retry sweep looks for bot turns that didn't run. */
+const BOT_SWEEP_INTERVAL_MS = 60 * 1000;
 
 /** Users allowed to see/challenge the bot. Comma-separated user ids, or '*'. */
 export function botTesterAllowlist(): string[] | '*' {
@@ -91,6 +94,47 @@ export async function runBotTurnSafely(
     console.error(`[untilted] bot turn failed for match ${matchId}:`, err);
     return false;
   }
+}
+
+/**
+ * Retry sweep: take the bot's turn in every active match where it has
+ * hands pending. A bot turn normally runs right after the human's commit;
+ * this catches the ones that failed (crash, deploy mid-turn, strategies
+ * not yet imported) so no bot match stays stuck. Safe to run concurrently
+ * with live turns: bot actions use deterministic client_tx_ids.
+ * Returns the number of matches the bot acted in.
+ */
+export async function sweepPendingBotTurns(db: Database): Promise<number> {
+  const botId = await findBotUserId(db);
+  if (!botId) return 0;
+  const stuck = await db.execute<{ match_id: string }>(sql`
+    SELECT DISTINCT m.match_id
+    FROM matches m
+    JOIN rounds r ON r.match_id = m.match_id
+    JOIN hands h ON h.round_id = r.round_id
+    WHERE m.status = 'active'
+      AND h.status = 'in_progress'
+      AND h.action_on_user_id = ${botId}
+  `);
+  let acted = 0;
+  for (const row of stuck) {
+    if (await runBotTurnSafely(db, row.match_id, botId)) acted++;
+  }
+  return acted;
+}
+
+/**
+ * Run the retry sweep on an interval. Call once at server startup.
+ * Returns a function to stop the loop (mostly for tests).
+ */
+export function startBotSweepLoop(db: Database, intervalMs = BOT_SWEEP_INTERVAL_MS): () => void {
+  const tick = () => {
+    sweepPendingBotTurns(db).catch(err => console.error('[untilted] sweep failed:', err));
+  };
+  // Immediately too: a restart is exactly when a bot turn may have been lost.
+  tick();
+  const handle = setInterval(tick, intervalMs);
+  return () => clearInterval(handle);
 }
 
 /** Take the bot's turn in a match if it has pending hands. */
