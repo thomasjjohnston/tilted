@@ -460,7 +460,7 @@ Offered as a starting point for the implementing engineer.
 - **A deleted user cannot be challenged**, and signing in again with the same
   Apple ID creates a brand-new account; nothing is restored.
 - `abandoned` is also the outcome when a player blocks their opponent
-  mid-match (see the blocking addendum when it lands).
+  mid-match (§27).
 
 ---
 
@@ -520,4 +520,23 @@ There is no list of all players and no search. The server refuses a
 challenge to anyone you have never played, with the same "not found" answer
 it gives for a user who does not exist. Deleted players and the bot do not
 appear in the rematch list.
+
+---
+
+## 27. Addendum (launch): blocking a player
+
+- A player can block anyone they have played. The bot cannot be blocked.
+- **While a block exists in either direction** the two players cannot
+  rematch each other, cannot redeem each other's invites, and do not appear
+  in each other's rematch lists.
+- **Blocking mid-match ends that match as `abandoned`**: no winner, no chips
+  moved, hands frozen (§23). Hands already completed stay in both players'
+  history.
+- **The blocked player is not told.** They get no notification, and attempts
+  to rematch or use an invite fail with the same "not found" answer as a
+  user or code that does not exist.
+- **Unblocking** is available from Settings. It restores the ability to play
+  each other; it does not revive an abandoned match. Only the player who
+  placed a block can lift it.
+- Deleting an account removes its blocks in both directions.
 

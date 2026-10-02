@@ -6,7 +6,7 @@ import { env } from '../env.js';
 import { logEvent } from '../events/logger.js';
 import { INVITE_CODE_LENGTH, INVITE_TTL_DAYS } from './constants.js';
 import {
-  MatchAlreadyActiveError, announceNewMatch, createMatchTx,
+  MatchAlreadyActiveError, OpponentNotFoundError, announceNewMatch, createMatchTx,
 } from './match.js';
 
 // No 0/O, 1/I/L: codes get read aloud and typed by hand.
@@ -138,6 +138,10 @@ export async function redeemInvite(
     } catch (e) {
       if (e instanceof MatchAlreadyActiveError) {
         throw new InviteError('already_playing', `You already have a match in progress with ${inviter.displayName}.`);
+      }
+      // Blocked either way: indistinguishable from a bad code.
+      if (e instanceof OpponentNotFoundError) {
+        throw new InviteError('not_found', 'That invite code was not found.');
       }
       throw e;
     }
