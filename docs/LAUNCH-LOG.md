@@ -16,7 +16,8 @@ and anything skipped. Newest entries at the bottom.
 |---|---|---|---|
 | 2026-10-02 | A1 Debug login closed in production | #27 | Route only exists when `ENABLE_DEBUG_AUTH=true`. Verified: production returns route-not-found. |
 | 2026-10-02 | B5 Bot branches merged | #23–#26 | Migrations 0005/0006 applied. Bot is still gated (`TILTED_BOT_TESTERS` unset) and has no strategies in production yet. |
-| 2026-10-02 | A2 Account deletion keeps opponent history | (this PR) | Migration 0007. |
+| 2026-10-02 | A2 Account deletion keeps opponent history | #28 | Migration 0007. Verified: production rows unchanged after deploy. |
+| 2026-10-02 | A3 Sign-out revokes the bearer; idle tokens expire | (this PR) | Migration 0008. |
 
 ## Decisions made without asking
 
@@ -36,6 +37,11 @@ and anything skipped. Newest entries at the bottom.
    from the head-to-head match score.
 7. **A retried round-advance on an `ended` match stays idempotent**; only
    `abandoned` matches reject it.
+8. **Token expiry is sliding, 90 idle days.** Any use resets the clock, so
+   active players are never signed out; an abandoned or leaked token dies.
+   Existing tokens start their clock at the migration.
+9. **Sign-out revokes only the token on that device**, not the user's other
+   sessions.
 
 ## Open items for TJ
 

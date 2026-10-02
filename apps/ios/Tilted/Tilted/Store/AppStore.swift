@@ -178,6 +178,9 @@ final class AppStore {
     }
 
     func logout() {
+        if let old = KeychainHelper.load(key: "auth_token") {
+            Task { await APIClient.shared.revokeSession(token: old) }
+        }
         KeychainHelper.delete(key: "auth_token")
         KeychainHelper.delete(key: "user_id")
         KeychainHelper.delete(key: "user_name")

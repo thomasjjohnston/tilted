@@ -1,17 +1,14 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
-import { randomBytes, createHash } from 'node:crypto';
 import { eq } from 'drizzle-orm';
 import { getDb } from './context.js';
-import { debugTokens, users } from '../db/schema.js';
-
-function hashToken(token: string): string {
-  return createHash('sha256').update(token).digest('hex');
-}
+import { users } from '../db/schema.js';
+import { mintToken, resolveToken, revokeToken } from '../auth/tokens.js';
 
 declare module 'fastify' {
   interface FastifyRequest {
     userId: string;
+    tokenHash: string;
   }
 }
 
@@ -33,13 +30,7 @@ export async function debugAuthRoutes(app: FastifyInstance) {
       return reply.status(404).send({ error: 'User not found' });
     }
 
-    const token = randomBytes(32).toString('hex');
-    const hash = hashToken(token);
-
-    await db.insert(debugTokens).values({
-      tokenHash: hash,
-      userId: user_id,
-    });
+    const token = await mintToken(db, user_id);
 
     return { token, user_id, display_name: user.displayName };
   });
@@ -55,17 +46,22 @@ export async function bearerAuth(req: FastifyRequest, reply: FastifyReply) {
     return reply.status(401).send({ error: 'Missing bearer token' });
   }
 
-  const token = authHeader.slice(7);
-  const hash = hashToken(token);
-  const db = getDb();
-
-  const row = await db.query.debugTokens.findFirst({
-    where: eq(debugTokens.tokenHash, hash),
-  });
-
-  if (!row) {
+  const resolved = await resolveToken(getDb(), authHeader.slice(7));
+  if (!resolved) {
     return reply.status(401).send({ error: 'Invalid token' });
   }
 
-  req.userId = row.userId;
+  req.userId = resolved.userId;
+  req.tokenHash = resolved.tokenHash;
+}
+
+/**
+ * Authenticated session routes.
+ * POST /auth/logout — revoke the presented bearer (sign-out on this device).
+ */
+export async function sessionRoutes(app: FastifyInstance) {
+  app.post('/auth/logout', async (req, reply) => {
+    await revokeToken(getDb(), req.tokenHash);
+    return reply.status(204).send();
+  });
 }

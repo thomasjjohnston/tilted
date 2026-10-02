@@ -60,7 +60,7 @@ POST /v1/match -------------->  [createMatch(opponent)]
 **Auth model:**
 - SIWA identity token verified per-request at sign-in only.
 - Our bearer token model stays (the `debug_tokens` table — renamed `auth_tokens` in a later pass but not this sprint).
-- Bearers have no expiry for MVP (Apple itself revokes if the user deletes the Apple ID binding).
+- Bearers expire after 90 idle days (sliding; `TOKEN_IDLE_TTL_DAYS` in `auth/tokens.ts`) and are revoked server-side on sign-out via `POST /v1/auth/logout` (LAUNCH-A3). Originally they had no expiry.
 
 ---
 

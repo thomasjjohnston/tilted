@@ -28,12 +28,14 @@ export const users = pgTable('users', {
   deletedAt: timestamp('deleted_at', { withTimezone: true }),
 });
 
-// ── Debug tokens (MVP auth) ──────────────────────────────────────────────────
+// ── Bearer tokens (table name is historical) ──────────────────────────────────────────────────
 
 export const debugTokens = pgTable('debug_tokens', {
   tokenHash: text('token_hash').primaryKey(),
   userId: uuid('user_id').notNull().references(() => users.userId),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  // Sliding idle expiry (auth/tokens.ts): refreshed at most once a day.
+  lastUsedAt: timestamp('last_used_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
 // ── Matches ──────────────────────────────────────────────────────────────────
