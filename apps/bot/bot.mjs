@@ -169,14 +169,14 @@ async function autoChallenge(myMatches) {
   const haveMatchWith = new Set(myMatches.map((m) => m.opponent.user_id));
   let users;
   try {
-    users = await api('GET', '/v1/users');
+    users = await api('GET', '/v1/debug/users');
   } catch {
     return;
   }
   for (const u of users) {
     if (haveMatchWith.has(u.user_id)) continue;
     try {
-      await api('POST', '/v1/match', { opponent_user_id: u.user_id });
+      await api('POST', '/v1/debug/match', { opponent_user_id: u.user_id });
       log(`challenged ${u.display_name} to a new match`);
     } catch (err) {
       // Already-active pair, etc. — ignore.
