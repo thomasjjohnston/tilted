@@ -32,6 +32,8 @@ and anything skipped. Newest entries at the bottom.
 | 2026-10-02 | E16 Privacy manifest + label answer sheet | #42 | `PrivacyInfo.xcprivacy`; `docs/APP-STORE-PRIVACY-LABELS.md`. |
 | 2026-10-02 | F22 One Fly machine always on | #41 | Verified: machine started, reminder loop logged at boot. |
 | 2026-10-02 | D13 How-to-play explainer | #43 | Four cards; last card starts a bot match or an invite. Shown once per device; again from Settings. |
+| 2026-10-02 | E19 Version 1.0.0 (build 8) | #45 | |
+| 2026-10-02 | E20 Listing screenshots + launch args; turn header fix | #46 | `docs/screenshots/appstore/`. |
 | 2026-10-02 | E20/E21 Listing text, review notes, TestFlight copy; docs refresh | #44 | `docs/APP-STORE-LISTING.md`; HLD §5/§9/§11 and PROJECT-STATE updated. |
 
 ## Decisions made without asking
@@ -126,6 +128,29 @@ and anything skipped. Newest entries at the bottom.
     precedence; they can read it later from Settings → How to play).
 33. **"Play Untilted" on the last card starts the bot match directly**; if
     the bot is unavailable it falls back to the New game sheet.
+
+## Where things stand (end of 2026-10-02)
+
+Sections A–D and the code parts of E–F are merged and deployed. Remaining,
+in order, and what each is waiting on:
+
+1. **TestFlight archive/upload** — blocked on TJ: accept the Program
+   License Agreement; then the Associated Domains capability can be added
+   to the App ID (automatic signing will try; otherwise enable it in the
+   portal) and the archive succeeds. Upload needs the App Store Connect
+   Issuer ID (Key ID `PB76Z256YT` is on file) or an Xcode-signed-in account.
+   The archive command that got through to Apple's servers:
+   `xcodebuild archive -scheme Tilted -configuration Release -destination
+   'generic/platform=iOS' -allowProvisioningUpdates DEVELOPMENT_TEAM=<team>`.
+2. **Bot in production** — blocked on the strategy-storage decision below;
+   then: import, `seed-untilted` in production, set `TILTED_BOT_TESTERS=*`,
+   measure a turn on Fly and resize the machine if needed.
+3. **Apple-side setup** — TJ: app record (name availability), Service ID for
+   the revocation webhook, Gmail inbox, privacy labels (answer sheet in
+   `APP-STORE-PRIVACY-LABELS.md`), age rating, listing text from
+   `APP-STORE-LISTING.md`.
+4. **Privacy policy review** — TJ reads `/privacy`.
+5. **External TestFlight → two-strangers test → App Store submission.**
 
 ## Open items for TJ
 
