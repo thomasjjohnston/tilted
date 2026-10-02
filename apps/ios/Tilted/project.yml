@@ -29,6 +29,10 @@ targets:
         aps-environment: production
         com.apple.developer.applesignin:
           - Default
+        # Invite links open the app. Host must match InviteLink.hosts and the
+        # server's /.well-known/apple-app-site-association.
+        com.apple.developer.associated-domains:
+          - applinks:tilted-server.fly.dev
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.thomasjjohnston.tilted

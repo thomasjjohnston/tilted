@@ -4,7 +4,9 @@ struct HomeView: View {
     @Environment(AppStore.self) private var store
     @Environment(\.scenePhase) private var scenePhase
     @State private var showCoinFlip = false
-    @State private var showOpponentPicker = false
+    @State private var showNewGame = false
+    @State private var blockCandidate: MatchState?
+    @State private var inviteError: String?
     @State private var revealMatch: MatchState?
     @State private var revealRound: RoundView?
     @State private var pingToast: String?
@@ -36,6 +38,16 @@ struct HomeView: View {
                                     onTap: { openMatch(match) },
                                     onPing: { Task { await ping(match: match) } }
                                 )
+                                .contextMenu {
+                                    // The bot can't be blocked (spec §27).
+                                    if !match.opponent.isBot {
+                                        Button(role: .destructive) {
+                                            blockCandidate = match
+                                        } label: {
+                                            Label("Block \(match.opponent.displayName)", systemImage: "hand.raised.fill")
+                                        }
+                                    }
+                                }
                             }
                             startMatchButton
                                 .padding(.top, Spacing.md)
@@ -88,14 +100,43 @@ struct HomeView: View {
                         .foregroundColor(.cream300)
                 }
             }
-            .sheet(isPresented: $showOpponentPicker) {
-                OpponentPickerSheet { match in
+            .sheet(isPresented: $showNewGame) {
+                NewGameSheet { match in
                     store.matchState = match
-                    showOpponentPicker = false
+                    showNewGame = false
                     showCoinFlip = true
                 }
                 .environment(store)
             }
+            .alert(
+                "Block \(blockCandidate?.opponent.displayName ?? "this player")?",
+                isPresented: Binding(
+                    get: { blockCandidate != nil },
+                    set: { if !$0 { blockCandidate = nil } }
+                ),
+                presenting: blockCandidate
+            ) { match in
+                Button("Cancel", role: .cancel) {}
+                Button("Block", role: .destructive) {
+                    Task { await block(match) }
+                }
+            } message: { _ in
+                Text(BlockCopy.confirmation)
+            }
+            .alert("Couldn't use that invite", isPresented: Binding(
+                get: { inviteError != nil },
+                set: { if !$0 { inviteError = nil } }
+            )) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(inviteError ?? "")
+            }
+            // A tapped invite link lands here once the user is signed in:
+            // redeem it and go straight into the new match.
+            .task(id: store.pendingInviteCode) { await redeemPendingInvite() }
+            #if DEBUG
+            .onAppear { if DebugLaunch.screen == "newGame" { showNewGame = true } }
+            #endif
             .fullScreenCover(isPresented: showTurn) {
                 if let match = store.matchState, let round = match.currentRound {
                     TurnView(match: match, round: round)
@@ -204,6 +245,32 @@ struct HomeView: View {
         }
     }
 
+    @MainActor
+    private func redeemPendingInvite() async {
+        guard let code = store.pendingInviteCode else { return }
+        // Consume first: whatever happens, don't retry the same link in a loop.
+        store.consumePendingInvite()
+        do {
+            let match = try await APIClient.shared.redeemInvite(code: code)
+            await store.refresh()
+            store.matchState = match
+            showNewGame = false
+            showCoinFlip = true
+        } catch {
+            inviteError = error.localizedDescription
+        }
+    }
+
+    @MainActor
+    private func block(_ match: MatchState) async {
+        do {
+            try await APIClient.shared.blockUser(userId: match.opponent.userId)
+            await store.refresh()
+        } catch {
+            withAnimation { pingToast = "Couldn't block: \(error.localizedDescription)" }
+        }
+    }
+
     private func openMatch(_ match: MatchState) {
         store.matchState = match
         if match.status == "ended" { return }
@@ -236,7 +303,7 @@ struct HomeView: View {
 
             Spacer().frame(height: Spacing.md)
 
-            Text("Challenge a friend to deal ten fresh hands.")
+            Text("Invite a friend, or play the bot, to deal ten fresh hands.")
                 .font(.bodySecondary)
                 .foregroundColor(.cream300)
                 .multilineTextAlignment(.center)
@@ -256,7 +323,7 @@ struct HomeView: View {
 
     private var startMatchButton: some View {
         Button {
-            showOpponentPicker = true
+            showNewGame = true
         } label: {
             Text("Start a match")
         }

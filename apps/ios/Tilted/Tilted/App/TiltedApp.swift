@@ -15,6 +15,9 @@ struct TiltedApp: App {
             RootView()
                 .environment(store)
                 .task {
+                    #if DEBUG
+                    if DebugLaunch.isAutomated { return }
+                    #endif
                     await PushRegistrar.shared.requestPermission()
                 }
                 .onAppear {
@@ -79,6 +82,12 @@ struct RootView: View {
         .preferredColorScheme(.dark)
         .onAppear {
             store.checkAuth()
+        }
+        // Invite links (https://<host>/i/<code>) arrive as universal links.
+        // The store queues the code; HomeView redeems it once signed in.
+        .onOpenURL { store.handleIncomingURL($0) }
+        .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { activity in
+            if let url = activity.webpageURL { store.handleIncomingURL(url) }
         }
     }
 }

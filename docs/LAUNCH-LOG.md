@@ -27,6 +27,7 @@ and anything skipped. Newest entries at the bottom.
 | 2026-10-02 | C12 Rematch-only challenges; global roster removed | #36 | `GET /v1/opponents`; `POST /v1/match` needs a prior match. |
 | 2026-10-02 | C14 Block a player (server) | #37 | Migration 0010 (new table). TJ chose: blocking ends the active match as abandoned. |
 | 2026-10-02 | B10 Bot turn fitted to the shared stack (bug fix) | #38 | Found by playing the bot on a local stack with the pilot strategies. |
+| 2026-10-02 | C13 iOS: new-game screen, invite links, block/unblock | #39 | Replaces the opponent picker. Needs the Associated Domains capability on the App ID. |
 
 ## Decisions made without asking
 
@@ -99,8 +100,24 @@ and anything skipped. Newest entries at the bottom.
     whatever is left; anything still unaffordable checks or folds.
 27. **With zero chips left and facing a bet, the bot folds** rather than
     going "all-in for nothing", matching the app's auto check/fold for humans.
+28. **One "New game" sheet** holds all four ways to start: play the bot,
+    invite a friend (share sheet), enter a code, rematch. Blocking is a
+    swipe or long-press on a rematch row, or a long-press on a Home match
+    card; unblocking lives in Settings → Blocked players.
+29. **A tapped invite link is redeemed as soon as the user is signed in**, with
+    no confirmation step (TJ: instant start). The code is kept across sign-in
+    and relaunch, and dropped on an explicit sign-out.
+30. **Debug builds accept launch arguments** (`-debugUserId`, `-debugScreen`)
+    so the simulator can be driven without an Apple ID; compiled out of
+    Release.
 
 ## Open items for TJ
+
+- **Associated Domains capability**: the app now declares
+  `applinks:tilted-server.fly.dev`. Xcode's automatic signing usually adds
+  the capability to the App ID on the next archive; if the archive fails
+  with an entitlement error, enable "Associated Domains" on the App ID in
+  the Developer portal.
 
 - **DECISION NEEDED — where the bot's strategies live.** The trained
   artifact (`tools/solver/runs/best`) is 42.2M rows / 6.6 GB as SQLite.

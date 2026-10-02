@@ -63,10 +63,27 @@ struct MatchState: Codable, Identifiable {
 struct Opponent: Codable {
     let userId: String
     let displayName: String
+    /// True for Untilted, the server-driven bot. Defaults to false so older
+    /// payloads (and fixtures) without the field still decode.
+    let isBot: Bool
+
+    init(userId: String, displayName: String, isBot: Bool = false) {
+        self.userId = userId
+        self.displayName = displayName
+        self.isBot = isBot
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        userId = try c.decode(String.self, forKey: .userId)
+        displayName = try c.decode(String.self, forKey: .displayName)
+        isBot = try c.decodeIfPresent(Bool.self, forKey: .isBot) ?? false
+    }
 
     enum CodingKeys: String, CodingKey {
         case userId = "user_id"
         case displayName = "display_name"
+        case isBot = "is_bot"
     }
 }
 
@@ -440,9 +457,49 @@ struct PingResponse: Codable {
     }
 }
 
-// MARK: - Users roster (opponent picker)
+// MARK: - New game (rematch list, bot, invites, blocks)
 
-struct UserRosterEntry: Codable, Identifiable {
+/// Someone you have played before: a row in the rematch list.
+struct OpponentEntry: Codable, Identifiable {
+    let userId: String
+    let displayName: String
+    let initials: String
+    let hasActiveMatch: Bool
+
+    var id: String { userId }
+
+    enum CodingKeys: String, CodingKey {
+        case userId = "user_id"
+        case displayName = "display_name"
+        case initials
+        case hasActiveMatch = "has_active_match"
+    }
+}
+
+/// Whether "Play Untilted" should be offered right now.
+struct BotAvailability: Codable {
+    let available: Bool
+    let userId: String?
+    let displayName: String?
+
+    enum CodingKeys: String, CodingKey {
+        case available
+        case userId = "user_id"
+        case displayName = "display_name"
+    }
+}
+
+struct InviteResponse: Codable {
+    let code: String
+    let url: String
+
+    enum CodingKeys: String, CodingKey {
+        case code
+        case url
+    }
+}
+
+struct BlockedPlayer: Codable, Identifiable {
     let userId: String
     let displayName: String
     let initials: String

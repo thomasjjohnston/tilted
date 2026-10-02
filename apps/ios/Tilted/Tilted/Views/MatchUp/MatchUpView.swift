@@ -6,7 +6,7 @@ struct MatchUpView: View {
     @State private var isLoading = true
     @State private var errorMessage: String?
     @State private var selectedHandId: IdentifiableString?
-    @State private var roster: [UserRosterEntry] = []
+    @State private var roster: [OpponentEntry] = []
     @AppStorage("matchup.selectedOpponentId") private var selectedOpponentId: String = ""
 
     var body: some View {
@@ -79,7 +79,7 @@ struct MatchUpView: View {
 
     private func loadRoster() async {
         do {
-            roster = try await APIClient.shared.listUsers()
+            roster = try await APIClient.shared.listOpponents()
             // Default selection: if we have no persisted choice, pick the
             // first roster entry. If our persisted choice no longer exists
             // (opponent deleted their account), fall back to the first.
