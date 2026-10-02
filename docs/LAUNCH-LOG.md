@@ -20,6 +20,7 @@ and anything skipped. Newest entries at the bottom.
 | 2026-10-02 | A3 Sign-out revokes the bearer; idle tokens expire | #29 | Migration 0008. Verified in production. |
 | 2026-10-02 | A4 Release build config | #30 | ATS debug-only, iPhone only, real version in Settings, Gmail feedback address. |
 | 2026-10-02 | A5 Generated names for hidden Apple names | #31 | Word lists in `apps/server/src/lib/player-names.ts`. |
+| 2026-10-02 | B6 Play-the-bot endpoint | (pending) | `GET /v1/bot`, `POST /v1/match/bot`, `opponent.is_bot`. Server only; the iOS button comes with the new-game screen in section C. |
 
 ## Decisions made without asking
 
@@ -50,8 +51,28 @@ and anything skipped. Newest entries at the bottom.
 11. **Generated names look like "Lucky Gutshot 7" or "River Rat 42"**, are
     assigned once at sign-up, and are not unique. The email-prefix fallback
     is gone, since it showed part of the user's address to opponents.
+12. **The bot is offered only when it can play**: bot user exists, strategies
+    are imported, and the user passes the `TILTED_BOT_TESTERS` gate. The gate
+    is kept as an off switch; opening the bot to everyone is the Fly secret
+    `TILTED_BOT_TESTERS=*`, set when strategies are in production.
+13. **`POST /v1/match/bot` takes no body**; the server picks the bot user, so
+    the client never needs a bot id.
 
 ## Open items for TJ
+
+- **DECISION NEEDED — where the bot's strategies live.** The trained
+  artifact (`tools/solver/runs/best`) is 42.2M rows / 6.6 GB as SQLite.
+  Measured on a 2M-row sample, it would be about 37M rows and 7–8 GB in
+  Postgres after the importer's low-visit pruning. Production's database is
+  14 MB today. Options:
+  1. Pay for Neon storage (check the plan: free tier is 0.5 GB). Simple, no
+     code change; backups must exclude the strategy tables.
+  2. Ship the artifact as a read-only SQLite file on a Fly volume and read it
+     from the server. Cheapest storage; needs a new reader and a dependency.
+  3. Import a smaller set (fewer stack depths or harsher pruning) so it fits
+     a small database, at some cost to bot strength.
+  Until this is decided the bot stays unavailable in production: the
+  endpoint, retry and tests are in place, the data is not.
 
 - App Store Connect Issuer ID (needed for build upload).
 - Confirm the app record, the Service ID for the Apple revocation webhook,

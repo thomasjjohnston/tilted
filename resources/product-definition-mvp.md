@@ -422,6 +422,11 @@ Offered as a starting point for the implementing engineer.
 - **No oracle:** the bot's decisions are computed from its own user-scoped
   match view — it sees exactly what a human in its seat would see (§4.6
   redaction applies to its inputs by construction).
+- **Starting a bot match:** `POST /v1/match/bot` (no body). `GET /v1/bot`
+  tells the client whether to offer it. The bot is offered only when it can
+  actually play: a bot user exists, strategies are imported, and the user
+  passes the gate below. The usual one-active-match-per-pair rule applies,
+  so a player has at most one bot match at a time.
 - **Gating:** the `TILTED_BOT_TESTERS` env var (comma-separated user ids, or
   `*`) controls who sees Untilted in the roster and may challenge it.
   Enforced server-side in match creation, mirrored in the roster listing.

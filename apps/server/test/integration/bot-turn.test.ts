@@ -185,7 +185,11 @@ describe('untilted access gating', () => {
     process.env.TILTED_BOT_TESTERS = '';
     await expect(createMatch(env.db, alice.userId, botId)).rejects.toThrow('Opponent not found');
 
+    // Allowed, but with no strategies imported the bot can't play.
     process.env.TILTED_BOT_TESTERS = alice.userId;
+    await expect(createMatch(env.db, alice.userId, botId)).rejects.toThrow('Bot unavailable');
+
+    await seedSolverMeta(env.db);
     const match = await createMatch(env.db, alice.userId, botId);
     expect(match.status).toBe('active');
   });

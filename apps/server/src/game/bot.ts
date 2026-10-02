@@ -27,6 +27,30 @@ export function userMayAccessBot(userId: string): boolean {
   return allow === '*' || allow.includes(userId);
 }
 
+/** Thrown when a bot match is requested but the bot can't be offered. */
+export class BotUnavailableError extends Error {
+  constructor() {
+    super('Bot unavailable');
+    this.name = 'BotUnavailableError';
+  }
+}
+
+/**
+ * The bot, if this user may play it right now: a bot user exists,
+ * strategies are imported (without them the bot can't act and the match
+ * would stall on its first turn), and the user passes the access gate.
+ */
+export async function getPlayableBot(
+  db: Database,
+  userId: string,
+): Promise<{ userId: string; displayName: string } | null> {
+  if (!userMayAccessBot(userId)) return null;
+  const bot = await db.query.users.findFirst({ where: eq(users.isBot, true) });
+  if (!bot) return null;
+  if (!(await getSolverMeta(db))) return null;
+  return { userId: bot.userId, displayName: bot.displayName };
+}
+
 export async function findBotUserId(db: Database): Promise<string | null> {
   const bot = await db.query.users.findFirst({ where: eq(users.isBot, true) });
   return bot?.userId ?? null;
@@ -47,10 +71,24 @@ export async function maybeRunBotTurn(
   if (!botId) return false;
   const handoff = handoffs.find(h => h.toUserId === botId);
   if (!handoff) return false;
+  return runBotTurnSafely(db, handoff.matchId, botId);
+}
+
+/**
+ * runBotTurnIfPending for post-commit call sites (turn submit, match
+ * creation, round advance): the human's request has already committed, so a
+ * bot failure is logged and the turn left pending for the retry sweep — it
+ * must never turn a successful request into a 500.
+ */
+export async function runBotTurnSafely(
+  db: Database,
+  matchId: string,
+  botId?: string,
+): Promise<boolean> {
   try {
-    return await runBotTurnIfPending(db, handoff.matchId, botId);
+    return await runBotTurnIfPending(db, matchId, botId);
   } catch (err) {
-    console.error(`[untilted] bot turn failed for match ${handoff.matchId}:`, err);
+    console.error(`[untilted] bot turn failed for match ${matchId}:`, err);
     return false;
   }
 }
