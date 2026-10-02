@@ -25,6 +25,7 @@ and anything skipped. Newest entries at the bottom.
 | 2026-10-02 | C10 Invites: create and redeem | #34 | Migration 0009 (new table). |
 | 2026-10-02 | C11 Invite landing page + universal-link file | #35 | `GET /i/:code`, `GET /.well-known/apple-app-site-association`. |
 | 2026-10-02 | C12 Rematch-only challenges; global roster removed | #36 | `GET /v1/opponents`; `POST /v1/match` needs a prior match. |
+| 2026-10-02 | C14 Block a player (server) | #37 | Migration 0010 (new table). TJ chose: blocking ends the active match as abandoned. |
 
 ## Decisions made without asking
 
@@ -84,6 +85,13 @@ and anything skipped. Newest entries at the bottom.
     strangers.
 22. **A stranger and a non-existent user get the same 404** from
     `POST /v1/match`, so user ids cannot be probed.
+23. **You can only block someone you have a match with**, so blocking cannot
+    be used to test whether a user id exists.
+24. **A blocked player sees the opponent vanish from their rematch list** and
+    the abandoned match leave their active list, with no message. The
+    alternative (keep showing them, fail on tap) seemed more confusing.
+25. **Block has no `client_tx_id`**: it is keyed on the pair, so a retry is
+    naturally a no-op.
 
 ## Open items for TJ
 

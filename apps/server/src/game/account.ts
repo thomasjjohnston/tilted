@@ -1,6 +1,7 @@
-import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
+import { and, eq, isNull, or, sql } from 'drizzle-orm';
 import type { Database } from '../db/connection.js';
-import { users, matches, favorites, invites, pendingReminders, debugTokens } from '../db/schema.js';
+import { users, blocks, favorites, invites, pendingReminders, debugTokens } from '../db/schema.js';
+import { abandonMatchesTx } from './match.js';
 import { logEvent } from '../events/logger.js';
 
 /** What opponents see in place of a deleted player's name. */
@@ -37,18 +38,14 @@ export async function deleteAccount(
     `);
     const activeIds = active.map(r => r.match_id);
 
-    if (activeIds.length > 0) {
-      await tx.update(matches)
-        .set({ status: 'abandoned', endedAt: new Date() })
-        .where(inArray(matches.matchId, activeIds));
-      await tx.delete(pendingReminders).where(inArray(pendingReminders.matchId, activeIds));
-    }
+    await abandonMatchesTx(tx, activeIds);
 
     await tx.delete(pendingReminders).where(eq(pendingReminders.userId, userId));
     await tx.delete(favorites).where(eq(favorites.userId, userId));
     // Unredeemed invites die with the account; redeemed ones are history.
     await tx.delete(invites).where(and(eq(invites.inviterUserId, userId), isNull(invites.redeemedByUserId)));
     await tx.delete(debugTokens).where(eq(debugTokens.userId, userId));
+    await tx.delete(blocks).where(or(eq(blocks.blockerUserId, userId), eq(blocks.blockedUserId, userId)));
 
     await tx.update(users).set({
       appleSub: null,

@@ -21,6 +21,7 @@ const TABLES = [
   'solver_meta',
   'app_events',
   'invites',
+  'blocks',
   'pending_reminders',
   'turn_handoffs',
   'favorites',

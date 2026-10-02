@@ -1,6 +1,6 @@
 import { eq, and, or, desc, ne, inArray, sql } from 'drizzle-orm';
 import type { Database, Transaction } from '../db/connection.js';
-import { matches, rounds, hands, users, actions } from '../db/schema.js';
+import { matches, rounds, hands, users, actions, blocks, pendingReminders } from '../db/schema.js';
 import { STARTING_STACK, BLIND_SMALL, BLIND_BIG } from './constants.js';
 import { openRound } from './round.js';
 import { generateActionSketch } from './action-sketch.js';
@@ -56,7 +56,8 @@ export async function createRematch(
 
 /**
  * People this user has played, most recent first: the rematch list.
- * Excludes deleted accounts and the bot (which has its own entry point).
+ * Excludes deleted accounts, the bot (which has its own entry point) and
+ * anyone on either side of a block.
  * Only fields every opponent may see: id, display name, initials.
  */
 export async function listOpponents(db: Database, userId: string): Promise<OpponentView[]> {
@@ -71,6 +72,11 @@ export async function listOpponents(db: Database, userId: string): Promise<Oppon
     WHERE (m.user_a_id = ${userId} OR m.user_b_id = ${userId})
       AND u.deleted_at IS NULL
       AND u.is_bot = false
+      AND NOT EXISTS (
+        SELECT 1 FROM blocks b
+        WHERE (b.blocker_user_id = ${userId} AND b.blocked_user_id = u.user_id)
+           OR (b.blocker_user_id = u.user_id AND b.blocked_user_id = ${userId})
+      )
     GROUP BY u.user_id, u.display_name
     ORDER BY max(m.started_at) DESC
   `);
@@ -137,6 +143,11 @@ export async function createMatchTx(
       where: eq(users.userId, opponentUserId),
     });
     if (!opponent || opponent.deletedAt) throw new OpponentNotFoundError();
+    // A block in either direction: same answer as "no such user", so the
+    // blocked player is never told.
+    if (await isBlockedEitherWay(tx, requestingUserId, opponentUserId)) {
+      throw new OpponentNotFoundError();
+    }
 
     // Untilted gating: the bot never initiates, and only allowlisted
     // testers may challenge it (server-side authority; the /users roster
@@ -434,6 +445,34 @@ function buildHandView(
     my_resolved_net: myResolvedNet,
     last_action: lastAction,
   };
+}
+
+/**
+ * End active matches as 'abandoned': no winner, no chip movement, hands
+ * frozen where they stand, reminders dropped (spec §23). The caller must
+ * already hold FOR UPDATE locks on these match rows.
+ */
+export async function abandonMatchesTx(tx: Transaction, matchIds: string[]): Promise<void> {
+  if (matchIds.length === 0) return;
+  await tx.update(matches)
+    .set({ status: 'abandoned', endedAt: new Date() })
+    .where(inArray(matches.matchId, matchIds));
+  await tx.delete(pendingReminders).where(inArray(pendingReminders.matchId, matchIds));
+}
+
+/** True if either user has blocked the other (spec §27). */
+export async function isBlockedEitherWay(
+  tx: Transaction | Database,
+  userX: string,
+  userY: string,
+): Promise<boolean> {
+  const row = await tx.query.blocks.findFirst({
+    where: or(
+      and(eq(blocks.blockerUserId, userX), eq(blocks.blockedUserId, userY)),
+      and(eq(blocks.blockerUserId, userY), eq(blocks.blockedUserId, userX)),
+    ),
+  });
+  return !!row;
 }
 
 /**

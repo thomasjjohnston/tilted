@@ -190,6 +190,17 @@ export const invites = pgTable('invites', {
   unique('invites_idempotency_idx').on(table.inviterUserId, table.clientTxId),
 ]);
 
+// ── Blocks (spec §27) ────────────────────────────────────────────────────────
+// One row per direction. A block in either direction stops the pair playing.
+
+export const blocks = pgTable('blocks', {
+  blockerUserId: uuid('blocker_user_id').notNull().references(() => users.userId),
+  blockedUserId: uuid('blocked_user_id').notNull().references(() => users.userId),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  primaryKey({ columns: [table.blockerUserId, table.blockedUserId] }),
+]);
+
 // ── Solver strategies (Untilted bot; imported from the offline artifact) ─────
 // Frequencies only — the bot samples mixed strategies; EVs stay offline.
 // Populated by `tools/solver: uv run solver.py import-pg`, never by the app.

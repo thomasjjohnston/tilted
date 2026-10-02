@@ -19,6 +19,7 @@ import { matchupRoutes } from './api/routes/matchup.js';
 import { usersRoutes } from './api/routes/users.js';
 import { inviteRoutes } from './api/routes/invites.js';
 import { webInviteRoutes } from './api/routes/web-invite.js';
+import { blockRoutes } from './api/routes/blocks.js';
 
 function getGitSha(): string {
   try {
@@ -114,6 +115,7 @@ export async function buildApp(
     await authenticated.register(matchupRoutes);
     await authenticated.register(usersRoutes);
     await authenticated.register(inviteRoutes);
+    await authenticated.register(blockRoutes);
   }, { prefix: '/v1' });
 
   return app;
