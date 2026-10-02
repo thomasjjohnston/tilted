@@ -10,6 +10,14 @@ import { logEvent } from '../events/logger.js';
 import { randomQuip } from '../lib/poker-quips.js';
 import { GameRuleError } from '../errors.js';
 
+/** The pair already has an active match (at most one per pair, §4.9). */
+export class MatchAlreadyActiveError extends Error {
+  constructor() {
+    super('An active match with this opponent already exists');
+    this.name = 'MatchAlreadyActiveError';
+  }
+}
+
 /**
  * Create a new match between `requestingUserId` and `opponentUserId`.
  * Coin flip determines who is SB in round 1. Fires a `match_started`
@@ -39,10 +47,14 @@ export async function createMatch(
     });
     if (requester?.isBot) throw new Error('Bot cannot initiate matches');
     if (opponent.isBot) {
-      const { userMayAccessBot } = await import('./bot.js');
+      const { userMayAccessBot, BotUnavailableError } = await import('./bot.js');
       if (!userMayAccessBot(requestingUserId)) {
         throw new Error('Opponent not found');
       }
+      // No strategies imported → the bot could never take a turn, and the
+      // match would be stuck from its first handoff.
+      const { getSolverMeta } = await import('./solver-strategies.js');
+      if (!(await getSolverMeta(tx))) throw new BotUnavailableError();
     }
 
     // Reject if this pair already has an active match (either direction)
@@ -56,7 +68,7 @@ export async function createMatch(
       ),
     });
     if (existingPairMatch) {
-      throw new Error('An active match with this opponent already exists');
+      throw new MatchAlreadyActiveError();
     }
 
     const sbOfRound1 = Math.random() < 0.5 ? requestingUserId : opponentUserId;
@@ -230,6 +242,7 @@ export async function getMatchState(
     opponent: {
       user_id: opponentId,
       display_name: opponent?.displayName ?? 'Unknown',
+      is_bot: opponent?.isBot ?? false,
     },
     my_total: myTotal,
     opponent_total: oppTotal,
@@ -397,7 +410,7 @@ export interface MatchStateView {
   match_id: string;
   status: string;
   winner_user_id: string | null;
-  opponent: { user_id: string; display_name: string };
+  opponent: { user_id: string; display_name: string; is_bot: boolean };
   my_total: number;
   opponent_total: number;
   my_reserved: number;

@@ -27,6 +27,30 @@ export function userMayAccessBot(userId: string): boolean {
   return allow === '*' || allow.includes(userId);
 }
 
+/** Thrown when a bot match is requested but the bot can't be offered. */
+export class BotUnavailableError extends Error {
+  constructor() {
+    super('Bot unavailable');
+    this.name = 'BotUnavailableError';
+  }
+}
+
+/**
+ * The bot, if this user may play it right now: a bot user exists,
+ * strategies are imported (without them the bot can't act and the match
+ * would stall on its first turn), and the user passes the access gate.
+ */
+export async function getPlayableBot(
+  db: Database,
+  userId: string,
+): Promise<{ userId: string; displayName: string } | null> {
+  if (!userMayAccessBot(userId)) return null;
+  const bot = await db.query.users.findFirst({ where: eq(users.isBot, true) });
+  if (!bot) return null;
+  if (!(await getSolverMeta(db))) return null;
+  return { userId: bot.userId, displayName: bot.displayName };
+}
+
 export async function findBotUserId(db: Database): Promise<string | null> {
   const bot = await db.query.users.findFirst({ where: eq(users.isBot, true) });
   return bot?.userId ?? null;

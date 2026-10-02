@@ -1,7 +1,9 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { getDb } from '../context.js';
+import { BotUnavailableError, getPlayableBot } from '../../game/bot.js';
 import {
+  MatchAlreadyActiveError,
   createMatch,
   getCurrentMatch,
   getMatchState,
@@ -33,6 +35,33 @@ export async function matchRoutes(app: FastifyInstance) {
     const db = getDb();
     const match = await createMatch(db, req.userId, parsed.data.opponent_user_id);
     return getMatchState(db, match.matchId, req.userId);
+  });
+
+  // Whether "Play Untilted" should be offered to this user right now.
+  app.get('/bot', async (req) => {
+    const bot = await getPlayableBot(getDb(), req.userId);
+    return bot
+      ? { available: true, user_id: bot.userId, display_name: bot.displayName }
+      : { available: false };
+  });
+
+  // Start a match against the bot. No body: the server picks the opponent.
+  app.post('/match/bot', async (req, reply) => {
+    const db = getDb();
+    const bot = await getPlayableBot(db, req.userId);
+    if (!bot) return reply.status(503).send({ error: 'Bot unavailable' });
+    try {
+      const match = await createMatch(db, req.userId, bot.userId);
+      return await getMatchState(db, match.matchId, req.userId);
+    } catch (e) {
+      if (e instanceof MatchAlreadyActiveError) {
+        return reply.status(409).send({ error: e.message });
+      }
+      if (e instanceof BotUnavailableError) {
+        return reply.status(503).send({ error: e.message });
+      }
+      throw e;
+    }
   });
 
   // Ping the opponent — fires an APNS push with a random poker quip.
