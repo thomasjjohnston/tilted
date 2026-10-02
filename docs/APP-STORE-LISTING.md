@@ -80,15 +80,19 @@ prizes are involved.
 
 ## Screenshots
 
-Required set: 6.9" iPhone (iPhone 17 Pro Max / 16 Pro Max class). Portrait,
-1320 × 2868. Five screens, in this order, each captured from a Debug build
-on the simulator against the local stack (see `LOCAL-TESTING.md`):
+Required set: 6.9" iPhone (iPhone 17 Pro Max class), portrait, 1320 × 2868.
+Captured 2026-10-02 into `docs/screenshots/appstore/` from a Debug build on
+the simulator against the local stack loaded with a copy of production data
+and **fictional opponent names** (no real names appear):
 
-1. Home with two matches in play (one vs a friend, one vs Untilted).
-2. The turn screen: ten hands, a few decided, the cart at the bottom.
-3. A showdown result ("Two Pair beats Pair of Queens").
-4. The Match-up page with pinned hands.
-5. The New game sheet (invite, code, bot, rematch).
+1. `01-home.png` — Home with three matches (Untilted, two friends), one with Ping.
+2. `02-turn.png` — the turn screen: ten hands, two decided, cart at the bottom.
+3. `03-match-up.png` — Match-up vs a friend: 14–14 record, moments, head to head, pinned hands.
+4. `04-new-game.png` — the New game sheet (bot, invite, code, rematch).
+5. `05-how-to-play.png` — first how-to-play card.
+
+Upload as-is (no captions) for the first submission. A showdown-result
+screenshot would be a good sixth once one is captured by hand.
 
 Caption ideas (overlaid or not): "Ten hands at once." / "One stack for all
 of them." / "Play when you have a minute." / "Relive the coolers." /

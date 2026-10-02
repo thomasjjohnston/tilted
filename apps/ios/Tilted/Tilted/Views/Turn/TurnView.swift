@@ -285,6 +285,9 @@ struct TurnView: View {
                     Text("\(undecidedHands.count) left")
                         .font(.system(size: 10))
                         .foregroundColor(.cream300)
+                        // Never wrap letter-by-letter when the stacks are wide.
+                        .fixedSize()
+                        .lineLimit(1)
                 }
             )
         )

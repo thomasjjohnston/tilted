@@ -7,7 +7,8 @@ import Foundation
 ///
 ///   -debugUserId <uuid>     sign in through the local-only debug route
 ///   -debug_server_url <url> point at a local server (read by APIClient)
-///   -debugScreen <name>     open a screen at launch: newGame, blocked
+///   -debugScreen <name>     open a screen at launch: newGame, blocked,
+///                           howToPlay, matchUp, turn
 enum DebugLaunch {
     static var userId: String? { UserDefaults.standard.string(forKey: "debugUserId") }
     static var screen: String? { UserDefaults.standard.string(forKey: "debugScreen") }
