@@ -35,6 +35,19 @@ struct SettingsView: View {
                         .listRowBackground(Color.felt600)
 
                         Section {
+                            NavigationLink {
+                                BlockedPlayersView()
+                            } label: {
+                                Text("Blocked players")
+                                    .foregroundColor(.cream100)
+                            }
+                        } header: {
+                            Text("Privacy")
+                                .foregroundColor(.cream300)
+                        }
+                        .listRowBackground(Color.felt600)
+
+                        Section {
                             Button("Send Feedback") {
                                 sendFeedback()
                             }
@@ -118,6 +131,11 @@ struct SettingsView: View {
                     .listStyle(.insetGrouped)
                 }
             }
+            #if DEBUG
+            .navigationDestination(isPresented: .constant(DebugLaunch.screen == "blocked")) {
+                BlockedPlayersView()
+            }
+            #endif
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {

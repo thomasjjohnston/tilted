@@ -74,6 +74,22 @@ Set these in `docker-compose.yml` under the `bot` service, then
 | `BOT_AUTO_CHALLENGE` | `true` | Auto-create a match with anyone who signs in. |
 | `BOT_ADVANCE_ROUNDS` | `true` | Advance finished rounds automatically. |
 
+## Simulator without an Apple ID
+
+Sign in with Apple needs an Apple ID on the simulator. To skip it, launch a
+Debug build with a seeded user id; it signs in through the local-only debug
+route:
+
+```bash
+xcrun simctl launch booted com.thomasjjohnston.tilted \
+  -debug_server_url http://localhost:3000 \
+  -debugUserId a1b2c3d4-e5f6-7890-abcd-ef1234567890   # seeded "Thomas Johnston"
+```
+
+Add `-debugScreen newGame` to open the New game sheet at launch (useful for
+screenshots, since `simctl` cannot tap). These arguments are compiled out of
+Release builds (`App/DebugLaunch.swift`).
+
 ## Reset / teardown
 
 ```bash

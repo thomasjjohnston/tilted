@@ -89,10 +89,51 @@ actor APIClient {
         return try await post("/v1/match", body: ["opponent_user_id": opponentId])
     }
 
-    // MARK: - Users roster
+    // MARK: - New game: bot, rematch list, invites
 
-    func listUsers() async throws -> [UserRosterEntry] {
-        return try await get("/v1/users")
+    func getBot() async throws -> BotAvailability {
+        return try await get("/v1/bot")
+    }
+
+    func createBotMatch() async throws -> MatchState {
+        return try await post("/v1/match/bot", body: [String: Any]())
+    }
+
+    func listOpponents() async throws -> [OpponentEntry] {
+        return try await get("/v1/opponents")
+    }
+
+    /// `clientTxId` is caller-provided: the same id on a retry returns the
+    /// same invite instead of minting a second one.
+    func createInvite(clientTxId: String) async throws -> InviteResponse {
+        return try await post("/v1/invites", body: ["client_tx_id": clientTxId])
+    }
+
+    func redeemInvite(code: String) async throws -> MatchState {
+        do {
+            return try await post("/v1/invites/\(code)/redeem", body: [String: Any]())
+        } catch APIError.notFound {
+            throw APIError.rejected(message: "That invite code wasn't found. Check it and try again.")
+        }
+    }
+
+    // MARK: - Blocks
+
+    func listBlocked() async throws -> [BlockedPlayer] {
+        return try await get("/v1/blocks")
+    }
+
+    func blockUser(userId: String) async throws {
+        let _: EmptyResponse = try await post("/v1/blocks", body: ["user_id": userId])
+    }
+
+    func unblockUser(userId: String) async throws {
+        var request = URLRequest(url: makeURL(path: "/v1/blocks/\(userId)"))
+        request.httpMethod = "DELETE"
+        if let token = token {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        let _: EmptyResponse = try await execute(request)
     }
 
     // MARK: - Hand
@@ -263,6 +304,14 @@ actor APIClient {
                     throw APIError.gameRule(message: message)
                 }
 
+                // Other caller-fault answers (409 already playing, 410 invite
+                // expired, 503 bot unavailable…) carry a readable message.
+                if (400...499).contains(http.statusCode) || http.statusCode == 503,
+                   let rejection = try? JSONDecoder().decode(RejectionBody.self, from: data),
+                   let message = rejection.message ?? rejection.error {
+                    throw APIError.rejected(message: message)
+                }
+
                 guard (200...299).contains(http.statusCode) else {
                     let body = String(data: data, encoding: .utf8) ?? ""
                     throw APIError.serverError(status: http.statusCode, body: body)
@@ -293,6 +342,11 @@ struct DeleteResponse: Decodable {
 
 private struct GameRuleErrorBody: Decodable {
     let message: String
+}
+
+private struct RejectionBody: Decodable {
+    let message: String?
+    let error: String?
 }
 
 #if DEBUG
@@ -330,6 +384,8 @@ enum APIError: Error, LocalizedError {
     case notFound
     case unauthorized
     case gameRule(message: String)
+    /// The server refused the request and said why (4xx with a message).
+    case rejected(message: String)
     case serverError(status: Int, body: String)
     case unknown
 
@@ -339,6 +395,7 @@ enum APIError: Error, LocalizedError {
         case .notFound: return "Resource not found"
         case .unauthorized: return "Session expired — sign in again"
         case .gameRule(let message): return message
+        case .rejected(let message): return message
         case .serverError(let status, let body): return "Server error \(status): \(body)"
         case .unknown: return "Unknown error"
         }

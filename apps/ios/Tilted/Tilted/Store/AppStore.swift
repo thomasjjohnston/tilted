@@ -5,6 +5,7 @@ import SwiftUI
 final class AppStore {
     init() {
         loadSeenCompletions()
+        pendingInviteCode = UserDefaults.standard.string(forKey: pendingInviteKey)
     }
 
     // MARK: - Auth State
@@ -22,6 +23,27 @@ final class AppStore {
     var isLoading = false
     var hasInitiallyLoaded = false
     var error: String?
+
+    // MARK: - Invites
+
+    /// An invite code from a tapped link that hasn't been redeemed yet.
+    /// Persisted so it survives sign-in (a friend usually taps the link
+    /// before they have an account) and a relaunch. HomeView redeems it.
+    private(set) var pendingInviteCode: String?
+    private let pendingInviteKey = "tilted.pendingInviteCode"
+
+    /// Entry point for universal links. Anything that isn't an invite link
+    /// is ignored.
+    func handleIncomingURL(_ url: URL) {
+        guard let code = InviteLink.code(from: url) else { return }
+        pendingInviteCode = code
+        UserDefaults.standard.set(code, forKey: pendingInviteKey)
+    }
+
+    func consumePendingInvite() {
+        pendingInviteCode = nil
+        UserDefaults.standard.removeObject(forKey: pendingInviteKey)
+    }
 
     // MARK: - Navigation
     var activeScreen: ActiveScreen = .home
@@ -135,6 +157,15 @@ final class AppStore {
     // MARK: - Auth
 
     func checkAuth() {
+        #if DEBUG
+        // Simulator sign-in without an Apple ID (see DebugLaunch). Uses the
+        // debug login route, which only a local stack serves; production
+        // has none.
+        if let debugUserId = DebugLaunch.userId {
+            Task { try? await login(userId: debugUserId) }
+            return
+        }
+        #endif
         if let token = KeychainHelper.load(key: "auth_token"),
            let userId = KeychainHelper.load(key: "user_id") {
             Task {
@@ -177,7 +208,10 @@ final class AppStore {
         await refresh()
     }
 
-    func logout() {
+    /// - Parameter keepPendingInvite: true when the session merely expired,
+    ///   so an invite the user just tapped is still redeemed after they
+    ///   sign back in.
+    func logout(keepPendingInvite: Bool = false) {
         if let old = KeychainHelper.load(key: "auth_token") {
             Task { await APIClient.shared.revokeSession(token: old) }
         }
@@ -190,6 +224,9 @@ final class AppStore {
         self.matchState = nil
         self.matches = []
         self.hasInitiallyLoaded = false
+        // An unredeemed invite belongs to whoever tapped it, not the next
+        // person to sign in on this phone.
+        if !keepPendingInvite { consumePendingInvite() }
     }
 
     @MainActor
@@ -219,7 +256,7 @@ final class AppStore {
         } catch APIError.unauthorized {
             // Stale bearer in Keychain (server forgot this token, or user
             // was deleted). Clear and force sign-in.
-            logout()
+            logout(keepPendingInvite: true)
         } catch {
             self.error = error.localizedDescription
         }
