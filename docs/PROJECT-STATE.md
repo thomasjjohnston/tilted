@@ -123,7 +123,7 @@ These are NOT up for debate without explicit user revisit:
 - Center-stage `ShowdownResultView` for every hand completion (showdown, fold, split)
 - Dual-footer on result screen (↑ All Hands / Next Hand →) with handoff plumbing
 - APNS pushes (HTTP/2 via `node:http2`, IEEE-P1363 JWT, UUID apns-id dedupe) — 4 triggers wired
-- 6h reminder scanner (in-process `setInterval`, fires while machine is running)
+- 6h reminder scanner and bot retry sweep (in-process `setInterval`; Fly keeps one machine running so they tick)
 - Sign in with Apple (JWKS verifier, `POST /v1/auth/apple`, iOS `SignInView`, debug picker DEBUG-only)
 - Multi-user / multi-match support (matches are per-pair; `matches_one_active_idx` dropped)
 - Account deletion (`DELETE /v1/me` + Settings button, required by App Store guidelines)
