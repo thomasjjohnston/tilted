@@ -162,7 +162,7 @@ These are NOT up for debate without explicit user revisit:
 - **Fastify route returns snake_case, iOS models use camelCase**: always use `CodingKeys` to map. Forgetting this causes silent decode failures.
 - **xcodegen**: the `.xcodeproj` is gitignored — regenerate with `xcodegen generate` after any `project.yml` change. Also after adding Swift files in new subdirectories, regen is required.
 - **Apple Distribution signing identity**: don't hardcode in `project.yml`. Let Xcode pick `Apple Development` automatically. Archive signing uses a different identity.
-- **App Transport Security**: to allow local HTTP in DEBUG builds, we set `INFOPLIST_KEY_NSAppTransportSecurity_AllowsArbitraryLoads: true`. For production, only HTTPS (Fly) is hit, but the flag is still on.
+- **App Transport Security**: `INFOPLIST_KEY_NSAppTransportSecurity_AllowsArbitraryLoads: true` is set for the Debug configuration only, to allow local HTTP. Release builds keep ATS on and only talk HTTPS to Fly.
 
 ### Networking
 - **iOS DEBUG base URL**: was pointing at local IP (`http://10.0.0.30:3000`) for home-WiFi testing. Now hardcoded to Fly. If future work needs local dev again, gate with a different compile flag.
