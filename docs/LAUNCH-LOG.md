@@ -18,7 +18,8 @@ and anything skipped. Newest entries at the bottom.
 | 2026-10-02 | B5 Bot branches merged | #23–#26 | Migrations 0005/0006 applied. Bot is still gated (`TILTED_BOT_TESTERS` unset) and has no strategies in production yet. |
 | 2026-10-02 | A2 Account deletion keeps opponent history | #28 | Migration 0007. Verified: production rows unchanged after deploy. |
 | 2026-10-02 | A3 Sign-out revokes the bearer; idle tokens expire | #29 | Migration 0008. Verified in production. |
-| 2026-10-02 | A4 Release build config | (this PR) | ATS debug-only, iPhone only, real version in Settings, Gmail feedback address. |
+| 2026-10-02 | A4 Release build config | #30 | ATS debug-only, iPhone only, real version in Settings, Gmail feedback address. |
+| 2026-10-02 | A5 Generated names for hidden Apple names | #31 | Word lists in `apps/server/src/lib/player-names.ts`. |
 
 ## Decisions made without asking
 
@@ -46,6 +47,9 @@ and anything skipped. Newest entries at the bottom.
 10. **Four one-line iOS release settings went in one PR** (ATS, iPhone-only,
     version display, feedback address) rather than four, since each is a
     config line and they share one build verification.
+11. **Generated names look like "Lucky Gutshot 7" or "River Rat 42"**, are
+    assigned once at sign-up, and are not unique. The email-prefix fallback
+    is gone, since it showed part of the user's address to opponents.
 
 ## Open items for TJ
 

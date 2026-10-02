@@ -454,3 +454,15 @@ Offered as a starting point for the implementing engineer.
 - `abandoned` is also the outcome when a player blocks their opponent
   mid-match (see the blocking addendum when it lands).
 
+---
+
+## 24. Addendum (launch): display names
+
+- A player's display name is set once, at first sign-in.
+- If the player shares their name with Sign in with Apple, that full name is
+  used.
+- If they hide it, the server assigns a generated poker nickname such as
+  "River Rat 42" (`apps/server/src/lib/player-names.ts`). The name is never
+  derived from the email address.
+- Generated names are not guaranteed unique and cannot be edited at launch.
+
