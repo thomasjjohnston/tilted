@@ -504,3 +504,20 @@ list of players.
 - A player may create any number of invites. Deleting an account removes its
   unused invites.
 
+---
+
+## 26. Addendum (launch): rematches and who you can play
+
+There are exactly three ways to start a match:
+
+1. **Invite** a new person (§25).
+2. **Rematch** someone you have played before. The app lists your previous
+   opponents, most recent first; choosing one starts a match immediately, as
+   before. A pair with an active match cannot start another.
+3. **Play the bot** (§22).
+
+There is no list of all players and no search. The server refuses a
+challenge to anyone you have never played, with the same "not found" answer
+it gives for a user who does not exist. Deleted players and the bot do not
+appear in the rematch list.
+

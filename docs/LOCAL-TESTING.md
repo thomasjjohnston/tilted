@@ -85,6 +85,7 @@ docker compose down -v         # stop and wipe all local data
 
 - The server binds `0.0.0.0` and ATS allows plain `http`, so the device reaches
   it directly — no tunnel needed.
+- The practice bot finds and challenges users through `GET /v1/debug/users` and `POST /v1/debug/match`. Like debug login, these exist only when `ENABLE_DEBUG_AUTH=true`; production has no list of all users and only allows invites, rematches and the solver bot.
 - The bot uses the `POST /v1/auth/debug/select` route to get a bearer. That
   route only exists when `ENABLE_DEBUG_AUTH=true` (set in `docker-compose.yml`,
   and in your `.env` if you run the server natively). It is never set on Fly,

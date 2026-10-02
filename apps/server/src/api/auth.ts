@@ -4,6 +4,7 @@ import { eq } from 'drizzle-orm';
 import { getDb } from './context.js';
 import { users } from '../db/schema.js';
 import { mintToken, resolveToken, revokeToken } from '../auth/tokens.js';
+import { createMatch, getMatchState } from '../game/match.js';
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -33,6 +34,30 @@ export async function debugAuthRoutes(app: FastifyInstance) {
     const token = await mintToken(db, user_id);
 
     return { token, user_id, display_name: user.displayName };
+  });
+}
+
+/**
+ * Debug-only authenticated routes, registered alongside debug auth (local
+ * dev stack only). They restore what production no longer allows — seeing
+ * every user and challenging anyone — for the local practice bot
+ * (apps/bot), which auto-challenges whoever signs in.
+ */
+export async function debugToolRoutes(app: FastifyInstance) {
+  const challengeBody = z.object({ opponent_user_id: z.string().uuid() });
+
+  app.get('/debug/users', async (req) => {
+    const rows = await getDb().query.users.findMany();
+    return rows
+      .filter(u => u.userId !== req.userId && !u.deletedAt)
+      .map(u => ({ user_id: u.userId, display_name: u.displayName }));
+  });
+
+  app.post('/debug/match', async (req) => {
+    const { opponent_user_id } = challengeBody.parse(req.body);
+    const db = getDb();
+    const match = await createMatch(db, req.userId, opponent_user_id);
+    return getMatchState(db, match.matchId, req.userId);
   });
 }
 

@@ -25,6 +25,17 @@ describe('debug auth gate', () => {
     await app.close();
   });
 
+  it('does not register the debug tool routes by default', async () => {
+    const app = await buildApp();
+    for (const [method, url] of [['GET', '/v1/debug/users'], ['POST', '/v1/debug/match']] as const) {
+      const res = await app.inject({ method, url, headers: { authorization: 'Bearer nope' } });
+      // 401 from the bearer hook would mean the route exists; a missing
+      // route is a 404 before auth is ever consulted.
+      expect(res.statusCode).toBe(404);
+    }
+    await app.close();
+  });
+
   it('registers the route when enabled (malformed body reaches validation)', async () => {
     const app = await buildApp({ enableDebugAuth: true });
     const res = await app.inject({ method: 'POST', url: '/v1/auth/debug/select', payload: { user_id: 'nope' } });

@@ -4,7 +4,7 @@ This file tells Claude Code (and any coding agent) how to do high-quality work i
 
 ## 1. What Tilted is (in 3 sentences)
 
-Tilted is a heads-up Texas Hold'em iPhone game for a small group of friends where ten hands run in parallel off one shared chip stack per match. It's explicitly experimental — rules are expected to change as the users play. As of the SIWA / multi-user expansion, any Apple-signed user can challenge any other signed-up user; per-pair matches run concurrently.
+Tilted is a heads-up Texas Hold'em iPhone game for a small group of friends where ten hands run in parallel off one shared chip stack per match. It's explicitly experimental — rules are expected to change as the users play. Any Apple-signed user can play: new opponents are added by invite link, previous opponents can be rematched, and a solver bot is always available; per-pair matches run concurrently.
 
 ## 2. Required reading before writing code
 
@@ -84,7 +84,7 @@ Release builds authenticate via Sign in with Apple — the server verifies ident
 
 ### 4.9 Matches are per-pair
 
-Any authenticated user can challenge any other. The `matches_one_active_idx` invariant is gone: multiple pairs can have active matches concurrently. The application-level check is "at most one active match per (userA, userB) pair, in either ordering" — enforced in `createMatch`.
+A user can start a match with a new person only through an invite (spec §25), can rematch anyone they have played before, and can play the bot; there is no public roster. The `matches_one_active_idx` invariant is gone: multiple pairs can have active matches concurrently. The application-level check is "at most one active match per (userA, userB) pair, in either ordering" — enforced in `createMatch`.
 
 ## 5. Workflow: one sprint, one story at a time
 

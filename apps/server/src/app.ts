@@ -6,7 +6,7 @@ import { execSync } from 'node:child_process';
 import { ZodError } from 'zod';
 import { env } from './env.js';
 import { GameRuleError } from './errors.js';
-import { debugAuthRoutes, bearerAuth, sessionRoutes } from './api/auth.js';
+import { debugAuthRoutes, debugToolRoutes, bearerAuth, sessionRoutes } from './api/auth.js';
 import { authAppleRoutes } from './api/routes/auth-apple.js';
 import { authAppleWebhookRoutes } from './api/routes/auth-apple-webhook.js';
 import { matchRoutes } from './api/routes/match.js';
@@ -102,6 +102,9 @@ export async function buildApp(
 
     // All authenticated routes
     await authenticated.register(sessionRoutes);
+    if (enableDebugAuth) {
+      await authenticated.register(debugToolRoutes);
+    }
     await authenticated.register(meRoutes);
     await authenticated.register(matchRoutes);
     await authenticated.register(handRoutes);
