@@ -23,12 +23,14 @@ services:
       context: .
       dockerfile: apps/server/Dockerfile
     # NODE_ENV must be 'production' — the prod image omits pino-pretty, so
-    # 'development' would crash the logger. Debug auth is open regardless,
-    # which is what lets the bot and the phone sign in locally.
+    # 'development' would crash the logger. ENABLE_DEBUG_AUTH opens the
+    # debug login route, which is what lets the bot and the phone sign in
+    # locally. It is never set on Fly.
     environment:
       DATABASE_URL: postgres://tilted:tilted@postgres:5432/tilted
       PORT: '3000'
       NODE_ENV: production
+      ENABLE_DEBUG_AUTH: 'true'
     # Migrate + seed (idempotent), then start.
     command: ['sh', '-c', 'node apps/server/dist/db/bootstrap.js && node apps/server/dist/http.js']
     ports:

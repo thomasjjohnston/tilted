@@ -26,7 +26,10 @@ function getGitSha(): string {
   }
 }
 
-export async function buildApp() {
+export async function buildApp(
+  opts: { enableDebugAuth?: boolean } = {},
+) {
+  const enableDebugAuth = opts.enableDebugAuth ?? env.ENABLE_DEBUG_AUTH;
   const app = Fastify({
     logger: {
       level: env.NODE_ENV === 'test' ? 'silent' : 'info',
@@ -69,8 +72,11 @@ export async function buildApp() {
 
   // Unauthenticated sign-in routes. Apple auth is rate-limited per IP
   // (5/minute) since it's DoS-adjacent — attacker hitting it costs us
-  // an Apple JWKS fetch each time.
-  await app.register(debugAuthRoutes, { prefix: '/v1' });
+  // an Apple JWKS fetch each time. Debug auth hands out a bearer for any
+  // user_id, so it only exists when explicitly enabled (local dev stack).
+  if (enableDebugAuth) {
+    await app.register(debugAuthRoutes, { prefix: '/v1' });
+  }
   await app.register(async (scope) => {
     await scope.register(rateLimit, {
       max: 5,
