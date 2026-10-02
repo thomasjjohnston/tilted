@@ -474,3 +474,29 @@ Offered as a starting point for the implementing engineer.
   derived from the email address.
 - Generated names are not guaranteed unique and cannot be edited at launch.
 
+---
+
+## 25. Addendum (launch): invites
+
+Starting a match with a new person is by invite only. There is no public
+list of players.
+
+- **Creating:** any signed-in player can create an invite. It has a short
+  code (8 characters, no look-alike letters or digits) and a share link
+  `https://<public host>/i/<code>`. The app shares the link through the
+  system share sheet; the app never reads contacts.
+- **Single use, 7 days.** An invite can be redeemed once, by one person, and
+  expires 7 days after creation (`INVITE_TTL_DAYS`).
+- **Redeeming starts the match immediately.** Sending the invite is the
+  inviter's consent and redeeming it is the redeemer's; there is no separate
+  accept step. Coin flip for small blind as usual. The inviter gets the
+  normal "new match" notification.
+- **By link or by code.** Tapping the link opens the app and redeems it. A
+  player without the app installs it, then taps the link again or types the
+  code. Codes are accepted in any case, with or without spaces or dashes.
+- **Refused, with nothing created:** unknown code; expired; already used by
+  someone else; your own invite; the pair already has an active match (the
+  invite stays valid for later); the inviter's account was deleted.
+- A player may create any number of invites. Deleting an account removes its
+  unused invites.
+

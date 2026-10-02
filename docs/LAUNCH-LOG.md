@@ -22,6 +22,7 @@ and anything skipped. Newest entries at the bottom.
 | 2026-10-02 | A5 Generated names for hidden Apple names | #31 | Word lists in `apps/server/src/lib/player-names.ts`. |
 | 2026-10-02 | B6 Play-the-bot endpoint | #32 | `GET /v1/bot`, `POST /v1/match/bot`, `opponent.is_bot`. Server only; the iOS button comes with the new-game screen in section C. |
 | 2026-10-02 | B9 Bot retry sweep | #33 | Every 60s and at startup; pinging the bot also triggers its turn. |
+| 2026-10-02 | C10 Invites: create and redeem | #34 | Migration 0009 (new table). |
 
 ## Decisions made without asking
 
@@ -62,6 +63,14 @@ and anything skipped. Newest entries at the bottom.
     queue. It only runs while the Fly machine is awake, which is fine: any
     request from the waiting player wakes it, and the sweep also runs at
     startup.
+15. **Invites are single-use, 7 days, 8-character codes** from an alphabet
+    without 0/O/1/I/L. A player may hold any number of open invites.
+16. **Redeeming when the pair already has an active match is refused but does
+    not burn the invite.**
+17. **Redeem is rate-limited to 30 requests a minute per user** to stop code
+    guessing.
+18. **The invite's "new match" push goes to the inviter**, sent as if from
+    the redeemer ("New match! Bob dealt round 1").
 
 ## Open items for TJ
 

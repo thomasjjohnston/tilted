@@ -172,6 +172,24 @@ export const appEvents = pgTable('app_events', {
   occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+// ── Invites (share-link / short-code way to start a match, spec §25) ─────────
+
+export const invites = pgTable('invites', {
+  inviteId: uuid('invite_id').primaryKey().defaultRandom(),
+  // Short human-typable code; also the path segment of the share link.
+  code: text('code').notNull().unique(),
+  inviterUserId: uuid('inviter_user_id').notNull().references(() => users.userId),
+  clientTxId: text('client_tx_id').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  // Single-use: set together when someone redeems the invite.
+  redeemedByUserId: uuid('redeemed_by_user_id').references(() => users.userId),
+  redeemedAt: timestamp('redeemed_at', { withTimezone: true }),
+  matchId: uuid('match_id').references(() => matches.matchId),
+}, (table) => [
+  unique('invites_idempotency_idx').on(table.inviterUserId, table.clientTxId),
+]);
+
 // ── Solver strategies (Untilted bot; imported from the offline artifact) ─────
 // Frequencies only — the bot samples mixed strategies; EVs stay offline.
 // Populated by `tools/solver: uv run solver.py import-pg`, never by the app.

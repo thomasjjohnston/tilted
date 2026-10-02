@@ -64,6 +64,13 @@
       "when": 1790968706076,
       "tag": "0008_token_last_used",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1790972216667,
+      "tag": "0009_invites",
+      "breakpoints": true
     }
   ]
 }
